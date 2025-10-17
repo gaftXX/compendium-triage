@@ -1,0 +1,50 @@
+import { contextBridge, ipcRenderer } from 'electron';
+
+// Expose protected methods to renderer
+contextBridge.exposeInMainWorld('electronAPI', {
+  // Window controls
+  window: {
+    minimize: () => ipcRenderer.invoke('window:minimize'),
+    maximize: () => ipcRenderer.invoke('window:maximize'),
+    close: () => ipcRenderer.invoke('window:close'),
+    isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+  },
+  
+  // App info
+  app: {
+    getVersion: () => ipcRenderer.invoke('app:getVersion'),
+    getPlatform: () => process.platform,
+  },
+  
+  // Event listeners
+  on: (channel: string, callback: (...args: any[]) => void) => {
+    const validChannels = ['window:maximized', 'window:unmaximized'];
+    if (validChannels.includes(channel)) {
+      ipcRenderer.on(channel, (_event, ...args) => callback(...args));
+    }
+  },
+  
+  off: (channel: string, callback: (...args: any[]) => void) => {
+    ipcRenderer.removeListener(channel, callback);
+  },
+});
+
+// Type definitions for TypeScript
+declare global {
+  interface Window {
+    electronAPI: {
+      window: {
+        minimize: () => Promise<void>;
+        maximize: () => Promise<void>;
+        close: () => Promise<void>;
+        isMaximized: () => Promise<boolean>;
+      };
+      app: {
+        getVersion: () => Promise<string>;
+        getPlatform: () => string;
+      };
+      on: (channel: string, callback: (...args: any[]) => void) => void;
+      off: (channel: string, callback: (...args: any[]) => void) => void;
+    };
+  }
+}
