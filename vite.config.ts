@@ -14,15 +14,16 @@ export default defineConfig({
   
   
   server: {
-    port: 5173,
+    port: 3000,
   },
   
   resolve: {
     alias: {
       '@': path.join(__dirname, 'renderer/src'),
-      '@/orchestrator': path.join(__dirname, 'orchestrator'),
-      '@/ui': path.join(__dirname, 'ui'),
-      '@/shared': path.join(__dirname, 'shared'),
+      '@/orchestrator': path.join(__dirname, '../orchestrator'),
+      '@/cross': path.join(__dirname, '../cross'),
+      '@/ui': path.join(__dirname, '../ui'),
+      '@/shared': path.join(__dirname, '../shared'),
     },
   },
 });

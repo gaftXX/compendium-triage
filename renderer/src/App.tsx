@@ -1,99 +1,393 @@
 import React, { useState, useEffect } from 'react';
-import { useElectron } from './hooks/useElectron';
-import { testFirebaseConnection, type ConnectionTestResult } from './services/firebase';
+import { Cross } from '../../cross/Cross';
+import { OfficesList } from './components/offices/OfficesList';
+import { OfficeDetail } from './components/offices/OfficeDetail';
+import { ProjectsList } from './components/projects/ProjectsList';
+import { ProjectDetail } from './components/projects/ProjectDetail';
+import { RegulatoryList } from './components/regulatory/RegulatoryList';
+import { RegulatoryDetail } from './components/regulatory/RegulatoryDetail';
+import { Office, Project, Regulation } from './types/firestore';
+import { useOffices, useProjects, useRegulations } from './hooks/useFirestore';
+import { initializeFirebase } from './services/firebase';
+
+type ViewType = 'cross' | 'offices-list' | 'office-detail' | 'projects-list' | 'project-detail' | 'regulatory-list' | 'regulatory-detail';
+
+interface AppState {
+  currentView: ViewType;
+  selectedOffice?: Office;
+  selectedProject?: Project;
+  selectedRegulation?: Regulation;
+  showCross: boolean;
+}
 
 function App() {
-  const { isElectron, appVersion, platform } = useElectron();
-  const [firebaseStatus, setFirebaseStatus] = useState<ConnectionTestResult | null>(null);
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [appState, setAppState] = useState<AppState>({
+    currentView: 'cross',
+    showCross: true
+  });
 
+  // Initialize Firebase when app starts
   useEffect(() => {
-    // Test Firebase connection on app load
-    const testConnection = async () => {
-      setIsTestingConnection(true);
+    const initFirebase = async () => {
       try {
-        const result = await testFirebaseConnection();
-        setFirebaseStatus(result);
+        await initializeFirebase();
+        console.log('Firebase initialized successfully');
       } catch (error) {
-        setFirebaseStatus({
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          timestamp: new Date()
-        });
-      } finally {
-        setIsTestingConnection(false);
+        console.error('Failed to initialize Firebase:', error);
+      }
+    };
+    initFirebase();
+  }, []);
+
+  // Firestore hooks
+  const { createOffice, updateOffice, deleteOffice } = useOffices();
+  const { createProject, updateProject, deleteProject } = useProjects();
+  const { createRegulation, updateRegulation, deleteRegulation } = useRegulations();
+
+  // Handle window management when views change
+  useEffect(() => {
+    const handleViewChange = async () => {
+      if (appState.currentView === 'cross') {
+        // Show Cross UI - restore normal window
+        await window.electronAPI?.restoreWindow();
+        setAppState(prev => ({ ...prev, showCross: true }));
+      } else {
+        // Hide Cross UI and maximize window for other views
+        await window.electronAPI?.maximizeWindow();
+        setAppState(prev => ({ ...prev, showCross: false }));
       }
     };
 
-    testConnection();
-  }, []);
+    handleViewChange();
+  }, [appState.currentView]);
+
+  const handleOfficeSelect = (office: Office) => {
+    setAppState(prev => ({
+      ...prev,
+      currentView: 'office-detail',
+      selectedOffice: office
+    }));
+  };
+
+  const handleProjectSelect = (project: Project) => {
+    setAppState(prev => ({
+      ...prev,
+      currentView: 'project-detail',
+      selectedProject: project
+    }));
+  };
+
+  const handleRegulationSelect = (regulation: Regulation) => {
+    setAppState(prev => ({
+      ...prev,
+      currentView: 'regulatory-detail',
+      selectedRegulation: regulation
+    }));
+  };
+
+  const handleBackToList = () => {
+    if (appState.currentView === 'office-detail') {
+      setAppState(prev => ({
+        ...prev,
+        currentView: 'offices-list',
+        selectedOffice: undefined
+      }));
+    } else if (appState.currentView === 'project-detail') {
+      setAppState(prev => ({
+        ...prev,
+        currentView: 'projects-list',
+        selectedProject: undefined
+      }));
+    } else if (appState.currentView === 'regulatory-detail') {
+      setAppState(prev => ({
+        ...prev,
+        currentView: 'regulatory-list',
+        selectedRegulation: undefined
+      }));
+    }
+  };
+
+  const handleCreateOffice = async () => {
+    // For now, just show a placeholder - in a real implementation this would open a form
+    console.log('Create office clicked - would open form');
+    // Example of creating an office:
+    // const newOffice = await createOffice({
+    //   name: 'New Office',
+    //   officialName: 'New Office Ltd',
+    //   founded: new Date().getFullYear(),
+    //   status: 'active',
+    //   location: { headquarters: { city: 'Unknown', country: 'Unknown' }, otherOffices: [] },
+    //   size: { employeeCount: 0, sizeCategory: 'boutique', annualRevenue: 0 },
+    //   specializations: [],
+    //   notableWorks: [],
+    //   connectionCounts: { totalProjects: 0, activeProjects: 0, clients: 0, competitors: 0, suppliers: 0 }
+    // });
+  };
+
+  const handleCreateProject = async () => {
+    console.log('Create project clicked - would open form');
+    // Example of creating a project:
+    // const newProject = await createProject({
+    //   projectName: 'New Project',
+    //   officeId: 'unknown',
+    //   cityId: 'unknown',
+    //   clientId: 'unknown',
+    //   status: 'concept',
+    //   timeline: { startDate: new Date(), expectedCompletion: new Date() },
+    //   location: { city: 'Unknown', country: 'Unknown' },
+    //   financial: { budget: 0, currency: 'USD' },
+    //   details: { projectType: 'unknown', size: 0, description: 'New project' }
+    // });
+  };
+
+  const handleCreateRegulation = async () => {
+    console.log('Create regulation clicked - would open form');
+    // Example of creating a regulation:
+    // const newRegulation = await createRegulation({
+    //   regulationType: 'zoning',
+    //   name: 'New Regulation',
+    //   jurisdiction: { level: 'city', country: 'Unknown', countryName: 'Unknown', scope: { appliesToCountry: false, appliesToState: false, appliesToCities: [], appliesToProjectTypes: [] } },
+    //   hierarchy: { relatedRegulations: [] },
+    //   effectiveDate: new Date(),
+    //   version: '1.0',
+    //   description: 'New regulation',
+    //   requirements: [],
+    //   compliance: { mandatory: false, penalties: { fines: '', criminal: false, projectStoppage: false }, requiredCertifications: [], inspectionRequired: false, complianceCost: { estimated: 0, currency: 'USD', perProjectType: {} }, documentationRequired: [] },
+    //   enforcement: { enforcingAuthority: '', inspectionFrequency: '', complianceRate: 0, violationCount: 0 },
+    //   impact: { level: 'low', affectedProjects: [], economicImpact: '', timelineImpact: '', designImpact: '' },
+    //   newsArticles: []
+    // });
+  };
+
+  const handleEditOffice = async (office: Office) => {
+    console.log('Edit office:', office);
+    // In a real implementation, this would open an edit form
+    // For now, just show a placeholder
+    alert('Edit office functionality would open here');
+  };
+
+  const handleEditProject = async (project: Project) => {
+    console.log('Edit project:', project);
+    alert('Edit project functionality would open here');
+  };
+
+  const handleEditRegulation = async (regulation: Regulation) => {
+    console.log('Edit regulation:', regulation);
+    alert('Edit regulation functionality would open here');
+  };
+
+  const handleDeleteOffice = async (officeId: string) => {
+    const confirmed = window.confirm('Are you sure you want to delete this office?');
+    if (confirmed) {
+      const success = await deleteOffice(officeId);
+      if (success) {
+        handleBackToList();
+      } else {
+        alert('Failed to delete office');
+      }
+    }
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    const confirmed = window.confirm('Are you sure you want to delete this project?');
+    if (confirmed) {
+      const success = await deleteProject(projectId);
+      if (success) {
+        handleBackToList();
+      } else {
+        alert('Failed to delete project');
+      }
+    }
+  };
+
+  const handleDeleteRegulation = async (regulationId: string) => {
+    const confirmed = window.confirm('Are you sure you want to delete this regulation?');
+    if (confirmed) {
+      const success = await deleteRegulation(regulationId);
+      if (success) {
+        handleBackToList();
+      } else {
+        alert('Failed to delete regulation');
+      }
+    }
+  };
+
+  const handleNavigateToOffices = () => {
+    setAppState(prev => ({
+      ...prev,
+      currentView: 'offices-list'
+    }));
+  };
+
+  const handleNavigateToProjects = () => {
+    setAppState(prev => ({
+      ...prev,
+      currentView: 'projects-list'
+    }));
+  };
+
+  const handleNavigateToRegulatory = () => {
+    setAppState(prev => ({
+      ...prev,
+      currentView: 'regulatory-list'
+    }));
+  };
+
+  const handleNavigateToCross = () => {
+    setAppState(prev => ({
+      ...prev,
+      currentView: 'cross'
+    }));
+  };
+
+  // Render the appropriate view
+  const renderView = () => {
+    switch (appState.currentView) {
+      case 'cross':
+        return <Cross />;
+      
+      case 'offices-list':
+        return (
+          <OfficesList
+            onOfficeSelect={handleOfficeSelect}
+            onCreateOffice={handleCreateOffice}
+          />
+        );
+      
+      case 'office-detail':
+        if (!appState.selectedOffice) return null;
+        return (
+          <OfficeDetail
+            office={appState.selectedOffice}
+            onEdit={handleEditOffice}
+            onDelete={handleDeleteOffice}
+            onBack={handleBackToList}
+          />
+        );
+      
+      case 'projects-list':
+        return (
+          <ProjectsList
+            onProjectSelect={handleProjectSelect}
+            onCreateProject={handleCreateProject}
+            officeId={appState.selectedOffice?.id}
+          />
+        );
+      
+      case 'project-detail':
+        if (!appState.selectedProject) return null;
+        return (
+          <ProjectDetail
+            project={appState.selectedProject}
+            onEdit={handleEditProject}
+            onDelete={handleDeleteProject}
+            onBack={handleBackToList}
+          />
+        );
+      
+      case 'regulatory-list':
+        return (
+          <RegulatoryList
+            onRegulationSelect={handleRegulationSelect}
+            onCreateRegulation={handleCreateRegulation}
+          />
+        );
+      
+      case 'regulatory-detail':
+        if (!appState.selectedRegulation) return null;
+        return (
+          <RegulatoryDetail
+            regulation={appState.selectedRegulation}
+            onEdit={handleEditRegulation}
+            onDelete={handleDeleteRegulation}
+            onBack={handleBackToList}
+          />
+        );
+      
+      default:
+        return <Cross />;
+    }
+  };
 
   return (
-    <div style={{
-      width: '100vw',
-      height: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#0A0E27',
-      color: '#ffffff',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif'
-    }}>
-      <h1 style={{ 
-        fontSize: '2.5rem', 
-        marginBottom: '1rem',
-        fontWeight: '300',
-        letterSpacing: '0.1em'
-      }}>
-        Compendium Triage
-      </h1>
-      
-      <p style={{ 
-        fontSize: '1.2rem', 
-        opacity: 0.8,
-        textAlign: 'center',
-        maxWidth: '600px',
-        lineHeight: '1.6'
-      }}>
-        AI Orchestrator Architecture App
-      </p>
-      
-      <div style={{
-        marginTop: '2rem',
-        padding: '1rem 2rem',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: '8px',
-        border: '1px solid rgba(255, 255, 255, 0.2)'
-      }}>
-        <p style={{ margin: 0, fontSize: '0.9rem' }}>
-          Phase 1: API Setup Complete ✅
-        </p>
-        
-        {/* Firebase Connection Status */}
-        <div style={{ marginTop: '0.5rem' }}>
-          {isTestingConnection ? (
-            <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.7 }}>
-              Testing Firebase connection...
-            </p>
-          ) : firebaseStatus ? (
-            <p style={{ 
-              margin: 0, 
-              fontSize: '0.8rem', 
-              color: firebaseStatus.success ? '#4ade80' : '#f87171'
-            }}>
-              Firebase: {firebaseStatus.success ? 'Connected' : 'Failed'} 
-              {firebaseStatus.latency && ` (${firebaseStatus.latency}ms)`}
-              {firebaseStatus.error && ` - ${firebaseStatus.error}`}
-            </p>
-          ) : null}
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Navigation Bar - only show when not in Cross view */}
+      {!appState.showCross && (
+        <div style={{
+          backgroundColor: '#f8f9fa',
+          borderBottom: '1px solid #dee2e6',
+          padding: '10px 20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+            <button
+              onClick={handleNavigateToCross}
+              style={{
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Cross UI
+            </button>
+            <button
+              onClick={handleNavigateToOffices}
+              style={{
+                backgroundColor: appState.currentView === 'offices-list' || appState.currentView === 'office-detail' ? '#28a745' : '#6c757d',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Offices
+            </button>
+            <button
+              onClick={handleNavigateToProjects}
+              style={{
+                backgroundColor: appState.currentView === 'projects-list' || appState.currentView === 'project-detail' ? '#28a745' : '#6c757d',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Projects
+            </button>
+            <button
+              onClick={handleNavigateToRegulatory}
+              style={{
+                backgroundColor: appState.currentView === 'regulatory-list' || appState.currentView === 'regulatory-detail' ? '#28a745' : '#6c757d',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Regulations
+            </button>
+          </div>
+          <div style={{ fontSize: '14px', color: '#6c757d' }}>
+            {appState.currentView.replace('-', ' ').toUpperCase()}
+          </div>
         </div>
-        
-        {isElectron && (
-          <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', opacity: 0.7 }}>
-            Electron v{appVersion} • {platform}
-          </p>
-        )}
+      )}
+
+      {/* Main Content Area */}
+      <div style={{ flex: 1, overflow: 'auto' }}>
+        {renderView()}
       </div>
     </div>
   );

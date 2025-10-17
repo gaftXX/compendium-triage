@@ -8,6 +8,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     maximize: () => ipcRenderer.invoke('window:maximize'),
     close: () => ipcRenderer.invoke('window:close'),
     isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+    restore: () => ipcRenderer.invoke('window:restore'),
+    maximizeWindow: () => ipcRenderer.invoke('window:maximizeWindow'),
+    restoreWindow: () => ipcRenderer.invoke('window:restoreWindow'),
   },
   
   // App info
@@ -38,6 +41,9 @@ declare global {
         maximize: () => Promise<void>;
         close: () => Promise<void>;
         isMaximized: () => Promise<boolean>;
+        restore: () => Promise<void>;
+        maximizeWindow: () => Promise<void>;
+        restoreWindow: () => Promise<void>;
       };
       app: {
         getVersion: () => Promise<string>;

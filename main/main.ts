@@ -1,5 +1,6 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import path from 'path';
+import { registerAllHandlers } from './ipc';
 
 const PHI = 1.618033988749;
 
@@ -14,11 +15,11 @@ function createMainWindow(): BrowserWindow {
     minHeight: Math.round(800 / PHI), // ~494px
     
     // Window appearance
-    backgroundColor: '#0A0E27', // Dark background
+    backgroundColor: 'transparent', // Transparent background
+    transparent: true, // Enable transparency
     
     // Frame options
-    frame: true,
-    titleBarStyle: 'hiddenInset', // macOS: hidden title bar with traffic lights
+    frame: false, // No window frame at all
     
     // Window behavior
     center: true,
@@ -30,22 +31,27 @@ function createMainWindow(): BrowserWindow {
     webPreferences: {
       nodeIntegration: false,          // Security: disable node in renderer
       contextIsolation: true,           // Security: isolate context
-      sandbox: true,                    // Security: enable sandbox
-      preload: path.join(__dirname, 'preload.js'),
+      sandbox: false,                   // Disable sandbox for development
+      // preload: path.join(__dirname, 'preload.ts'), // Disabled for development
       
       // Development
-      devTools: process.env.NODE_ENV === 'development',
+      devTools: true, // Always enable dev tools for debugging
     },
     
     // Show behavior
-    show: false, // Don't show until ready
+    show: true, // Show immediately for debugging
   });
   
   // Load app
+  console.log('NODE_ENV:', process.env.NODE_ENV);
   if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:5173'); // Vite dev server
+    const devUrl = 'http://localhost:3000';
+    console.log('Loading development URL:', devUrl);
+    mainWindow.loadURL(devUrl); // Vite dev server
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+    const filePath = path.join(__dirname, '../renderer/index.html');
+    console.log('Loading file:', filePath);
+    mainWindow.loadFile(filePath);
   }
   
   // Show when ready
@@ -73,6 +79,9 @@ if (!gotTheLock) {
   
   // App ready
   app.whenReady().then(() => {
+    // Register IPC handlers
+    registerAllHandlers();
+    
     createMainWindow();
     
     // macOS: Re-create window when dock icon clicked
@@ -91,26 +100,3 @@ if (!gotTheLock) {
   });
 }
 
-// IPC Handlers for API communication
-ipcMain.handle('window:minimize', (event) => {
-  const window = BrowserWindow.fromWebContents(event.sender);
-  window?.minimize();
-});
-
-ipcMain.handle('window:maximize', (event) => {
-  const window = BrowserWindow.fromWebContents(event.sender);
-  if (window?.isMaximized()) {
-    window.unmaximize();
-  } else {
-    window?.maximize();
-  }
-});
-
-ipcMain.handle('window:close', (event) => {
-  const window = BrowserWindow.fromWebContents(event.sender);
-  window?.close();
-});
-
-ipcMain.handle('app:getVersion', () => {
-  return app.getVersion();
-});

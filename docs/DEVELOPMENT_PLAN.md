@@ -94,36 +94,7 @@
 - `/financialMetrics` - Computed KPIs and performance
 - `/externalForcesImpact` - Impact analysis and scenario modeling for external forces
 
-#### 3. Intelligent Note System with AI Categorization
-
-**Auto-Categorization Engine (Active Categories Only):**
-- AI analyzes unstructured text input
-- Identifies correct data category: **office, project, or regulation**
-- Extracts entities and field values automatically
-- Maps to appropriate Firestore collection (offices, projects, or regulations)
-- Validates against schema
-- Auto-generates office IDs in CCccNNN format
-
-**Data Processing Pipeline:**
-1. User inputs unstructured text
-2. AI parses and categorizes content (office, project, or regulation)
-3. Extracts relevant fields:
-   - **Office:** name, city, country, founded year, specializations, etc.
-   - **Project:** name, location, type, timeline, status, etc.
-   - **Regulation:** jurisdiction, law name, description, effective date, etc.
-4. Generates CCccNNN ID for offices or looks up existing entities
-5. Validates required fields
-6. Shows preview for user confirmation
-7. Saves to correct Firestore collection (offices, projects, or regulations only)
-8. Auto-creates relationships between entities (office ↔ project ↔ regulation)
-
-**Update vs Create Logic:**
-- Searches for existing entities by name
-- Merges new data with existing records
-- Updates connection counts automatically
-- Creates bidirectional relationships
-
-#### 4. Active vs. Dormant Collections
+#### 3. Active vs. Dormant Collections
 
 **ACTIVE COLLECTIONS (Initial Build):**
 - `/offices` - Architecture offices (PRIMARY - fully exercised)
@@ -136,7 +107,7 @@
 - No UI or operations built for dormant collections in initial phases
 - Market consolidation tracking (HHI, Gini, M&A) is future functionality
 
-#### 5. Design/Plan the Database Structure
+#### 4. Design/Plan the Database Structure
 - Implement 4-tier architecture (Primary Entities, Connective Tissue, Detailed Data, Market Intelligence)
 - Define document schemas with CCccNNN office ID system
 - Create composite indexes for:
@@ -179,8 +150,6 @@
 - Project operations with office linking
 - Regulatory operations (create, update, query regional laws)
 - Relationship operations (link offices ↔ projects ↔ regulations)
-- Intelligent note parsing and categorization (offices, projects, regulations only)
-- Auto-categorization using AI (parse unstructured → extract entities → validate → save)
 - Query operations for active collections
 
 **DORMANT OPERATIONS (Future):**
@@ -227,11 +196,60 @@
 
 ---
 
-### Phase 4: AI Orchestrator Core + General Engine Foundation
+### Phase 4: Note System (Independent Data Ingestion)
+
+**The Note System is a standalone data ingestion system that works independently from the AI Orchestrator. It processes unstructured text input and automatically creates organized database entries.**
+
+#### 1. Build Note Input Interface
+- Create simple text input field (bare minimum styling)
+- Direct text processing pipeline
+- No complex UI - just functional input and processing
+- Independent from main app components
+
+#### 2. Implement Note Processing Engine
+**Core Note Processing Pipeline:**
+1. User inputs unstructured text
+2. AI analyzes and categorizes content (office, project, or regulation)
+3. Extracts relevant fields automatically:
+   - **Office:** name, city, country, founded year, specializations, etc.
+   - **Project:** name, location, type, timeline, status, etc.
+   - **Regulation:** jurisdiction, law name, description, effective date, etc.
+4. Generates CCccNNN ID for offices or looks up existing entities
+5. Validates required fields
+6. Shows preview for user confirmation
+7. Saves to correct Firestore collection (offices, projects, or regulations only)
+8. Auto-creates relationships between entities (office ↔ project ↔ regulation)
+
+#### 3. Note System Features
+**Auto-Categorization Engine:**
+- AI analyzes unstructured text input
+- Identifies correct data category: **office, project, or regulation**
+- Extracts entities and field values automatically
+- Maps to appropriate Firestore collection
+- Validates against schema
+- Auto-generates office IDs in CCccNNN format
+
+**Update vs Create Logic:**
+- Searches for existing entities by name
+- Merges new data with existing records
+- Updates connection counts automatically
+- Creates bidirectional relationships
+
+**Implementation Notes:**
+- **Independent System:** Note system operates separately from orchestrator
+- **Direct Firestore Access:** Bypasses orchestrator for data operations
+- **Self-Contained:** Has its own AI processing and categorization logic
+- **Data Ingestion Focus:** Solely focused on converting text to structured data
+
+---
+
+### Phase 5: AI Orchestrator Core + General Engine Foundation
+
+**The AI Orchestrator is the central control system for the entire application. It manages app-wide operations, executes commands on demand, and coordinates between different systems. It works with data created by the Note System but operates independently.**
 
 #### 1. Create the Function Registry
-- Build registry.ts that maps all capabilities:
-  - Action name/ID (e.g., "CREATE_OFFICE", "CREATE_REGULATORY", "SEARCH_OFFICES")
+- Build registry.ts that maps all app control capabilities:
+  - Action name/ID (e.g., "CREATE_OFFICE", "SEARCH_OFFICES", "ANALYZE_DATA", "GENERATE_REPORT")
   - Handler function reference
   - Required parameters with types
   - Optional parameters
@@ -304,17 +322,19 @@
 - Get office/project/regulatory details
 
 #### 3. Build the Orchestrator Service
-- Create orchestrator.ts as the central brain
-- Implement input processing pipeline:
-  - Receive user text input
-  - Add context about current app state
+- Create orchestrator.ts as the central app control system
+- Implement command processing pipeline:
+  - Receive user commands/requests
+  - Add context about current app state and available data
   - Build prompt with available actions registry
   - Send to Claude API
   - Parse Claude's structured response
   - Route to appropriate action handler
+  - Execute app control operations (create, search, analyze, report)
   - Return execution result
 - Error handling and fallback logic
 - Conversation history management for context
+- **Note:** Orchestrator works with data created by Note System but operates independently
 
 #### 4. General Engine Foundation (Phase 4 Implementation)
 
@@ -353,11 +373,11 @@
 - Keep it simple - just the infrastructure
 - No styling or complex behavior yet
 - Focus on communication pathways
-- This foundation enables Phase 5 automation
+- This foundation enables Phase 6 automation
 
 ---
 
-### Phase 5: UI Transformation - Cross UI + Main App Overhaul
+### Phase 6: UI Transformation - Cross UI + Main App Overhaul
 
 **This phase has two distinct parts:**
 1. **Cross UI** - Separate note system component (no General Engine)
@@ -538,9 +558,10 @@
 **Phase 1:** Plan Files & Setup APIs & Electron → **COMMIT TO GITHUB**  
 **Phase 2:** Design Structure → Initialize DB → Implement Structure → Build Operations → **COMMIT TO GITHUB**  
 **Phase 3:** Build Bare UI & Features (No General Engine needed yet) → **COMMIT TO GITHUB**  
-**Phase 4:** Build AI Brain + General Engine Foundation (Registry → Handlers → Orchestrator → Component Registry → Event Bus → Context Provider) → **COMMIT TO GITHUB**  
-**Phase 5A:** Build Cross UI (Separate System - No General Engine) → **COMMIT TO GITHUB**  
-**Phase 5B:** Main App UI Overhaul + General Engine Full Implementation (Design System Auto-Application → UX/UI Propagation → Universal Access) → **COMMIT TO GITHUB**
+**Phase 4:** Build Note System (Independent Data Ingestion) → **COMMIT TO GITHUB**  
+**Phase 5:** Build AI Orchestrator Core + General Engine Foundation → **COMMIT TO GITHUB**  
+**Phase 6A:** Build Cross UI (Separate System - No General Engine) → **COMMIT TO GITHUB**  
+**Phase 6B:** Main App UI Overhaul + General Engine Full Implementation (Design System Auto-Application → UX/UI Propagation → Universal Access) → **COMMIT TO GITHUB**
 
 ---
 
@@ -585,13 +606,13 @@ A self-managing system that automatically handles:
 - Establish action inheritance patterns
 - Keep it simple - just the skeleton
 
-**Phase 5A: Cross UI (Not Applicable)**
+**Phase 6A: Cross UI (Not Applicable)**
 - Cross UI is built as separate system
 - Does NOT use General Engine
 - Operates independently with own styling
 - Direct orchestrator communication
 
-**Phase 5B: Full Implementation (Main App Only)**
+**Phase 6B: Full Implementation (Main App Only)**
 - Add Design System Registry with auto-application
 - Implement UX → UI effect propagation
 - Enable automatic styling for all main app components

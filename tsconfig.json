@@ -19,6 +19,7 @@
     "paths": {
       "@/*": ["renderer/src/*"],
       "@/orchestrator/*": ["orchestrator/*"],
+      "@/cross/*": ["cross/*"],
       "@/ui/*": ["ui/*"],
       "@/shared/*": ["shared/*"]
     }
@@ -26,6 +27,7 @@
   "include": [
     "renderer/src",
     "orchestrator",
+    "cross",
     "ui",
     "shared"
   ],
