@@ -1,8 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useElectron } from './hooks/useElectron';
+import { testFirebaseConnection, type ConnectionTestResult } from './services/firebase';
 
 function App() {
   const { isElectron, appVersion, platform } = useElectron();
+  const [firebaseStatus, setFirebaseStatus] = useState<ConnectionTestResult | null>(null);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+
+  useEffect(() => {
+    // Test Firebase connection on app load
+    const testConnection = async () => {
+      setIsTestingConnection(true);
+      try {
+        const result = await testFirebaseConnection();
+        setFirebaseStatus(result);
+      } catch (error) {
+        setFirebaseStatus({
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date()
+        });
+      } finally {
+        setIsTestingConnection(false);
+      }
+    };
+
+    testConnection();
+  }, []);
 
   return (
     <div style={{
@@ -45,6 +69,26 @@ function App() {
         <p style={{ margin: 0, fontSize: '0.9rem' }}>
           Phase 1: API Setup Complete ✅
         </p>
+        
+        {/* Firebase Connection Status */}
+        <div style={{ marginTop: '0.5rem' }}>
+          {isTestingConnection ? (
+            <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.7 }}>
+              Testing Firebase connection...
+            </p>
+          ) : firebaseStatus ? (
+            <p style={{ 
+              margin: 0, 
+              fontSize: '0.8rem', 
+              color: firebaseStatus.success ? '#4ade80' : '#f87171'
+            }}>
+              Firebase: {firebaseStatus.success ? 'Connected' : 'Failed'} 
+              {firebaseStatus.latency && ` (${firebaseStatus.latency}ms)`}
+              {firebaseStatus.error && ` - ${firebaseStatus.error}`}
+            </p>
+          ) : null}
+        </div>
+        
         {isElectron && (
           <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', opacity: 0.7 }}>
             Electron v{appVersion} • {platform}

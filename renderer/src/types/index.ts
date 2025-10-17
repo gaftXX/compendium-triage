@@ -20,3 +20,19 @@ declare global {
     electronAPI: ElectronAPI;
   }
 }
+
+// ============================================================================
+// FIRESTORE TYPES
+// ============================================================================
+
+// Export all Firestore types
+export * from './firestore';
+
+// Export validation types
+export * from './validation';
+
+// Export operation types
+export * from './operations';
+
+// Export utility types
+export * from './utils';
