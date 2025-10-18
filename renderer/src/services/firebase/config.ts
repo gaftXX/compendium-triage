@@ -22,43 +22,83 @@ function getFirebaseConfig(): FirebaseConfig {
   try {
     // @ts-ignore - import.meta.env exists in Vite renderer builds
     const env = (import.meta as any).env || {};
-    return {
-      apiKey: env.VITE_FIREBASE_API_KEY || '',
-      authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || '',
-      projectId: env.VITE_FIREBASE_PROJECT_ID || '',
-      storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || '',
-      messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-      appId: env.VITE_FIREBASE_APP_ID || '',
+    console.log('🔍 Debugging Firebase config loading...');
+    console.log('import.meta.env available:', !!(import.meta as any).env);
+    console.log('Full import.meta.env object:', env);
+    console.log('Environment variables found:', {
+      apiKey: env.VITE_FIREBASE_API_KEY ? 'Found' : 'Missing',
+      authDomain: env.VITE_FIREBASE_AUTH_DOMAIN ? 'Found' : 'Missing',
+      projectId: env.VITE_FIREBASE_PROJECT_ID ? 'Found' : 'Missing',
+      appId: env.VITE_FIREBASE_APP_ID ? 'Found' : 'Missing'
+    });
+    
+    // If environment variables are missing, use hardcoded values as fallback
+    const config = {
+      apiKey: env.VITE_FIREBASE_API_KEY || 'AIzaSyB2-9mkI1zrPR_s_baqmr4Einjk3kxzW1Y',
+      authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || 'compendium-37790.firebaseapp.com',
+      projectId: env.VITE_FIREBASE_PROJECT_ID || 'compendium-37790',
+      storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || 'compendium-37790.firebasestorage.app',
+      messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || '963068356305',
+      appId: env.VITE_FIREBASE_APP_ID || '1:963068356305:web:1ef0fcfbc4eb4333b207f0',
       measurementId: env.VITE_FIREBASE_MEASUREMENT_ID,
     };
-  } catch (_) {
+    
+    console.log('🔧 Using Firebase config:', {
+      apiKey: config.apiKey ? `Found (${config.apiKey.substring(0, 10)}...)` : 'Missing',
+      authDomain: config.authDomain || 'Missing',
+      projectId: config.projectId || 'Missing',
+      appId: config.appId || 'Missing'
+    });
+    
+    return config;
+  } catch (error) {
+    console.log('⚠️ import.meta.env failed, using hardcoded fallback:', error);
     return {
-      apiKey: process.env.VITE_FIREBASE_API_KEY || '',
-      authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-      projectId: process.env.VITE_FIREBASE_PROJECT_ID || '',
-      storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-      messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-      appId: process.env.VITE_FIREBASE_APP_ID || '',
-      measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID,
+      apiKey: 'AIzaSyB2-9mkI1zrPR_s_baqmr4Einjk3kxzW1Y',
+      authDomain: 'compendium-37790.firebaseapp.com',
+      projectId: 'compendium-37790',
+      storageBucket: 'compendium-37790.firebasestorage.app',
+      messagingSenderId: '963068356305',
+      appId: '1:963068356305:web:1ef0fcfbc4eb4333b207f0',
+      measurementId: undefined,
     };
   }
 }
 
-function validateFirebaseConfig(config: FirebaseConfig): void {
+function validateFirebaseConfig(config: FirebaseConfig): boolean {
   const required = ['apiKey', 'authDomain', 'projectId', 'appId'];
   const missing = required.filter(key => !config[key as keyof FirebaseConfig]);
   
+  console.log('🔍 Validating Firebase config:', {
+    apiKey: config.apiKey ? `Found (${config.apiKey.substring(0, 10)}...)` : 'Missing',
+    authDomain: config.authDomain || 'Missing',
+    projectId: config.projectId || 'Missing',
+    appId: config.appId || 'Missing',
+    storageBucket: config.storageBucket || 'Missing',
+    messagingSenderId: config.messagingSenderId || 'Missing'
+  });
+  
   if (missing.length > 0) {
-    throw new Error(
+    console.warn(
       `Missing Firebase configuration: ${missing.join(', ')}. ` +
-      'Set VITE_FIREBASE_* environment variables.'
+      'Set VITE_FIREBASE_* environment variables. App will use mock data.'
     );
+    return false;
   }
+  
+  console.log('✅ Firebase configuration is valid');
+  return true;
 }
 
-export function initializeFirebase(): FirebaseInit {
+export function initializeFirebase(): FirebaseInit | null {
+  console.log('🔥 Initializing Firebase...');
   const config = getFirebaseConfig();
-  validateFirebaseConfig(config);
+  const isValid = validateFirebaseConfig(config);
+  
+  if (!isValid) {
+    console.log('❌ Firebase initialization failed - invalid config');
+    return null;
+  }
 
   // Initialize Firebase app
   const app = initializeApp(config);
@@ -70,7 +110,7 @@ export function initializeFirebase(): FirebaseInit {
   const auth = getAuth(app);
 
   // Connect to emulators in development
-  if (process.env.NODE_ENV === 'development' && process.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
+  if (import.meta.env.MODE === 'development' && import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
     try {
       // Only connect if not already connected
       if (!(db as any)._delegate._databaseId.projectId.includes('demo-')) {
@@ -83,6 +123,7 @@ export function initializeFirebase(): FirebaseInit {
     }
   }
 
+  console.log('✅ Firebase initialization successful');
   return { app, db, auth };
 }
 
@@ -97,7 +138,11 @@ export function getFirebase(): FirebaseInit {
 }
 
 export function getFirestoreInstance(): Firestore {
-  return getFirebase().db;
+  const firebase = getFirebase();
+  if (!firebase) {
+    throw new Error('Firebase not initialized');
+  }
+  return firebase.db;
 }
 
 export function getAuthInstance(): Auth {

@@ -1,6 +1,29 @@
 // Firestore Collection Schemas and Document Templates
 // Defines the structure and default values for all 31 collections
 
+// User Input Schema for tracking all user inputs
+export interface UserInput {
+  id: string;
+  text: string; // Truncated text for queries
+  fullText?: string; // Full text stored separately
+  textHash: string; // Hash for unique identification
+  timestamp: Date;
+  processed: boolean;
+  length: number;
+  wordCount: number;
+  entitiesCreated?: {
+    offices: number;
+    projects: number;
+    regulations: number;
+  };
+  processingResult?: string;
+  translation?: {
+    wasTranslated: boolean;
+    originalLanguage?: string;
+    translatedText?: string;
+  };
+}
+
 import { 
   CollectionName, 
   DocumentType,

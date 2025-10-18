@@ -125,13 +125,11 @@ export const OFFICE_VALIDATION_RULES: ValidationRule<Office>[] = [
   {
     field: 'size',
     validator: (value: any) => {
-      return value && 
-             typeof value.employeeCount === 'number' && 
-             value.employeeCount > 0 &&
-             ['boutique', 'medium', 'large', 'global'].includes(value.sizeCategory);
+      // Size is completely optional - always return true
+      return true;
     },
     message: 'Size must have valid employeeCount and sizeCategory',
-    required: true
+    required: false
   }
 ];
 

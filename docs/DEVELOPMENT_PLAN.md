@@ -38,9 +38,11 @@
 
 **CCccNNN Format:**
 - **CC** = ISO 3166-1 alpha-2 country code (GB, US, AE, etc.)
-- **cc** = First 2 letters of city (LO=London, NE=NewYork, DU=Dubai)
+- **cc** = City code generation rules:
+  - Single word: First 2 letters (LO=London, PA=Paris)
+  - Multi-word: First letter of first two words (NY=New York, LA=Los Angeles, SJ=Saint Just Desvern)
 - **NNN** = Random 3-digit number (100-999)
-- **Examples:** GBLO482 (London, UK), USNE567 (NYC, USA), AEDU891 (Dubai, UAE)
+- **Examples:** GBLO482 (London, UK), USNY567 (New York, USA), AEDU891 (Dubai, UAE)
 - **Purpose:** Offices identified exclusively by unique ID; names are for display only
 
 **Implementation:**

@@ -36,6 +36,9 @@ function createMainWindow(): BrowserWindow {
       
       // Development
       devTools: true, // Always enable dev tools for debugging
+      
+      // Allow external API calls
+      webSecurity: false, // Disable web security for API calls
     },
     
     // Show behavior
@@ -79,6 +82,10 @@ if (!gotTheLock) {
   
   // App ready
   app.whenReady().then(() => {
+    // Disable web security for API calls
+    app.commandLine.appendSwitch('--disable-web-security');
+    app.commandLine.appendSwitch('--disable-features', 'VizDisplayCompositor');
+    
     // Register IPC handlers
     registerAllHandlers();
     

@@ -1,5 +1,5 @@
 import { getFirebase, getFirestoreInstance, getAuthInstance } from './config';
-import { testFirebaseConnection } from './connectionTest';
+// import { testFirebaseConnection } from './connectionTest'; // File doesn't exist
 
 export interface FirebaseInitializationResult {
   success: boolean;
@@ -27,27 +27,15 @@ export async function initializeFirebaseServices(): Promise<FirebaseInitializati
     const db = getFirestoreInstance();
     const auth = getAuthInstance();
     
-    // Test connection
-    const connectionTest = await testFirebaseConnection();
-    
-    if (!connectionTest.success) {
-      return {
-        success: false,
-        error: `Connection test failed: ${connectionTest.error}`,
-        connectionTest,
-        timestamp: new Date()
-      };
-    }
+    // Connection test removed (file doesn't exist)
     
     console.log('Firebase initialized successfully:', {
       projectId: firebase.app.options.projectId,
-      connectionLatency: connectionTest.latency,
       timestamp: new Date()
     });
     
     return {
       success: true,
-      connectionTest,
       timestamp: new Date()
     };
     

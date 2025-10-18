@@ -669,12 +669,20 @@ function generateOfficeId(city: string, country: string): string {
   // Get ISO country code (2 letters)
   const countryCode = COUNTRY_CODES[country] || country.substring(0, 2).toUpperCase();
   
-  // Get city code (first 2 letters)
-  const cityCode = city
-    .replace(/[^a-zA-Z\s]/g, '')  // Remove special chars
-    .replace(/\s+/g, '')          // Remove spaces
-    .substring(0, 2)
-    .toUpperCase();
+  // Get city code following multi-word rules:
+  // - Single word: first 2 letters (London → LO)
+  // - Multi-word: first letter of first two words (New York → NY, Saint Just Desvern → SJ)
+  const cleanCity = city.replace(/[^a-zA-Z\s]/g, '').trim();
+  const words = cleanCity.split(/\s+/);
+  
+  let cityCode: string;
+  if (words.length === 1) {
+    // Single word: take first 2 letters
+    cityCode = words[0].substring(0, 2).toUpperCase();
+  } else {
+    // Multi-word: take first letter of first two words
+    cityCode = (words[0][0] + words[1][0]).toUpperCase();
+  }
   
   // Generate random 3-digit number
   const randomNum = Math.floor(Math.random() * 900) + 100; // 100-999

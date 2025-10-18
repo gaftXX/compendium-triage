@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Cross } from '../../cross/Cross';
 import { OfficesList } from './components/offices/OfficesList';
 import { OfficeDetail } from './components/offices/OfficeDetail';
@@ -34,26 +34,31 @@ function App() {
         console.log('Firebase initialized successfully');
       } catch (error) {
         console.error('Failed to initialize Firebase:', error);
+        console.log('App will continue with mock data');
       }
     };
     initFirebase();
   }, []);
 
   // Firestore hooks
-  const { createOffice, updateOffice, deleteOffice } = useOffices();
-  const { createProject, updateProject, deleteProject } = useProjects();
-  const { createRegulation, updateRegulation, deleteRegulation } = useRegulations();
+  const { deleteOffice } = useOffices();
+  const { deleteProject } = useProjects();
+  const { deleteRegulation } = useRegulations();
 
   // Handle window management when views change
   useEffect(() => {
     const handleViewChange = async () => {
       if (appState.currentView === 'cross') {
         // Show Cross UI - restore normal window
-        await window.electronAPI?.restoreWindow();
+        if (window.electronAPI?.window) {
+          await (window.electronAPI.window as any).restore();
+        }
         setAppState(prev => ({ ...prev, showCross: true }));
       } else {
         // Hide Cross UI and maximize window for other views
-        await window.electronAPI?.maximizeWindow();
+        if (window.electronAPI?.window?.maximize) {
+          await window.electronAPI.window.maximize();
+        }
         setAppState(prev => ({ ...prev, showCross: false }));
       }
     };

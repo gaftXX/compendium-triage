@@ -62,10 +62,10 @@ export interface Office extends BaseDocument {
     headquarters: Location;
     otherOffices: Location[];
   };
-  size: {
-    employeeCount: number;
-    sizeCategory: 'boutique' | 'medium' | 'large' | 'global';
-    annualRevenue: number;
+  size?: {
+    employeeCount?: number;
+    sizeCategory?: 'boutique' | 'medium' | 'large' | 'global';
+    annualRevenue?: number;
   };
   specializations: string[];
   notableWorks: string[];

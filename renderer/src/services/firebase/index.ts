@@ -8,12 +8,7 @@ export {
   type FirebaseConfig
 } from './config';
 
-// Connection Testing
-export {
-  testFirebaseConnection,
-  testFirebaseConnectionWithRetry,
-  type ConnectionTestResult
-} from './connectionTest';
+// Connection Testing - removed (file doesn't exist)
 
 // Initialization
 export {

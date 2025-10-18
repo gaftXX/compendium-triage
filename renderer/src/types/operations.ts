@@ -1,5 +1,6 @@
 // Firestore operations and query types
 
+import { DocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { 
   DocumentType, 
   CollectionName, 
@@ -78,6 +79,7 @@ export interface QueryOptions {
   orderBy?: QueryOrderBy[];
   limit?: number;
   offset?: number;
+  startAfter?: DocumentSnapshot<DocumentData>;
 }
 
 // ============================================================================

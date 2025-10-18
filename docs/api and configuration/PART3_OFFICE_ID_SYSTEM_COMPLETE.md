@@ -51,7 +51,11 @@
 
 ### ✅ **Intelligent City Code Generation**
 - **Single word cities**: "London" → "LO", "Paris" → "PA"
-- **Multi-word cities**: "New York" → "NY", "Los Angeles" → "LA"
+- **Multi-word cities**: Use first letter of first two words
+  - "New York" → "NY" (N from New, Y from York)
+  - "Los Angeles" → "LA" (L from Los, A from Angeles)
+  - "San Francisco" → "SF" (S from San, F from Francisco)
+  - "Saint Just Desvern" → "SJ" (S from Saint, J from Just)
 - **Special character handling**: "São Paulo" → "SA", "Köln" → "KO"
 - **Alternative generation**: Multiple options for collision avoidance
 
