@@ -6,6 +6,7 @@
 
 import { sendMessage } from './claudeClient';
 import { simpleUIActions } from './actions/simpleUIActions';
+import { webSearchActions } from './actions/webSearchActions';
 
 export interface SimpleOrchestratorRequest {
   command: string;
@@ -119,6 +120,9 @@ Available Actions:
 - navigateBack: Go back to previous view
 - getCurrentState: Get current app state
 - addNote: Process and create entities from unstructured text
+- searchWeb: Search the web for information
+- searchArchitecture: Search for architecture-related information
+- searchRegulatory: Search for regulatory information
 
 User Command: "${command}"
 
@@ -141,6 +145,9 @@ Examples:
 - "show projects" → {"action": "navigateToProjects", "parameters": {}, "reasoning": "User wants to see projects list"}
 - "go back" → {"action": "navigateBack", "parameters": {}, "reasoning": "User wants to return to previous view"}
 - "add note: New office in downtown" → {"action": "addNote", "parameters": {"text": "New office in downtown"}, "reasoning": "User wants to add a note for processing"}
+- "search for sustainable architecture" → {"action": "searchWeb", "parameters": {"query": "sustainable architecture"}, "reasoning": "User wants to search the web for information"}
+- "find architecture firms in London" → {"action": "searchArchitecture", "parameters": {"topic": "architecture firms", "location": "London"}, "reasoning": "User wants architecture-specific information"}
+- "search building codes" → {"action": "searchRegulatory", "parameters": {"regulation": "building codes"}, "reasoning": "User wants regulatory information"}
 - "what date is today" → {"action": "generalResponse", "parameters": {"response": "Today's date is " + new Date().toLocaleDateString()}, "reasoning": "User is asking for current date information"}`;
   }
 
@@ -200,6 +207,12 @@ Examples:
         };
       case 'addNote':
         return await this.processNote(parameters.text);
+      case 'searchWeb':
+        return await webSearchActions.searchWeb(parameters);
+      case 'searchArchitecture':
+        return await webSearchActions.searchArchitectureInfo(parameters);
+      case 'searchRegulatory':
+        return await webSearchActions.searchRegulatoryInfo(parameters);
       default:
         throw new Error(`Unknown action: ${action}`);
     }
@@ -240,7 +253,10 @@ Examples:
       'navigateToRegulatory',
       'navigateBack',
       'getCurrentState',
-      'addNote'
+      'addNote',
+      'searchWeb',
+      'searchArchitecture',
+      'searchRegulatory'
     ];
   }
 }

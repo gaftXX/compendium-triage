@@ -1,47 +1,22 @@
 import React from 'react';
 import { Regulation } from '../../types/firestore';
-import { Button } from '../../../../ui';
 import { useRegulations } from '../../hooks/useFirestore';
 
 interface RegulatoryListProps {
   onRegulationSelect: (regulation: Regulation) => void;
   onCreateRegulation: () => void;
-  jurisdiction?: string; // Filter by jurisdiction
 }
 
 export const RegulatoryList: React.FC<RegulatoryListProps> = ({
   onRegulationSelect,
-  onCreateRegulation,
-  jurisdiction
+  onCreateRegulation
 }) => {
   const { regulations, loading, error, loadRegulations } = useRegulations();
 
-  // Load regulations when component mounts or jurisdiction changes
+  // Load regulations when component mounts
   React.useEffect(() => {
-    loadRegulations(jurisdiction);
-  }, [loadRegulations, jurisdiction]);
-
-  const getImpactColor = (level: string) => {
-    switch (level) {
-      case 'international': return '#dc3545';
-      case 'national': return '#ffc107';
-      case 'state': return '#17a2b8';
-      case 'city': return '#28a745';
-      default: return '#6c757d';
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'zoning': return '#007bff';
-      case 'building-code': return '#28a745';
-      case 'fire-safety': return '#dc3545';
-      case 'environmental': return '#20c997';
-      case 'accessibility': return '#6f42c1';
-      case 'energy': return '#fd7e14';
-      default: return '#6c757d';
-    }
-  };
+    loadRegulations();
+  }, [loadRegulations]);
 
   const formatDate = (date: any) => {
     if (!date) return 'N/A';
@@ -52,109 +27,112 @@ export const RegulatoryList: React.FC<RegulatoryListProps> = ({
 
   if (loading) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
-        <p>Loading regulations...</p>
+      <div style={{ 
+        padding: '20px', 
+        textAlign: 'center', 
+        backgroundColor: '#000000',
+        color: '#ffffff',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div>Loading regulations...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div style={{ padding: '20px', color: 'red' }}>
-        <p>Error: {error}</p>
-        <Button onClick={loadRegulations}>Retry</Button>
+      <div style={{ 
+        padding: '20px', 
+        backgroundColor: '#000000',
+        color: '#ffffff',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'column',
+        gap: '10px'
+      }}>
+        <div>Error: {error}</div>
+        <button 
+          onClick={loadRegulations}
+          style={{
+            backgroundColor: '#B3E5FC',
+            color: '#000000',
+            border: 'none',
+            padding: '8px 16px',
+            cursor: 'pointer'
+          }}
+        >
+          Retry
+        </button>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '20px' }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '20px',
-        borderBottom: '1px solid #ccc',
-        paddingBottom: '10px'
-      }}>
-        <h2>
-          {jurisdiction ? `Regulations - ${jurisdiction}` : 'All Regulations'}
-        </h2>
-        <Button onClick={onCreateRegulation} variant="primary">
+    <div style={{ 
+      padding: '20px', 
+      backgroundColor: '#000000',
+      color: '#ffffff',
+      minHeight: '100vh'
+    }}>
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ 
+          color: '#B3E5FC', 
+          fontSize: '18px', 
+          marginBottom: '10px' 
+        }}>
+          Regulatory Records
+        </div>
+        <button 
+          onClick={onCreateRegulation}
+          style={{
+            backgroundColor: '#B3E5FC',
+            color: '#000000',
+            border: 'none',
+            padding: '8px 16px',
+            cursor: 'pointer'
+          }}
+        >
           Create Regulation
-        </Button>
+        </button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         {regulations.map((regulation) => (
           <div
             key={regulation.id}
             onClick={() => onRegulationSelect(regulation)}
             style={{
-              border: '1px solid #ddd',
-              borderRadius: '4px',
               padding: '15px',
               cursor: 'pointer',
-              backgroundColor: '#f9f9f9',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f0f0f0';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#f9f9f9';
+              backgroundColor: '#111111',
+              border: '1px solid #333333'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
-                  <h3 style={{ margin: 0, fontSize: '16px' }}>
-                    {regulation.name}
-                  </h3>
-                  <span
-                    style={{
-                      backgroundColor: getTypeColor(regulation.regulationType),
-                      color: 'white',
-                      padding: '2px 8px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      textTransform: 'capitalize'
-                    }}
-                  >
-                    {regulation.regulationType.replace('-', ' ')}
-                  </span>
-                  <span
-                    style={{
-                      backgroundColor: getImpactColor(regulation.jurisdiction.level),
-                      color: 'white',
-                      padding: '2px 8px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      textTransform: 'capitalize'
-                    }}
-                  >
-                    {regulation.jurisdiction.level} Jurisdiction
-                  </span>
+              <div>
+                <div style={{ fontSize: '16px', marginBottom: '5px', color: '#ffffff' }}>
+                  {regulation.name}
                 </div>
-                
-                <p style={{ margin: '0 0 5px 0', color: '#666', fontSize: '14px' }}>
-                  ID: {regulation.id}
-                </p>
-                
-                <p style={{ margin: '0 0 5px 0', color: '#666', fontSize: '14px' }}>
-                  {regulation.jurisdiction.cityName}, {regulation.jurisdiction.countryName}
-                </p>
-                
-                <p style={{ margin: '0 0 5px 0', color: '#666', fontSize: '14px' }}>
-                  Effective: {formatDate(regulation.effectiveDate)} • Version: {regulation.version}
-                </p>
-                
-                <p style={{ margin: '0', color: '#666', fontSize: '14px' }}>
+                <div style={{ fontSize: '12px', color: '#B3E5FC', marginBottom: '2px' }}>
+                  ID: {regulation.id} | Type: {regulation.regulationType}
+                </div>
+                <div style={{ fontSize: '12px', color: '#888888', marginBottom: '2px' }}>
+                  {regulation.jurisdiction?.level} Jurisdiction
+                </div>
+                <div style={{ fontSize: '12px', color: '#888888', marginBottom: '2px' }}>
+                  Effective: {formatDate(regulation.effectiveDate)} | Version: {regulation.version}
+                </div>
+                <div style={{ fontSize: '12px', color: '#888888' }}>
                   {regulation.description}
-                </p>
+                </div>
               </div>
               
-              <div style={{ textAlign: 'right', fontSize: '12px', color: '#888', minWidth: '120px' }}>
+              <div style={{ textAlign: 'right', fontSize: '12px', color: '#888888', minWidth: '120px' }}>
                 <div><strong>Compliance:</strong></div>
                 <div>Rate: {regulation.enforcement?.complianceRate || 0}%</div>
                 <div>Violations: {regulation.enforcement?.violationCount || 0}</div>
@@ -165,18 +143,18 @@ export const RegulatoryList: React.FC<RegulatoryListProps> = ({
             </div>
             
             {regulation.requirements?.length > 0 && (
-              <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #eee' }}>
-                <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>
+              <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #333333' }}>
+                <div style={{ fontSize: '12px', color: '#888888', marginBottom: '5px' }}>
                   <strong>Key Requirements:</strong>
                 </div>
-                <div style={{ fontSize: '12px', color: '#555' }}>
+                <div style={{ fontSize: '12px', color: '#888888' }}>
                   {regulation.requirements?.slice(0, 2).map((req, index) => (
                     <div key={index} style={{ marginBottom: '2px' }}>
                       • {req.requirement}
                     </div>
                   ))}
                   {regulation.requirements?.length > 2 && (
-                    <div style={{ color: '#888', fontStyle: 'italic' }}>
+                    <div style={{ color: '#888888', fontStyle: 'italic' }}>
                       +{regulation.requirements?.length - 2} more requirements
                     </div>
                   )}
@@ -188,11 +166,25 @@ export const RegulatoryList: React.FC<RegulatoryListProps> = ({
       </div>
 
       {regulations.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-          <p>No regulations found.</p>
-          <Button onClick={onCreateRegulation} variant="primary">
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '40px', 
+          color: '#888888'
+        }}>
+          <div>No regulations found.</div>
+          <button 
+            onClick={onCreateRegulation}
+            style={{
+              backgroundColor: '#B3E5FC',
+              color: '#000000',
+              border: 'none',
+              padding: '8px 16px',
+              cursor: 'pointer',
+              marginTop: '10px'
+            }}
+          >
             Create First Regulation
-          </Button>
+          </button>
         </div>
       )}
     </div>

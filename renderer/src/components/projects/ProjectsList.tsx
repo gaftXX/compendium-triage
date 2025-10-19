@@ -1,6 +1,5 @@
 import React from 'react';
 import { Project } from '../../types/firestore';
-import { Button } from '../../../../ui';
 import { useProjects } from '../../hooks/useFirestore';
 
 interface ProjectsListProps {
@@ -21,17 +20,6 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
     loadProjects(officeId);
   }, [loadProjects, officeId]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return '#28a745';
-      case 'construction': return '#ffc107';
-      case 'planning': return '#17a2b8';
-      case 'concept': return '#6c757d';
-      case 'cancelled': return '#dc3545';
-      default: return '#6c757d';
-    }
-  };
-
   const formatDate = (date: any) => {
     if (!date) return 'N/A';
     if (date.toDate) return date.toDate().toLocaleDateString();
@@ -41,97 +29,112 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
 
   if (loading) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
-        <p>Loading projects...</p>
+      <div style={{ 
+        padding: '20px', 
+        textAlign: 'center', 
+        backgroundColor: '#000000',
+        color: '#ffffff',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div>Loading projects...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div style={{ padding: '20px', color: 'red' }}>
-        <p>Error: {error}</p>
-        <Button onClick={loadProjects}>Retry</Button>
+      <div style={{ 
+        padding: '20px', 
+        backgroundColor: '#000000',
+        color: '#ffffff',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'column',
+        gap: '10px'
+      }}>
+        <div>Error: {error}</div>
+        <button 
+          onClick={() => loadProjects(officeId)}
+          style={{
+            backgroundColor: '#B3E5FC',
+            color: '#000000',
+            border: 'none',
+            padding: '8px 16px',
+            cursor: 'pointer'
+          }}
+        >
+          Retry
+        </button>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '20px' }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '20px',
-        borderBottom: '1px solid #ccc',
-        paddingBottom: '10px'
-      }}>
-        <h2>
+    <div style={{ 
+      padding: '20px', 
+      backgroundColor: '#000000',
+      color: '#ffffff',
+      minHeight: '100vh'
+    }}>
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ 
+          color: '#B3E5FC', 
+          fontSize: '18px', 
+          marginBottom: '10px' 
+        }}>
           {officeId ? 'Office Projects' : 'All Projects'}
-        </h2>
-        <Button onClick={onCreateProject} variant="primary">
+        </div>
+        <button 
+          onClick={onCreateProject}
+          style={{
+            backgroundColor: '#B3E5FC',
+            color: '#000000',
+            border: 'none',
+            padding: '8px 16px',
+            cursor: 'pointer'
+          }}
+        >
           Create Project
-        </Button>
+        </button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         {projects.map((project) => (
           <div
             key={project.id}
             onClick={() => onProjectSelect(project)}
             style={{
-              border: '1px solid #ddd',
-              borderRadius: '4px',
               padding: '15px',
               cursor: 'pointer',
-              backgroundColor: '#f9f9f9',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f0f0f0';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#f9f9f9';
+              backgroundColor: '#111111',
+              border: '1px solid #333333'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
-                  <h3 style={{ margin: 0, fontSize: '16px' }}>
-                    {project.projectName}
-                  </h3>
-                  <span
-                    style={{
-                      backgroundColor: getStatusColor(project.status),
-                      color: 'white',
-                      padding: '2px 8px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      textTransform: 'capitalize'
-                    }}
-                  >
-                    {project.status}
-                  </span>
+              <div>
+                <div style={{ fontSize: '16px', marginBottom: '5px', color: '#ffffff' }}>
+                  {project.projectName}
                 </div>
-                
-                <p style={{ margin: '0 0 5px 0', color: '#666', fontSize: '14px' }}>
-                  ID: {project.id}
-                </p>
-                
-                <p style={{ margin: '0 0 5px 0', color: '#666', fontSize: '14px' }}>
+                <div style={{ fontSize: '12px', color: '#B3E5FC', marginBottom: '2px' }}>
+                  ID: {project.id} | Status: {project.status}
+                </div>
+                <div style={{ fontSize: '12px', color: '#888888', marginBottom: '2px' }}>
                   {project.location?.city || 'Unknown'}, {project.location?.country || 'Unknown'}
-                </p>
-                
-                <p style={{ margin: '0 0 5px 0', color: '#666', fontSize: '14px' }}>
+                </div>
+                <div style={{ fontSize: '12px', color: '#888888', marginBottom: '2px' }}>
                   {project.details?.projectType || 'Unknown'} • {project.details?.size?.toLocaleString() || '0'} sqm
-                </p>
-                
-                <p style={{ margin: '0', color: '#666', fontSize: '14px' }}>
+                </div>
+                <div style={{ fontSize: '12px', color: '#888888' }}>
                   Budget: {project.financial?.currency || 'USD'} {project.financial?.budget?.toLocaleString() || '0'}
-                </p>
+                </div>
               </div>
               
-              <div style={{ textAlign: 'right', fontSize: '12px', color: '#888', minWidth: '120px' }}>
+              <div style={{ textAlign: 'right', fontSize: '12px', color: '#888888', minWidth: '120px' }}>
                 <div><strong>Timeline:</strong></div>
                 <div>Start: {formatDate(project.timeline?.startDate)}</div>
                 <div>Expected: {formatDate(project.timeline?.expectedCompletion)}</div>
@@ -142,10 +145,10 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
             </div>
             
             {project.details?.description && (
-              <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #eee' }}>
-                <p style={{ margin: 0, fontSize: '14px', color: '#555', fontStyle: 'italic' }}>
+              <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #333333' }}>
+                <div style={{ fontSize: '12px', color: '#888888', fontStyle: 'italic' }}>
                   {project.details.description}
-                </p>
+                </div>
               </div>
             )}
           </div>
@@ -153,11 +156,25 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
       </div>
 
       {projects.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-          <p>No projects found.</p>
-          <Button onClick={onCreateProject} variant="primary">
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '40px', 
+          color: '#888888'
+        }}>
+          <div>No projects found.</div>
+          <button 
+            onClick={onCreateProject}
+            style={{
+              backgroundColor: '#B3E5FC',
+              color: '#000000',
+              border: 'none',
+              padding: '8px 16px',
+              cursor: 'pointer',
+              marginTop: '10px'
+            }}
+          >
             Create First Project
-          </Button>
+          </button>
         </div>
       )}
     </div>

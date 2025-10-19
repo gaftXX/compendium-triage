@@ -27,13 +27,25 @@ export class ClaudeAIService {
   private baseUrl: string = 'https://api.anthropic.com/v1/messages';
 
   private constructor() {
-    // In production, this would come from environment variables
+    // Get API key from environment or use fallback
     try {
-      // @ts-ignore - import.meta.env exists in Vite renderer builds
-      const env = (import.meta as any).env || {};
-      this.apiKey = env.VITE_ANTHROPIC_API_KEY || env.VITE_CLAUDE_API_KEY || '';
+      // Try import.meta.env first (Vite)
+      const env = (import.meta as any)?.env;
+      if (env) {
+        this.apiKey = env.VITE_ANTHROPIC_API_KEY || env.VITE_CLAUDE_API_KEY || '';
+      }
+      
+      // Try process.env (Node.js/Electron)
+      if (!this.apiKey && typeof process !== 'undefined' && process.env) {
+        this.apiKey = process.env.VITE_ANTHROPIC_API_KEY || process.env.VITE_CLAUDE_API_KEY || '';
+      }
+      
+      // No fallback API key for security
+      if (!this.apiKey) {
+        console.log('❌ No Claude API key found - Claude AI service will not be available');
+      }
     } catch (error) {
-      console.warn('Could not access environment variables, Claude AI will not be available');
+      console.warn('Could not access environment variables');
       this.apiKey = '';
     }
   }

@@ -121,33 +121,15 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'flex-start',
+        justifyContent: 'center',
         padding: '20px',
         boxSizing: 'border-box',
-        overflowY: 'auto'
+        overflowY: 'auto',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif'
       }}
     >
-
-      {/* Mode Switch - Fixed at top */}
-      <div style={{ 
-        marginBottom: '10px',
-        position: 'sticky',
-        top: '0',
-        backgroundColor: '#000000',
-        zIndex: 10,
-        padding: '10px 0'
-      }}>
-      </div>
-
-      {/* Input Section - Fixed at top */}
-      <div style={{ 
-        marginBottom: '20px',
-        position: 'sticky',
-        top: '60px',
-        backgroundColor: '#000000',
-        zIndex: 10,
-        padding: '10px 0'
-      }}>
+      {/* Input Section */}
+      <div style={{ marginBottom: '20px' }}>
         <input
           type="text"
           value={inputValue}
@@ -164,136 +146,80 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
             borderRadius: '0px',
             outline: 'none',
             backgroundColor: isProcessing ? '#E0E0E0' : '#B3E5FC',
-            color: '#000000',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif'
+            color: '#000000'
           }}
         />
       </div>
 
-      {/* Chat Messages Display */}
-      {chatMessages.length > 0 && (
-        <div style={{
-          backgroundColor: '#1a1a1a',
-          border: '1px solid #333',
-          borderRadius: '8px',
-          padding: '15px',
-          maxWidth: '800px',
-          width: '100%',
-          color: '#ffffff',
-          marginBottom: '20px',
-          maxHeight: '300px',
-          overflowY: 'auto'
-        }}>
-          <h3 style={{ margin: '0 0 15px 0', color: '#B3E5FC', fontSize: '16px' }}>
-            Chat History
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {chatMessages.map((message, index) => (
-              <div key={index} style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: message.role === 'user' ? 'flex-end' : 'flex-start'
-              }}>
-                <div style={{
-                  backgroundColor: message.role === 'user' ? '#007bff' : '#28a745',
-                  color: 'white',
-                  padding: '8px 12px',
-                  borderRadius: '12px',
-                  maxWidth: '70%',
-                  wordWrap: 'break-word',
-                  fontSize: '14px'
-                }}>
-                  {message.content}
-                </div>
-                <div style={{
-                  fontSize: '11px',
-                  color: '#888',
-                  marginTop: '4px',
-                  marginLeft: message.role === 'user' ? '0' : '8px',
-                  marginRight: message.role === 'user' ? '8px' : '0'
-                }}>
-                  {message.timestamp.toLocaleTimeString()}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Processing Indicator */}
       {isProcessing && (
         <div style={{ 
-          color: '#B3E5FC', 
           fontSize: '14px', 
           marginBottom: '20px',
-          position: 'sticky',
-          top: '120px',
-          backgroundColor: '#000000',
-          zIndex: 10,
-          padding: '10px 0'
+          color: '#B3E5FC'
         }}>
-          AI Assistant is processing your command...
+          Processing...
         </div>
       )}
 
-             {/* Orchestrator Results */}
-             {orchestratorResult && (
+      {/* Chat Messages Display */}
+      {chatMessages.length > 0 && (
         <div style={{
-          backgroundColor: '#1a1a1a',
-          border: '1px solid #333',
-          borderRadius: '4px',
-          padding: '20px',
           maxWidth: '800px',
           width: '100%',
-          color: '#ffffff',
           marginBottom: '20px'
         }}>
-          <h3 style={{ margin: '0 0 15px 0', color: '#B3E5FC', fontSize: '16px' }}>
-            Orchestrator Response
-          </h3>
-          
-          {orchestratorResult.success ? (
-            <div>
-              <div style={{ 
-                backgroundColor: '#2d5a2d', 
-                padding: '10px', 
-                borderRadius: '4px', 
-                marginBottom: '10px',
-                color: '#90EE90'
-              }}>
-                ✅ {orchestratorResult.message || 'Command executed successfully'}
-              </div>
-              
-              {orchestratorResult.actionExecuted && (
-                <div style={{ marginBottom: '10px' }}>
-                  <strong>Action:</strong> {orchestratorResult.actionExecuted}
-                </div>
-              )}
-              
-              {orchestratorResult.data && (
-                <div style={{ 
-                  backgroundColor: '#1a1a1a', 
-                  padding: '15px', 
-                  borderRadius: '8px', 
-                  border: '1px solid #333',
-                  fontFamily: 'monospace',
-                  fontSize: '12px',
-                  whiteSpace: 'pre-wrap',
-                  maxHeight: '300px',
-                  overflowY: 'auto'
-                }}>
-                  {JSON.stringify(orchestratorResult.data, null, 2)}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div style={{ 
-              backgroundColor: '#5a2d2d', 
-              padding: '10px', 
-              borderRadius: '4px',
-              color: '#FFB6C1'
+          {chatMessages.map((message, index) => (
+            <div key={index} style={{
+              marginBottom: '10px',
+              fontSize: '14px',
+              lineHeight: '1.4'
             }}>
-              ❌ {orchestratorResult.error || 'Command failed'}
+              <div style={{ color: '#B3E5FC', marginBottom: '2px' }}>
+                {message.role === 'user' ? 'You:' : 'AI:'}
+              </div>
+              <div style={{ color: '#ffffff' }}>
+                {message.content}
+              </div>
+              <div style={{ 
+                fontSize: '11px', 
+                color: '#888888',
+                marginTop: '4px'
+              }}>
+                {message.timestamp.toLocaleTimeString()}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Orchestrator Results */}
+      {orchestratorResult && (
+        <div style={{
+          maxWidth: '800px',
+          width: '100%',
+          marginBottom: '20px',
+          fontSize: '14px',
+          lineHeight: '1.4'
+        }}>
+          <div style={{ color: '#B3E5FC', marginBottom: '10px' }}>
+            Response:
+          </div>
+          <div style={{ color: '#ffffff' }}>
+            {orchestratorResult.success ? (
+              orchestratorResult.message || 'Command executed successfully'
+            ) : (
+              orchestratorResult.error || 'Command failed'
+            )}
+          </div>
+          {orchestratorResult.data && (
+            <div style={{ 
+              marginTop: '10px',
+              fontSize: '12px',
+              color: '#888888',
+              whiteSpace: 'pre-wrap'
+            }}>
+              {JSON.stringify(orchestratorResult.data, null, 2)}
             </div>
           )}
         </div>
@@ -302,66 +228,29 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
       {/* Note Processing Results */}
       {result && (
         <div style={{
-          backgroundColor: '#1a1a1a',
-          border: '1px solid #333',
-          borderRadius: '4px',
-          padding: '20px',
           maxWidth: '800px',
           width: '100%',
-          color: '#ffffff',
-          marginBottom: '20px'
+          marginBottom: '20px',
+          fontSize: '14px',
+          lineHeight: '1.4'
         }}>
-          <h3 style={{ margin: '0 0 15px 0', color: '#B3E5FC', fontSize: '16px' }}>
-            Note Processing Results
-          </h3>
-          
-          {/* Processing Results */}
-          <div style={{ marginBottom: '20px' }}>
-            <div style={{ 
-              backgroundColor: '#1a1a1a', 
-              padding: '15px', 
-              borderRadius: '8px', 
-              border: '1px solid #333',
-              fontFamily: 'monospace',
-              fontSize: '12px',
-              whiteSpace: 'pre-wrap',
-              maxHeight: '300px',
-              overflowY: 'auto'
-            }}>
-              {JSON.stringify(result, null, 2)}
-            </div>
+          <div style={{ color: '#B3E5FC', marginBottom: '10px' }}>
+            Note Processing:
           </div>
-
-          {/* Web Search Results */}
-          {result.webSearchResults && (
-            <div style={{ marginBottom: '20px' }}>
-              <h4 style={{ margin: '0 0 10px 0', color: '#B3E5FC', fontSize: '14px' }}>
-                Web Search Enriched Data
-              </h4>
-              <div style={{ 
-                backgroundColor: '#1a1a1a', 
-                padding: '15px', 
-                borderRadius: '8px', 
-                border: '1px solid #333',
-                fontFamily: 'monospace',
-                fontSize: '12px',
-                whiteSpace: 'pre-wrap',
-                maxHeight: '300px',
-                overflowY: 'auto'
-              }}>
-                {JSON.stringify(result.webSearchResults, null, 2)}
-              </div>
-            </div>
-          )}
-
-          {!result.success && (
-            <div style={{ color: '#dc3545' }}>
-              <strong>Error:</strong> {result.summary}
+          <div style={{ color: '#ffffff' }}>
+            {result.summary}
+          </div>
+          {result.totalCreated > 0 && (
+            <div style={{ 
+              marginTop: '10px',
+              fontSize: '12px',
+              color: '#888888'
+            }}>
+              Created: {result.totalCreated} entities
             </div>
           )}
         </div>
       )}
-
     </div>
   );
 };

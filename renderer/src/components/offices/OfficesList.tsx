@@ -21,73 +21,108 @@ export const OfficesList: React.FC<OfficesListProps> = ({
 
   if (loading) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
-        <p>Loading offices...</p>
+      <div style={{ 
+        padding: '20px', 
+        textAlign: 'center', 
+        backgroundColor: '#000000',
+        color: '#ffffff',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div>Loading offices...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div style={{ padding: '20px', color: 'red' }}>
-        <p>Error: {error}</p>
-        <Button onClick={loadOffices}>Retry</Button>
+      <div style={{ 
+        padding: '20px', 
+        backgroundColor: '#000000',
+        color: '#ffffff',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'column',
+        gap: '10px'
+      }}>
+        <div>Error: {error}</div>
+        <button 
+          onClick={loadOffices}
+          style={{
+            backgroundColor: '#B3E5FC',
+            color: '#000000',
+            border: 'none',
+            padding: '8px 16px',
+            cursor: 'pointer'
+          }}
+        >
+          Retry
+        </button>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '20px' }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '20px',
-        borderBottom: '1px solid #ccc',
-        paddingBottom: '10px'
-      }}>
-        <h2>Architecture Offices</h2>
-        <Button onClick={onCreateOffice} variant="primary">
+    <div style={{ 
+      padding: '20px', 
+      backgroundColor: '#000000',
+      color: '#ffffff',
+      minHeight: '100vh'
+    }}>
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ 
+          color: '#B3E5FC', 
+          fontSize: '18px', 
+          marginBottom: '10px' 
+        }}>
+          Architecture Offices
+        </div>
+        <button 
+          onClick={onCreateOffice}
+          style={{
+            backgroundColor: '#B3E5FC',
+            color: '#000000',
+            border: 'none',
+            padding: '8px 16px',
+            cursor: 'pointer'
+          }}
+        >
           Create Office
-        </Button>
+        </button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         {offices.map((office) => (
           <div
             key={office.id}
             onClick={() => onOfficeSelect(office)}
             style={{
-              border: '1px solid #ddd',
-              borderRadius: '4px',
               padding: '15px',
               cursor: 'pointer',
-              backgroundColor: '#f9f9f9',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f0f0f0';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#f9f9f9';
+              backgroundColor: '#111111',
+              border: '1px solid #333333'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
               <div>
-                <h3 style={{ margin: '0 0 5px 0', fontSize: '16px' }}>
+                <div style={{ fontSize: '16px', marginBottom: '5px', color: '#ffffff' }}>
                   {office.name}
-                </h3>
-                <p style={{ margin: '0 0 5px 0', color: '#666', fontSize: '14px' }}>
+                </div>
+                <div style={{ fontSize: '12px', color: '#B3E5FC', marginBottom: '2px' }}>
                   ID: {office.id} | Founded: {office.founded}
-                </p>
-                <p style={{ margin: '0 0 5px 0', color: '#666', fontSize: '14px' }}>
+                </div>
+                <div style={{ fontSize: '12px', color: '#888888', marginBottom: '2px' }}>
                   {office.location.headquarters.city}, {office.location.headquarters.country}
-                </p>
-                <p style={{ margin: '0', color: '#666', fontSize: '14px' }}>
+                </div>
+                <div style={{ fontSize: '12px', color: '#888888' }}>
                   {office.size.employeeCount} employees | {office.size.sizeCategory}
-                </p>
+                </div>
               </div>
-              <div style={{ textAlign: 'right', fontSize: '12px', color: '#888' }}>
+              <div style={{ textAlign: 'right', fontSize: '12px', color: '#888888' }}>
                 <div>Projects: {office.connectionCounts.totalProjects}</div>
                 <div>Active: {office.connectionCounts.activeProjects}</div>
                 <div>Clients: {office.connectionCounts.clients}</div>
@@ -98,11 +133,25 @@ export const OfficesList: React.FC<OfficesListProps> = ({
       </div>
 
       {offices.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-          <p>No offices found.</p>
-          <Button onClick={onCreateOffice} variant="primary">
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '40px', 
+          color: '#888888'
+        }}>
+          <div>No offices found.</div>
+          <button 
+            onClick={onCreateOffice}
+            style={{
+              backgroundColor: '#B3E5FC',
+              color: '#000000',
+              border: 'none',
+              padding: '8px 16px',
+              cursor: 'pointer',
+              marginTop: '10px'
+            }}
+          >
             Create First Office
-          </Button>
+          </button>
         </div>
       )}
     </div>

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Office } from '../../types/firestore';
-import { Button } from '../../../../ui';
 
 interface OfficeDetailProps {
   office: Office;
@@ -22,183 +21,185 @@ export const OfficeDetail: React.FC<OfficeDetailProps> = ({
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '20px',
-        borderBottom: '1px solid #ccc',
-        paddingBottom: '10px'
-      }}>
-        <Button onClick={onBack} variant="ghost">
+    <div style={{ 
+      padding: '20px', 
+      backgroundColor: '#000000',
+      color: '#ffffff',
+      minHeight: '100vh'
+    }}>
+      <div style={{ marginBottom: '20px' }}>
+        <button 
+          onClick={onBack}
+          style={{
+            backgroundColor: '#B3E5FC',
+            color: '#000000',
+            border: 'none',
+            padding: '8px 16px',
+            cursor: 'pointer',
+            marginRight: '10px'
+          }}
+        >
           ← Back to List
-        </Button>
-        <div>
-          <Button onClick={() => onEdit(office)} variant="secondary" style={{ marginRight: '10px' }}>
-            Edit
-          </Button>
-          <Button onClick={handleDelete} variant="danger">
-            Delete
-          </Button>
-        </div>
+        </button>
+        <button 
+          onClick={() => onEdit(office)}
+          style={{
+            backgroundColor: '#333333',
+            color: '#ffffff',
+            border: 'none',
+            padding: '8px 16px',
+            cursor: 'pointer',
+            marginRight: '10px'
+          }}
+        >
+          Edit
+        </button>
+        <button 
+          onClick={handleDelete}
+          style={{
+            backgroundColor: '#dc3545',
+            color: '#ffffff',
+            border: 'none',
+            padding: '8px 16px',
+            cursor: 'pointer'
+          }}
+        >
+          Delete
+        </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
         {/* Basic Information */}
         <div>
-          <h2 style={{ margin: '0 0 20px 0', fontSize: '24px' }}>
+          <div style={{ 
+            color: '#B3E5FC', 
+            fontSize: '24px', 
+            marginBottom: '20px' 
+          }}>
             {office.name}
-          </h2>
+          </div>
           
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#333' }}>
-              Basic Information
-            </h3>
-            <div style={{ backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '4px' }}>
-              <p><strong>Office ID:</strong> {office.id}</p>
-              <p><strong>Official Name:</strong> {office.officialName}</p>
-              <p><strong>Founded:</strong> {office.founded}</p>
-              <p><strong>Status:</strong> {office.status}</p>
-            </div>
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ color: '#B3E5FC', fontSize: '14px', marginBottom: '5px' }}>Official Name</div>
+            <div style={{ color: '#ffffff', fontSize: '16px' }}>{office.officialName}</div>
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#333' }}>
-              Location
-            </h3>
-            <div style={{ backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '4px' }}>
-              <p><strong>Headquarters:</strong></p>
-              <p>{office.location.headquarters.address || 'No address'}</p>
-              <p>{office.location.headquarters.city}, {office.location.headquarters.country}</p>
-              {office.location.headquarters.neighborhood && (
-                <p><em>{office.location.headquarters.neighborhood}</em></p>
-              )}
-              
-              {office.location.otherOffices.length > 0 && (
-                <div style={{ marginTop: '10px' }}>
-                  <p><strong>Other Offices:</strong></p>
-                  {office.location.otherOffices.map((office, index) => (
-                    <p key={index}>
-                      {office.address || 'No address'}, {office.city}, {office.country}
-                    </p>
-                  ))}
-                </div>
-              )}
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ color: '#B3E5FC', fontSize: '14px', marginBottom: '5px' }}>Founded</div>
+            <div style={{ color: '#ffffff', fontSize: '16px' }}>{office.founded}</div>
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ color: '#B3E5FC', fontSize: '14px', marginBottom: '5px' }}>Status</div>
+            <div style={{ color: '#ffffff', fontSize: '16px' }}>{office.status}</div>
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ color: '#B3E5FC', fontSize: '14px', marginBottom: '5px' }}>Location</div>
+            <div style={{ color: '#ffffff', fontSize: '16px' }}>
+              {office.location.headquarters.city}, {office.location.headquarters.country}
             </div>
           </div>
         </div>
 
-        {/* Size and Specializations */}
+        {/* Size and Stats */}
         <div>
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#333' }}>
-              Company Size
-            </h3>
-            <div style={{ backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '4px' }}>
-              <p><strong>Employees:</strong> {office.size.employeeCount}</p>
-              <p><strong>Size Category:</strong> {office.size.sizeCategory}</p>
-              {office.size.annualRevenue && (
-                <p><strong>Annual Revenue:</strong> ${office.size.annualRevenue.toLocaleString()}</p>
-              )}
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ color: '#B3E5FC', fontSize: '14px', marginBottom: '5px' }}>Size</div>
+            <div style={{ color: '#ffffff', fontSize: '16px' }}>
+              {office.size.employeeCount} employees | {office.size.sizeCategory}
+            </div>
+            {office.size.annualRevenue && (
+              <div style={{ color: '#888888', fontSize: '14px', marginTop: '5px' }}>
+                Annual Revenue: {office.size.annualRevenue.toLocaleString()}
+              </div>
+            )}
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ color: '#B3E5FC', fontSize: '14px', marginBottom: '5px' }}>Projects</div>
+            <div style={{ color: '#ffffff', fontSize: '16px' }}>
+              Total: {office.connectionCounts.totalProjects} | Active: {office.connectionCounts.activeProjects}
             </div>
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#333' }}>
-              Specializations
-            </h3>
-            <div style={{ backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '4px' }}>
-              {office.specializations.length > 0 ? (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                  {office.specializations.map((spec, index) => (
-                    <span
-                      key={index}
-                      style={{
-                        backgroundColor: '#007bff',
-                        color: 'white',
-                        padding: '4px 8px',
-                        borderRadius: '12px',
-                        fontSize: '12px'
-                      }}
-                    >
-                      {spec}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p style={{ color: '#666', fontStyle: 'italic' }}>No specializations listed</p>
-              )}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#333' }}>
-              Notable Works
-            </h3>
-            <div style={{ backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '4px' }}>
-              {office.notableWorks.length > 0 ? (
-                <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                  {office.notableWorks.map((work, index) => (
-                    <li key={index}>{work}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p style={{ color: '#666', fontStyle: 'italic' }}>No notable works listed</p>
-              )}
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ color: '#B3E5FC', fontSize: '14px', marginBottom: '5px' }}>Connections</div>
+            <div style={{ color: '#ffffff', fontSize: '16px' }}>
+              Clients: {office.connectionCounts.clients} | Competitors: {office.connectionCounts.competitors} | Suppliers: {office.connectionCounts.suppliers}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Connection Counts */}
-      <div style={{ marginTop: '20px' }}>
-        <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#333' }}>
-          Connection Statistics
-        </h3>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
-          gap: '10px' 
-        }}>
-          <div style={{ backgroundColor: '#e3f2fd', padding: '15px', borderRadius: '4px', textAlign: 'center' }}>
-            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1976d2' }}>
-              {office.connectionCounts.totalProjects}
-            </div>
-            <div style={{ fontSize: '14px', color: '#666' }}>Total Projects</div>
-          </div>
-          <div style={{ backgroundColor: '#e8f5e8', padding: '15px', borderRadius: '4px', textAlign: 'center' }}>
-            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#388e3c' }}>
-              {office.connectionCounts.activeProjects}
-            </div>
-            <div style={{ fontSize: '14px', color: '#666' }}>Active Projects</div>
-          </div>
-          <div style={{ backgroundColor: '#fff3e0', padding: '15px', borderRadius: '4px', textAlign: 'center' }}>
-            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f57c00' }}>
-              {office.connectionCounts.clients}
-            </div>
-            <div style={{ fontSize: '14px', color: '#666' }}>Clients</div>
-          </div>
-          <div style={{ backgroundColor: '#fce4ec', padding: '15px', borderRadius: '4px', textAlign: 'center' }}>
-            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#c2185b' }}>
-              {office.connectionCounts.competitors}
-            </div>
-            <div style={{ fontSize: '14px', color: '#666' }}>Competitors</div>
-          </div>
-          <div style={{ backgroundColor: '#f3e5f5', padding: '15px', borderRadius: '4px', textAlign: 'center' }}>
-            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#7b1fa2' }}>
-              {office.connectionCounts.suppliers}
-            </div>
-            <div style={{ fontSize: '14px', color: '#666' }}>Suppliers</div>
+      {/* Specializations */}
+      {office.specializations && office.specializations.length > 0 && (
+        <div style={{ marginTop: '20px' }}>
+          <div style={{ color: '#B3E5FC', fontSize: '18px', marginBottom: '10px' }}>Specializations</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {office.specializations.map((spec, index) => (
+              <div
+                key={index}
+                style={{
+                  backgroundColor: '#111111',
+                  color: '#ffffff',
+                  padding: '4px 8px',
+                  border: '1px solid #333333',
+                  fontSize: '12px'
+                }}
+              >
+                {spec}
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Timestamps */}
-      <div style={{ marginTop: '20px', fontSize: '12px', color: '#888', borderTop: '1px solid #eee', paddingTop: '10px' }}>
-        <p>Created: {office.createdAt?.toDate?.()?.toLocaleString() || 'Unknown'}</p>
-        <p>Last Updated: {office.updatedAt?.toDate?.()?.toLocaleString() || 'Unknown'}</p>
-      </div>
+      {/* Notable Works */}
+      {office.notableWorks && office.notableWorks.length > 0 && (
+        <div style={{ marginTop: '20px' }}>
+          <div style={{ color: '#B3E5FC', fontSize: '18px', marginBottom: '10px' }}>Notable Works</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {office.notableWorks.map((work, index) => (
+              <div
+                key={index}
+                style={{
+                  backgroundColor: '#111111',
+                  color: '#ffffff',
+                  padding: '8px',
+                  border: '1px solid #333333',
+                  fontSize: '14px'
+                }}
+              >
+                {work}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Other Offices */}
+      {office.location.otherOffices && office.location.otherOffices.length > 0 && (
+        <div style={{ marginTop: '20px' }}>
+          <div style={{ color: '#B3E5FC', fontSize: '18px', marginBottom: '10px' }}>Other Offices</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {office.location.otherOffices.map((office, index) => (
+              <div
+                key={index}
+                style={{
+                  backgroundColor: '#111111',
+                  color: '#ffffff',
+                  padding: '8px',
+                  border: '1px solid #333333',
+                  fontSize: '14px'
+                }}
+              >
+                {office.city}, {office.country}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

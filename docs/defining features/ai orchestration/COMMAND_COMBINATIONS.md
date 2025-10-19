@@ -64,6 +64,29 @@ This file contains all possible command combinations for the AI Orchestrator, co
 - `"add note: Fire safety code update for high-rise buildings"` - Create regulation entity
 - `"add note: Accessibility regulation for public buildings"` - Create regulation entity
 
+## Web Search Commands
+
+### General Web Search
+- `"search for [topic]"` - Search the web for any topic
+- `"find information about [topic]"` - Search for specific information
+- `"look up [topic]"` - Look up information on the web
+- `"web search [query]"` - Perform a web search
+- `"search the web for [query]"` - Search the web
+
+### Architecture-Specific Search
+- `"search architecture [topic]"` - Search for architecture-related information
+- `"find architecture firms in [location]"` - Search for architecture firms
+- `"search for [topic] architecture"` - Search for specific architecture topics
+- `"look up architectural [topic]"` - Look up architectural information
+- `"find [topic] architects"` - Search for architects by specialization
+
+### Regulatory Search
+- `"search building codes"` - Search for building code information
+- `"find regulations for [topic]"` - Search for specific regulations
+- `"look up [jurisdiction] building codes"` - Search for jurisdiction-specific codes
+- `"search regulatory [topic]"` - Search for regulatory information
+- `"find compliance requirements"` - Search for compliance information
+
 ## General Questions
 
 ### Date and Time
@@ -185,6 +208,25 @@ This file contains all possible command combinations for the AI Orchestrator, co
 
 ### Pattern 3: Question
 - `[question]` - e.g., "what date is today", "how are you"
+
+### Pattern 4: Web Search
+- `search for [topic]` - e.g., "search for sustainable architecture"
+- `find [information]` - e.g., "find architecture firms in London"
+- `look up [topic]` - e.g., "look up building codes"
+
+## Search and Navigation Workflows
+
+### Search then Navigate
+- `"search for sustainable architecture, then open projects"` - Search then navigate
+- `"find building codes, then open regulatory records"` - Search then view regulations
+- `"look up architecture firms, then create new office"` - Search then create
+- `"search for green building standards, then add note"` - Search then process note
+- `"find compliance requirements, then open regulatory list"` - Search then view compliance
+
+### Multi-Search Operations
+- `"search for modern architecture, then find building codes"` - Multiple searches
+- `"look up sustainable design, then search for green materials"` - Related searches
+- `"find architecture firms, then search for their projects"` - Connected searches
 
 ### Pattern 4: Combined
 - `[action] [target] and [action] [target]` - e.g., "open offices and show projects"

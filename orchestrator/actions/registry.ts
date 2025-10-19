@@ -228,6 +228,38 @@ export const ACTIVE_ACTIONS: ActionRegistry = {
     domain: 'compliance'
   },
 
+  // Web Search Actions
+  SEARCH_WEB: {
+    id: 'SEARCH_WEB',
+    name: 'Search the Web',
+    description: 'Search the web for information on any topic',
+    handler: 'webSearchActions.searchWeb',
+    requiredParams: ['query'],
+    optionalParams: ['maxResults'],
+    category: 'search',
+    domain: 'web'
+  },
+  SEARCH_ARCHITECTURE: {
+    id: 'SEARCH_ARCHITECTURE',
+    name: 'Search Architecture Information',
+    description: 'Search for architecture-related information and resources',
+    handler: 'webSearchActions.searchArchitectureInfo',
+    requiredParams: ['topic'],
+    optionalParams: ['location'],
+    category: 'search',
+    domain: 'web'
+  },
+  SEARCH_REGULATORY: {
+    id: 'SEARCH_REGULATORY',
+    name: 'Search Regulatory Information',
+    description: 'Search for regulatory and legal information',
+    handler: 'webSearchActions.searchRegulatoryInfo',
+    requiredParams: ['regulation'],
+    optionalParams: ['jurisdiction'],
+    category: 'search',
+    domain: 'web'
+  },
+
   // UI Navigation Actions
   NAVIGATE_TO_CROSS: {
     id: 'NAVIGATE_TO_CROSS',

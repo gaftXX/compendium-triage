@@ -23,8 +23,8 @@ function createMainWindow(): BrowserWindow {
     
     // Window behavior
     center: true,
-    resizable: true,
-    maximizable: true,
+    resizable: false,
+    maximizable: false,
     minimizable: true,
     
     // Security

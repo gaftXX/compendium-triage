@@ -377,12 +377,19 @@ function App() {
 
   return (
     <OrchestratorProvider>
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ 
+        height: '100vh', 
+        display: 'flex', 
+        flexDirection: 'column',
+        backgroundColor: '#000000',
+        color: '#ffffff',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif'
+      }}>
       {/* Navigation Bar - only show when not in Cross view */}
       {!appState.showCross && (
         <div style={{
-          backgroundColor: '#f8f9fa',
-          borderBottom: '1px solid #dee2e6',
+          backgroundColor: '#000000',
+          borderBottom: '1px solid #333333',
           padding: '10px 20px',
           display: 'flex',
           justifyContent: 'space-between',
@@ -392,11 +399,10 @@ function App() {
             <button
               onClick={handleNavigateToCross}
               style={{
-                backgroundColor: '#007bff',
-                color: 'white',
+                backgroundColor: '#B3E5FC',
+                color: '#000000',
                 border: 'none',
                 padding: '8px 16px',
-                borderRadius: '4px',
                 cursor: 'pointer',
                 fontSize: '14px'
               }}
@@ -406,11 +412,10 @@ function App() {
             <button
               onClick={handleNavigateToOffices}
               style={{
-                backgroundColor: appState.currentView === 'offices-list' || appState.currentView === 'office-detail' ? '#28a745' : '#6c757d',
-                color: 'white',
+                backgroundColor: appState.currentView === 'offices-list' || appState.currentView === 'office-detail' ? '#B3E5FC' : '#333333',
+                color: appState.currentView === 'offices-list' || appState.currentView === 'office-detail' ? '#000000' : '#ffffff',
                 border: 'none',
                 padding: '8px 16px',
-                borderRadius: '4px',
                 cursor: 'pointer',
                 fontSize: '14px'
               }}
@@ -420,11 +425,10 @@ function App() {
             <button
               onClick={handleNavigateToProjects}
               style={{
-                backgroundColor: appState.currentView === 'projects-list' || appState.currentView === 'project-detail' ? '#28a745' : '#6c757d',
-                color: 'white',
+                backgroundColor: appState.currentView === 'projects-list' || appState.currentView === 'project-detail' ? '#B3E5FC' : '#333333',
+                color: appState.currentView === 'projects-list' || appState.currentView === 'project-detail' ? '#000000' : '#ffffff',
                 border: 'none',
                 padding: '8px 16px',
-                borderRadius: '4px',
                 cursor: 'pointer',
                 fontSize: '14px'
               }}
@@ -434,11 +438,10 @@ function App() {
             <button
               onClick={handleNavigateToRegulatory}
               style={{
-                backgroundColor: appState.currentView === 'regulatory-list' || appState.currentView === 'regulatory-detail' ? '#28a745' : '#6c757d',
-                color: 'white',
+                backgroundColor: appState.currentView === 'regulatory-list' || appState.currentView === 'regulatory-detail' ? '#B3E5FC' : '#333333',
+                color: appState.currentView === 'regulatory-list' || appState.currentView === 'regulatory-detail' ? '#000000' : '#ffffff',
                 border: 'none',
                 padding: '8px 16px',
-                borderRadius: '4px',
                 cursor: 'pointer',
                 fontSize: '14px'
               }}
@@ -446,14 +449,14 @@ function App() {
               Regulations
             </button>
           </div>
-          <div style={{ fontSize: '14px', color: '#6c757d' }}>
+          <div style={{ fontSize: '14px', color: '#B3E5FC' }}>
             {appState.currentView.replace('-', ' ').toUpperCase()}
           </div>
         </div>
       )}
 
       {/* Main Content Area */}
-      <div style={{ flex: 1, overflow: 'auto' }}>
+      <div style={{ flex: 1, overflow: 'auto', backgroundColor: '#000000' }}>
         {renderView()}
       </div>
       
