@@ -1,3 +1,0 @@
-export { Table } from './Table';
-export type { TableProps } from './Table.types';
-export { useTable } from './useTable';

@@ -34,25 +34,39 @@
 │
 ├── /cross/                         #  CROSS UI (SEPARATE SYSTEM)
 │   ├── Cross.tsx                   # Main Cross UI component
-│   ├── CrossAnimationEngine.ts    # Animation loop (60 FPS)
-│   ├── CrossPhysics.ts             # Physics calculations
 │   │
-│   ├── /animations/                # Movement equations
-│   │   ├── lissajous.ts            # Figure-8 idle float
-│   │   ├── magnetic.ts             # Hover attraction
-│   │   ├── spring.ts               # Focus expansion
-│   │   ├── ripple.ts               # Typing effect
-│   │   └── vortex.ts               # Submit spiral
+│   ├── /positionCalculator/        # Grid positioning system
+│   │   ├── PositionCalculator.ts   # Grid position calculations
+│   │   └── index.ts                # Exports
 │   │
-│   ├── /particles/                 # Particle system
-│   │   ├── ParticleSystem.tsx
-│   │   └── brownianMotion.ts
+│   ├── /colorEngine/               # Rectangle coloring system
+│   │   ├── ColorEngine.ts          # Color rules and management
+│   │   └── index.ts                # Exports
 │   │
-│   ├── /gestures/                  # Gesture recognition
-│   │   └── swipeDetection.ts
+│   ├── /multiRectangleComponents/  # Multi-rectangle components
+│   │   ├── MultiRectangleComponent.tsx
+│   │   └── index.ts                # Exports
 │   │
-│   └── /types/
-│       └── cross.types.ts
+│   ├── /firebaseConnections/       # Firestore integration
+│   │   ├── FirestoreGridData.ts    # Firestore data mapping
+│   │   ├── GridDataSync.ts         # Real-time sync
+│   │   ├── GridDataMapper.ts       # Data transformation
+│   │   └── index.ts                # Exports
+│   │
+│   └── /animations/                # Animation system
+│       ├── /onLoad/                # OnLoad animation bundle
+│       │   ├── Animation.ts        # Animation logic + functions
+│       │   └── index.ts            # Exports
+│       │
+│       ├── /dataFlow/              # Data flow animation bundle (future)
+│       │   ├── Animation.ts        # Animation logic + functions
+│       │   └── index.ts            # Exports
+│       │
+│       ├── /pulse/                 # Pulse animation bundle (future)
+│       │   ├── Animation.ts        # Animation logic + functions
+│       │   └── index.ts            # Exports
+│       │
+│       └── index.ts                # Main animation exports
 │
 ├── /ui/                            #  SHARED COMPONENT LIBRARY (APP-WIDE)
 │   ├── /Button/                    # Each component = separate folder
@@ -372,12 +386,26 @@
 - Import path: `import { Cross } from '@/cross'`
 
 **Contains:**
-- Cross UI component
-- Animation engine
-- Physics calculations (Lissajous, springs, vortex)
-- Particle system
-- Gesture recognition
-- Cross-specific types
+- Cross UI component (main whiteboard)
+- Grid positioning system (enforced 25×88 grid)
+- Color engine (rectangle coloring rules)
+- Multi-rectangle components (spanning multiple grid cells)
+- Firebase connections (Firestore data integration)
+- Animation system (bundled animations)
+
+**Animation Bundle Pattern:**
+Each animation type gets its own folder with:
+```
+/cross/animations/[animationType]/
+├── Animation.ts        # Animation logic + functions (single file)
+└── index.ts           # Clean exports
+```
+
+**Examples:**
+- `/onLoad/` - OnLoad animation bundle
+- `/dataFlow/` - Data flow animation bundle (future)
+- `/pulse/` - Pulse animation bundle (future)
+- `/sparkle/` - Sparkle animation bundle (future)
 
 ---
 

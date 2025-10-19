@@ -5,14 +5,24 @@ import { registerAllHandlers } from './ipc';
 const PHI = 1.618033988749;
 
 function createMainWindow(): BrowserWindow {
+  // Calculate dimensions for 1/6 ratio rectangles
+  // Target: 4px × 24px rectangles (1:6 ratio)
+  // Need dimensions that divide evenly by 4px and 24px
+  
+  // For 1/6 ratio: width/height = 1/6, so height = 6 × width
+  // If we want rectangles of 4×24px, we need:
+  // width divisible by 4, height divisible by 24
+  // Let's use 1200px width and 704px height
+  // This gives us 25 columns (1200÷48) and 88 rows (704÷8) with no cut-off rectangles
+  
   const mainWindow = new BrowserWindow({
-    // Window dimensions (Golden Rectangle)
-    width: 1280,
-    height: Math.round(1280 / PHI), // ~791px
+    // Window dimensions
+    width: 1200,
+    height: 704,
     
     // Minimum size
-    minWidth: 800,
-    minHeight: Math.round(800 / PHI), // ~494px
+    minWidth: 1200,
+    minHeight: 704,
     
     // Window appearance
     backgroundColor: 'transparent', // Transparent background
