@@ -23,9 +23,10 @@ export const RegulatoryList: React.FC<RegulatoryListProps> = ({
 
   const getImpactColor = (level: string) => {
     switch (level) {
-      case 'high': return '#dc3545';
-      case 'medium': return '#ffc107';
-      case 'low': return '#28a745';
+      case 'international': return '#dc3545';
+      case 'national': return '#ffc107';
+      case 'state': return '#17a2b8';
+      case 'city': return '#28a745';
       default: return '#6c757d';
     }
   };
@@ -124,7 +125,7 @@ export const RegulatoryList: React.FC<RegulatoryListProps> = ({
                   </span>
                   <span
                     style={{
-                      backgroundColor: getImpactColor(regulation.impact.level),
+                      backgroundColor: getImpactColor(regulation.jurisdiction.level),
                       color: 'white',
                       padding: '2px 8px',
                       borderRadius: '12px',
@@ -132,7 +133,7 @@ export const RegulatoryList: React.FC<RegulatoryListProps> = ({
                       textTransform: 'capitalize'
                     }}
                   >
-                    {regulation.impact.level} Impact
+                    {regulation.jurisdiction.level} Jurisdiction
                   </span>
                 </div>
                 
@@ -155,28 +156,28 @@ export const RegulatoryList: React.FC<RegulatoryListProps> = ({
               
               <div style={{ textAlign: 'right', fontSize: '12px', color: '#888', minWidth: '120px' }}>
                 <div><strong>Compliance:</strong></div>
-                <div>Rate: {regulation.enforcement.complianceRate}%</div>
-                <div>Violations: {regulation.enforcement.violationCount}</div>
+                <div>Rate: {regulation.enforcement?.complianceRate || 0}%</div>
+                <div>Violations: {regulation.enforcement?.violationCount || 0}</div>
                 <div style={{ marginTop: '5px' }}>
-                  <strong>Cost:</strong> {regulation.compliance.complianceCost.currency} {regulation.compliance.complianceCost.estimated.toLocaleString()}
+                  <strong>Cost:</strong> {regulation.compliance?.complianceCost?.currency || 'USD'} {regulation.compliance?.complianceCost?.estimated?.toLocaleString() || '0'}
                 </div>
               </div>
             </div>
             
-            {regulation.requirements.length > 0 && (
+            {regulation.requirements?.length > 0 && (
               <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #eee' }}>
                 <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>
                   <strong>Key Requirements:</strong>
                 </div>
                 <div style={{ fontSize: '12px', color: '#555' }}>
-                  {regulation.requirements.slice(0, 2).map((req, index) => (
+                  {regulation.requirements?.slice(0, 2).map((req, index) => (
                     <div key={index} style={{ marginBottom: '2px' }}>
                       • {req.requirement}
                     </div>
                   ))}
-                  {regulation.requirements.length > 2 && (
+                  {regulation.requirements?.length > 2 && (
                     <div style={{ color: '#888', fontStyle: 'italic' }}>
-                      +{regulation.requirements.length - 2} more requirements
+                      +{regulation.requirements?.length - 2} more requirements
                     </div>
                   )}
                 </div>

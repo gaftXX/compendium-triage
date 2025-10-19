@@ -1,14 +1,22 @@
 import React, { useState, useCallback } from 'react';
 import { ProcessingResult } from '../renderer/src/services/noteProcessing/noteProcessing';
+import { useOrchestrator } from '../renderer/src/context/OrchestratorContext';
+import { SimpleOrchestratorResponse } from '../orchestrator/simpleOrchestrator';
 
 interface CrossProps {
   className?: string;
 }
 
+type InputMode = 'note-processing' | 'orchestrator';
+
 export const Cross: React.FC<CrossProps> = ({ className }) => {
   const [inputValue, setInputValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<ProcessingResult | null>(null);
+  const [orchestratorResult, setOrchestratorResult] = useState<SimpleOrchestratorResponse | null>(null);
+  const [inputMode, setInputMode] = useState<InputMode>('note-processing');
+  const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string; timestamp: Date }>>([]);
+  const { processCommand } = useOrchestrator();
 
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -17,11 +25,14 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
     if (result) {
       setResult(null);
     }
-  }, [result]);
+    if (orchestratorResult) {
+      setOrchestratorResult(null);
+    }
+  }, [result, orchestratorResult]);
 
   const handleKeyPress = useCallback(async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && inputValue.trim()) {
-      await processNote();
+      await processOrchestratorCommand();
     }
   }, [inputValue]);
 
@@ -53,6 +64,51 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
     }
   }, [inputValue]);
 
+  const processOrchestratorCommand = useCallback(async () => {
+    if (!inputValue.trim()) return;
+
+    // Add user message to chat
+    const userMessage = { role: 'user' as const, content: inputValue, timestamp: new Date() };
+    setChatMessages(prev => [...prev, userMessage]);
+
+    setIsProcessing(true);
+    try {
+      const orchestratorResponse = await processCommand(inputValue);
+      setOrchestratorResult(orchestratorResponse);
+      
+      // Add assistant response to chat
+      const assistantMessage = { 
+        role: 'assistant' as const, 
+        content: orchestratorResponse.message || (orchestratorResponse.success ? 'Command executed successfully' : 'Command failed'),
+        timestamp: new Date() 
+      };
+      setChatMessages(prev => [...prev, assistantMessage]);
+      
+      // Clear input after successful processing
+      if (orchestratorResponse.success) {
+        setInputValue('');
+      }
+    } catch (error) {
+      console.error('Error processing orchestrator command:', error);
+      setOrchestratorResult({
+        success: false,
+        error: 'Failed to process command: ' + (error as Error).message
+      });
+      
+      // Add error message to chat
+      const errorMessage = { 
+        role: 'assistant' as const, 
+        content: 'Sorry, I encountered an error processing your command.',
+        timestamp: new Date() 
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [inputValue, processCommand]);
+
+  // Removed mode switching - everything handled by orchestrator
+
 
 
   return (
@@ -72,11 +128,22 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
       }}
     >
 
+      {/* Mode Switch - Fixed at top */}
+      <div style={{ 
+        marginBottom: '10px',
+        position: 'sticky',
+        top: '0',
+        backgroundColor: '#000000',
+        zIndex: 10,
+        padding: '10px 0'
+      }}>
+      </div>
+
       {/* Input Section - Fixed at top */}
       <div style={{ 
         marginBottom: '20px',
         position: 'sticky',
-        top: '0',
+        top: '60px',
         backgroundColor: '#000000',
         zIndex: 10,
         padding: '10px 0'
@@ -86,7 +153,7 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
           value={inputValue}
           onChange={handleInputChange}
           onKeyPress={handleKeyPress}
-          placeholder="Enter text... (AI will automatically identify and create offices, projects, regulations)"
+          placeholder="Enter"
           disabled={isProcessing}
           style={{
             width: '400px',
@@ -103,6 +170,55 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
         />
       </div>
 
+      {/* Chat Messages Display */}
+      {chatMessages.length > 0 && (
+        <div style={{
+          backgroundColor: '#1a1a1a',
+          border: '1px solid #333',
+          borderRadius: '8px',
+          padding: '15px',
+          maxWidth: '800px',
+          width: '100%',
+          color: '#ffffff',
+          marginBottom: '20px',
+          maxHeight: '300px',
+          overflowY: 'auto'
+        }}>
+          <h3 style={{ margin: '0 0 15px 0', color: '#B3E5FC', fontSize: '16px' }}>
+            Chat History
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {chatMessages.map((message, index) => (
+              <div key={index} style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: message.role === 'user' ? 'flex-end' : 'flex-start'
+              }}>
+                <div style={{
+                  backgroundColor: message.role === 'user' ? '#007bff' : '#28a745',
+                  color: 'white',
+                  padding: '8px 12px',
+                  borderRadius: '12px',
+                  maxWidth: '70%',
+                  wordWrap: 'break-word',
+                  fontSize: '14px'
+                }}>
+                  {message.content}
+                </div>
+                <div style={{
+                  fontSize: '11px',
+                  color: '#888',
+                  marginTop: '4px',
+                  marginLeft: message.role === 'user' ? '0' : '8px',
+                  marginRight: message.role === 'user' ? '8px' : '0'
+                }}>
+                  {message.timestamp.toLocaleTimeString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Processing Indicator */}
       {isProcessing && (
@@ -111,16 +227,79 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
           fontSize: '14px', 
           marginBottom: '20px',
           position: 'sticky',
-          top: '60px',
+          top: '120px',
           backgroundColor: '#000000',
           zIndex: 10,
           padding: '10px 0'
         }}>
-          AI is analyzing text and creating entities...
+          AI Assistant is processing your command...
         </div>
       )}
 
-      {/* V2 Results */}
+             {/* Orchestrator Results */}
+             {orchestratorResult && (
+        <div style={{
+          backgroundColor: '#1a1a1a',
+          border: '1px solid #333',
+          borderRadius: '4px',
+          padding: '20px',
+          maxWidth: '800px',
+          width: '100%',
+          color: '#ffffff',
+          marginBottom: '20px'
+        }}>
+          <h3 style={{ margin: '0 0 15px 0', color: '#B3E5FC', fontSize: '16px' }}>
+            Orchestrator Response
+          </h3>
+          
+          {orchestratorResult.success ? (
+            <div>
+              <div style={{ 
+                backgroundColor: '#2d5a2d', 
+                padding: '10px', 
+                borderRadius: '4px', 
+                marginBottom: '10px',
+                color: '#90EE90'
+              }}>
+                ✅ {orchestratorResult.message || 'Command executed successfully'}
+              </div>
+              
+              {orchestratorResult.actionExecuted && (
+                <div style={{ marginBottom: '10px' }}>
+                  <strong>Action:</strong> {orchestratorResult.actionExecuted}
+                </div>
+              )}
+              
+              {orchestratorResult.data && (
+                <div style={{ 
+                  backgroundColor: '#1a1a1a', 
+                  padding: '15px', 
+                  borderRadius: '8px', 
+                  border: '1px solid #333',
+                  fontFamily: 'monospace',
+                  fontSize: '12px',
+                  whiteSpace: 'pre-wrap',
+                  maxHeight: '300px',
+                  overflowY: 'auto'
+                }}>
+                  {JSON.stringify(orchestratorResult.data, null, 2)}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ 
+              backgroundColor: '#5a2d2d', 
+              padding: '10px', 
+              borderRadius: '4px',
+              color: '#FFB6C1'
+            }}>
+              ❌ {orchestratorResult.error || 'Command failed'}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Note Processing Results */}
       {result && (
         <div style={{
           backgroundColor: '#1a1a1a',
@@ -132,6 +311,9 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
           color: '#ffffff',
           marginBottom: '20px'
         }}>
+          <h3 style={{ margin: '0 0 15px 0', color: '#B3E5FC', fontSize: '16px' }}>
+            Note Processing Results
+          </h3>
           
           {/* Processing Results */}
           <div style={{ marginBottom: '20px' }}>

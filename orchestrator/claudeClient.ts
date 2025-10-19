@@ -18,22 +18,32 @@ export interface ClaudeResponse {
 }
 
 function readApiKeyFromEnv(): string | undefined {
+  console.log('🔍 Reading API key from environment...');
+  
   try {
     // @ts-ignore - import.meta.env may not exist in Node context
     const env = (import.meta as any)?.env;
+    console.log('📦 import.meta.env:', env);
     if (env) {
       // Check both possible variable names
-      return env.VITE_CLAUDE_API_KEY || env.VITE_ANTHROPIC_API_KEY;
+      const apiKey = env.VITE_CLAUDE_API_KEY || env.VITE_ANTHROPIC_API_KEY;
+      console.log('🔑 Found API key in import.meta.env:', apiKey ? 'YES' : 'NO');
+      return apiKey;
     }
-  } catch (_) {
-    // ignore
+  } catch (error) {
+    console.log('❌ Error accessing import.meta.env:', error);
   }
 
   if (typeof process !== 'undefined' && process.env) {
-    // Check both possible variable names
-    return process.env.VITE_CLAUDE_API_KEY || process.env.VITE_ANTHROPIC_API_KEY;
+    console.log('🖥️ Checking process.env...');
+    const apiKey = process.env.VITE_CLAUDE_API_KEY || process.env.VITE_ANTHROPIC_API_KEY;
+    console.log('🔑 Found API key in process.env:', apiKey ? 'YES' : 'NO');
+    return apiKey;
   }
 
+  console.log('❌ No API key found in any environment');
+  
+  console.log('❌ No API key found in any environment');
   return undefined;
 }
 
@@ -50,7 +60,7 @@ export async function sendMessage(
   options?: { apiKey?: string; model?: string }
 ): Promise<ClaudeResponse> {
   const anthropic = getAnthropicClient(options?.apiKey);
-  const model = options?.model || 'claude-sonnet-4-20250514';
+  const model = options?.model || 'claude-3-7-sonnet-20250219';
 
   const messages = [
     ...(request.conversationHistory || []),
@@ -83,7 +93,7 @@ export async function streamMessage(
   options?: { apiKey?: string; model?: string }
 ): Promise<ClaudeResponse> {
   const anthropic = getAnthropicClient(options?.apiKey);
-  const model = options?.model || 'claude-sonnet-4-20250514';
+  const model = options?.model || 'claude-3-7-sonnet-20250219';
 
   const messages = [
     ...(request.conversationHistory || []),

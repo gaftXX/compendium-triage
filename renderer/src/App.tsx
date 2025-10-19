@@ -9,6 +9,8 @@ import { RegulatoryDetail } from './components/regulatory/RegulatoryDetail';
 import { Office, Project, Regulation } from './types/firestore';
 import { useOffices, useProjects, useRegulations } from './hooks/useFirestore';
 import { initializeFirebase } from './services/firebase';
+import { navigationService } from './services/navigation/navigationService';
+import { OrchestratorProvider } from './context/OrchestratorContext';
 
 type ViewType = 'cross' | 'offices-list' | 'office-detail' | 'projects-list' | 'project-detail' | 'regulatory-list' | 'regulatory-detail';
 
@@ -41,9 +43,68 @@ function App() {
   }, []);
 
   // Firestore hooks
-  const { deleteOffice } = useOffices();
-  const { deleteProject } = useProjects();
-  const { deleteRegulation } = useRegulations();
+  const { offices, loadOffices, deleteOffice } = useOffices();
+  const { projects, loadProjects, deleteProject } = useProjects();
+  const { regulations, loadRegulations, deleteRegulation } = useRegulations();
+
+  // Register navigation service callbacks
+  useEffect(() => {
+    navigationService.registerCallbacks({
+      onNavigate: (view: ViewType) => {
+        setAppState(prev => ({
+          ...prev,
+          currentView: view,
+          showCross: view === 'cross'
+        }));
+      },
+      onSelectOffice: (officeId: string) => {
+        // Find and select the office
+        const office = offices.find(o => o.id === officeId);
+        if (office) {
+          setAppState(prev => ({
+            ...prev,
+            selectedOffice: office,
+            currentView: 'office-detail'
+          }));
+        }
+      },
+      onSelectProject: (projectId: string) => {
+        // Find and select the project
+        const project = projects.find(p => p.id === projectId);
+        if (project) {
+          setAppState(prev => ({
+            ...prev,
+            selectedProject: project,
+            currentView: 'project-detail'
+          }));
+        }
+      },
+      onSelectRegulation: (regulationId: string) => {
+        // Find and select the regulation
+        const regulation = regulations.find(r => r.id === regulationId);
+        if (regulation) {
+          setAppState(prev => ({
+            ...prev,
+            selectedRegulation: regulation,
+            currentView: 'regulatory-detail'
+          }));
+        }
+      },
+      onBack: () => {
+        handleBackToList();
+      },
+      onRefresh: () => {
+        // Refresh current data
+        if (appState.currentView.startsWith('office')) {
+          loadOffices();
+        } else if (appState.currentView.startsWith('project')) {
+          loadProjects();
+        } else if (appState.currentView.startsWith('regulatory')) {
+          loadRegulations();
+        }
+      }
+    });
+  }, [offices, projects, regulations, loadOffices, loadProjects, loadRegulations, appState.currentView]);
 
   // Handle window management when views change
   useEffect(() => {
@@ -315,7 +376,8 @@ function App() {
   };
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <OrchestratorProvider>
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Navigation Bar - only show when not in Cross view */}
       {!appState.showCross && (
         <div style={{
@@ -394,7 +456,9 @@ function App() {
       <div style={{ flex: 1, overflow: 'auto' }}>
         {renderView()}
       </div>
-    </div>
+      
+      </div>
+    </OrchestratorProvider>
   );
 }
 

@@ -119,29 +119,29 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
                 </p>
                 
                 <p style={{ margin: '0 0 5px 0', color: '#666', fontSize: '14px' }}>
-                  {project.location.city}, {project.location.country}
+                  {project.location?.city || 'Unknown'}, {project.location?.country || 'Unknown'}
                 </p>
                 
                 <p style={{ margin: '0 0 5px 0', color: '#666', fontSize: '14px' }}>
-                  {project.details.projectType} • {project.details.size.toLocaleString()} sqm
+                  {project.details?.projectType || 'Unknown'} • {project.details?.size?.toLocaleString() || '0'} sqm
                 </p>
                 
                 <p style={{ margin: '0', color: '#666', fontSize: '14px' }}>
-                  Budget: {project.financial.currency} {project.financial.budget.toLocaleString()}
+                  Budget: {project.financial?.currency || 'USD'} {project.financial?.budget?.toLocaleString() || '0'}
                 </p>
               </div>
               
               <div style={{ textAlign: 'right', fontSize: '12px', color: '#888', minWidth: '120px' }}>
                 <div><strong>Timeline:</strong></div>
-                <div>Start: {formatDate(project.timeline.startDate)}</div>
-                <div>Expected: {formatDate(project.timeline.expectedCompletion)}</div>
-                {project.timeline.actualCompletion && (
+                <div>Start: {formatDate(project.timeline?.startDate)}</div>
+                <div>Expected: {formatDate(project.timeline?.expectedCompletion)}</div>
+                {project.timeline?.actualCompletion && (
                   <div>Actual: {formatDate(project.timeline.actualCompletion)}</div>
                 )}
               </div>
             </div>
             
-            {project.details.description && (
+            {project.details?.description && (
               <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #eee' }}>
                 <p style={{ margin: 0, fontSize: '14px', color: '#555', fontStyle: 'italic' }}>
                   {project.details.description}

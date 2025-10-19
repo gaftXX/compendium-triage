@@ -38,7 +38,6 @@ export default defineConfig({
   server: {
     port: 3000,
     cors: true,
-    open: true,
     hmr: {
       overlay: true
     },
@@ -51,7 +50,7 @@ export default defineConfig({
   
   resolve: {
     alias: {
-      '@': path.join(__dirname, 'renderer/src'),
+      '@': path.join(__dirname, 'src'),
       '@/orchestrator': path.join(__dirname, '../orchestrator'),
       '@/cross': path.join(__dirname, '../cross'),
       '@/ui': path.join(__dirname, '../ui'),
