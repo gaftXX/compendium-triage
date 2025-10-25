@@ -80,7 +80,7 @@ export class IndependentNoteService {
     try {
       console.log('🔥 Initializing Firebase independently...');
       
-      const { initializeFirebase } = await import('../firebase');
+      const { initializeFirebase } = await import('../renderer/src/services/firebase');
       await initializeFirebase();
       
       console.log('✅ Firebase initialized independently');
@@ -141,16 +141,11 @@ export class IndependentNoteService {
   }
 
   /**
-   * Check for any orchestrator dependencies
+   * Check for any orchestrator dependencies - removed for rework
    */
   private async checkOrchestratorDependencies(): Promise<boolean> {
-    try {
-      // Try to import orchestrator - if it succeeds, we have a dependency
-      await import('../../../orchestrator');
-      return true; // Has dependency
-    } catch {
-      return false; // No dependency
-    }
+    // Orchestrator removed for rework
+    return false;
   }
 
   /**
@@ -158,8 +153,8 @@ export class IndependentNoteService {
    */
   private async verifyDirectFirestoreAccess(): Promise<boolean> {
     try {
-      const { FirestoreService } = await import('../firebase/firestoreOperations');
-      const firestoreService = FirestoreService.getInstance();
+      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations');
+      const firestoreService = FirestoreOperationsService.getInstance();
       
       return firestoreService.isFirebaseAvailable();
     } catch {

@@ -9,20 +9,18 @@ function createMainWindow(): BrowserWindow {
   // Target: 4px × 24px rectangles (1:6 ratio)
   // Need dimensions that divide evenly by 4px and 24px
   
-  // For 1/6 ratio: width/height = 1/6, so height = 6 × width
-  // If we want rectangles of 4×24px, we need:
-  // width divisible by 4, height divisible by 24
-  // Let's use 1200px width and 704px height
-  // This gives us 25 columns (1200÷48) and 88 rows (704÷8) with no cut-off rectangles
+  // For 4px height rectangles, use 700px height to avoid cut rectangles
+  // 700px ÷ 4px = 175 rows with no remainder
+  // 1240px width ÷ 40px = 31 columns with no remainder
   
   const mainWindow = new BrowserWindow({
     // Window dimensions
-    width: 1200,
-    height: 704,
+    width: 1240,
+    height: 700,
     
     // Minimum size
-    minWidth: 1200,
-    minHeight: 704,
+    minWidth: 1240,
+    minHeight: 700,
     
     // Window appearance
     backgroundColor: 'transparent', // Transparent background

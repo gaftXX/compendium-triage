@@ -1,7 +1,7 @@
 // Firestore Note Service - Handles real database operations for the Note System
 
-import { FirestoreOperationsService } from '../firebase/firestoreOperations';
-import { Office, Project, Regulation } from '../../types/firestore';
+import { FirestoreOperationsService } from '../renderer/src/services/firebase/firestoreOperations';
+import { Office, Project, Regulation } from '../renderer/src/types/firestore';
 import { NoteServiceResult } from './noteService';
 
 export interface EntityRelationship {
@@ -43,8 +43,16 @@ export class FirestoreNoteService {
       }
 
       // Always create new office (skip update logic to avoid document not found errors)
+      if (!officeData.name) {
+        return {
+          success: false,
+          message: 'Office name is required',
+          error: 'Cannot create office without name'
+        };
+      }
+      
       console.log('🏢 Creating new office:', officeData.name);
-      const result = await this.firestoreService.createOffice(officeData);
+      const result = await this.firestoreService.createOffice(officeData as any);
       
       if (result.success && result.data) {
         // Create relationships
@@ -118,7 +126,14 @@ export class FirestoreNoteService {
         }
       } else {
         // Create new project
-        const result = await this.firestoreService.createProject(projectData);
+        if (!projectData.projectName || !projectData.status) {
+          return {
+            success: false,
+            message: 'Project name and status are required',
+            error: 'Cannot create project without required fields'
+          };
+        }
+        const result = await this.firestoreService.createProject(projectData as any);
         
         if (result.success && result.data) {
           // Create relationships
@@ -193,7 +208,14 @@ export class FirestoreNoteService {
         }
       } else {
         // Create new regulation
-        const result = await this.firestoreService.createRegulation(regulationData);
+        if (!regulationData.name) {
+          return {
+            success: false,
+            message: 'Regulation name is required',
+            error: 'Cannot create regulation without name'
+          };
+        }
+        const result = await this.firestoreService.createRegulation(regulationData as any);
         
         if (result.success && result.data) {
           // Create relationships

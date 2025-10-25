@@ -7,7 +7,6 @@
 
 import { componentRegistry } from './componentRegistry';
 import { eventBus, EVENT_TYPES } from './eventBus';
-import { getActiveActions } from '../../../orchestrator/actions/registry';
 
 export interface ActionInheritanceRule {
   componentType: string;
@@ -47,7 +46,7 @@ export class ActionInheritanceManager {
    * Setup predefined inheritance rules
    */
   private setupPredefinedRules(): void {
-    const activeActions = getActiveActions();
+    const activeActions: any[] = []; // Removed orchestrator dependency
     
     // Office-related components inherit office actions
     this.addInheritanceRule({

@@ -6,13 +6,12 @@
  */
 
 import React, { createContext, useContext, useCallback, useRef, useEffect } from 'react';
-import { simpleOrchestrator, SimpleOrchestratorRequest, SimpleOrchestratorResponse } from '../../../orchestrator/simpleOrchestrator';
 import { componentRegistry } from '../services/engine/componentRegistry';
 import { eventBus, EVENT_TYPES } from '../services/engine/eventBus';
 
 export interface OrchestratorContextValue {
-  // Orchestrator methods
-  processCommand: (command: string, context?: any) => Promise<SimpleOrchestratorResponse>;
+  // Orchestrator methods - removed for rework
+  processCommand: (command: string, context?: any) => Promise<any>;
   getAvailableActions: () => any[];
   getConversationHistory: () => Array<{ role: string; content: string }>;
   clearConversationHistory: () => void;
@@ -60,53 +59,34 @@ export function OrchestratorProvider({ children }: OrchestratorProviderProps) {
     };
   }, []);
 
-  // Process command through orchestrator
+  // Process command - removed for rework
   const processCommand = useCallback(async (
     command: string, 
     context?: any
-  ): Promise<SimpleOrchestratorResponse> => {
-    const request: SimpleOrchestratorRequest = {
-      command,
-      context
-    };
-
-    const response = await simpleOrchestrator.processCommand(request);
-    
-    // Publish action execution event
-    if (response.success && response.actionExecuted) {
-      eventBus.publish(EVENT_TYPES.ACTION_EXECUTED, {
-        action: response.actionExecuted,
-        result: response.result,
-        data: response.data
-      });
-    } else if (!response.success) {
-      eventBus.publish(EVENT_TYPES.ACTION_FAILED, {
-        error: response.error,
-        command
-      });
-    }
-
-    return response;
+  ): Promise<any> => {
+    console.log('Command processing removed for rework:', command);
+    // TODO: Implement new orchestrator functionality
+    return { success: false, message: 'Orchestrator removed for rework' };
   }, []);
 
-  // Get available actions
+  // Get available actions - removed for rework
   const getAvailableActions = useCallback(() => {
-    return orchestrator.getAvailableActions();
+    return [];
   }, []);
 
-  // Get conversation history
+  // Get conversation history - removed for rework
   const getConversationHistory = useCallback(() => {
-    return orchestrator.getConversationHistory();
+    return [];
   }, []);
 
-  // Clear conversation history
+  // Clear conversation history - removed for rework
   const clearConversationHistory = useCallback(() => {
-    orchestrator.clearConversationHistory();
+    console.log('Conversation history cleared');
   }, []);
 
-  // Add context to conversation
+  // Add context to conversation - removed for rework
   const addContext = useCallback((context: any) => {
-    orchestrator.addContext(context);
+    console.log('Context added:', context);
   }, []);
 
   // Register component

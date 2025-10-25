@@ -1,6 +1,6 @@
 // Note Processing V2 - Simplified AI Entity Creation
 
-import { Office, Project, Regulation } from '../../types/firestore';
+import { Office, Project, Regulation } from '../renderer/src/types/firestore';
 
 export interface V2ProcessingResult {
   success: boolean;
@@ -478,7 +478,7 @@ export class NoteProcessingV2 {
    */
   private async saveUserInput(inputText: string): Promise<void> {
     try {
-      const { getFirestoreInstance } = await import('../firebase/config');
+      const { getFirestoreInstance } = await import('../renderer/src/services/firebase/config');
       const { collection, addDoc } = await import('firebase/firestore');
       const db = getFirestoreInstance();
       
@@ -507,7 +507,7 @@ export class NoteProcessingV2 {
     summary: string
   ): Promise<void> {
     try {
-      const { getFirestoreInstance } = await import('../firebase/config');
+      const { getFirestoreInstance } = await import('../renderer/src/services/firebase/config');
       const { collection, query, where, orderBy, limit, getDocs, updateDoc } = await import('firebase/firestore');
       const db = getFirestoreInstance();
       

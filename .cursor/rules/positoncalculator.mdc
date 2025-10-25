@@ -1,0 +1,12 @@
+---
+globs: PositionCalculator.ts
+alwaysApply: false
+---
+Position Calculator System
+Calculates positions and coordinates for grid rectangles
+
+ENFORCEMENT: All animations must follow color engine rules
+Animation rectangles: Light blue (#C8EDFC) only
+No white rectangles allowed in animations
+Grid lines: #333333
+Corners: #666666, Edges: #444444

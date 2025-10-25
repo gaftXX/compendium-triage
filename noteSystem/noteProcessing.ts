@@ -1,6 +1,6 @@
 // Note Processing - AI Entity Creation System
 
-import { Office, Project, Regulation } from '../../types/firestore';
+import { Office, Project, Regulation } from '../renderer/src/types/firestore';
 
 export interface ProcessingResult {
   success: boolean;
@@ -224,7 +224,7 @@ export class NoteProcessing {
         
         if (searchResult.found && searchResult.entity) {
           // Merge with existing office
-          console.log(`🔄 Merging with existing office: ${searchResult.entity.name}`);
+          console.log(`🔄 Merging with existing office: ${'name' in searchResult.entity ? searchResult.entity.name : 'Unknown'}`);
           const mergeResult = await entityUpdateService.mergeOfficeData(
             searchResult.entity as Office, 
             officeData
@@ -355,7 +355,7 @@ export class NoteProcessing {
         
         if (searchResult.found && searchResult.entity) {
           // Merge with existing project
-          console.log(`🔄 Merging with existing project: ${searchResult.entity.name}`);
+          console.log(`🔄 Merging with existing project: ${'projectName' in searchResult.entity ? searchResult.entity.projectName : 'name' in searchResult.entity ? searchResult.entity.name : 'Unknown'}`);
           const mergeResult = await entityUpdateService.mergeProjectData(
             searchResult.entity as Project, 
             projectData
@@ -435,7 +435,7 @@ export class NoteProcessing {
         
         if (searchResult.found && searchResult.entity) {
           // Merge with existing regulation
-          console.log(`🔄 Merging with existing regulation: ${searchResult.entity.name}`);
+          console.log(`🔄 Merging with existing regulation: ${'name' in searchResult.entity ? searchResult.entity.name : 'Unknown'}`);
           const mergeResult = await entityUpdateService.mergeRegulationData(
             searchResult.entity as Regulation, 
             regulationData
@@ -672,7 +672,7 @@ export class NoteProcessing {
     projects: Project[];
     regulations: Regulation[];
   }): string {
-    const parts = [];
+    const parts: string[] = [];
     
     if (createdEntities.offices.length > 0) {
       parts.push(`${createdEntities.offices.length} office(s) created`);
@@ -708,7 +708,7 @@ export class NoteProcessing {
    */
   private async saveUserInput(inputText: string, translationResult?: any): Promise<void> {
     try {
-      const { getFirestoreInstance } = await import('../firebase/config');
+      const { getFirestoreInstance } = await import('../renderer/src/services/firebase/config');
       const { collection, addDoc } = await import('firebase/firestore');
       const db = getFirestoreInstance();
       
@@ -748,7 +748,7 @@ export class NoteProcessing {
     summary: string
   ): Promise<void> {
     try {
-      const { getFirestoreInstance } = await import('../firebase/config');
+      const { getFirestoreInstance } = await import('../renderer/src/services/firebase/config');
       const { collection, query, where, orderBy, limit, getDocs, updateDoc } = await import('firebase/firestore');
       const db = getFirestoreInstance();
       
@@ -807,6 +807,10 @@ export class NoteProcessing {
         });
         
         // Check if location info is already in the original text
+        if (!office.name) {
+          console.log('⚠️ Office name is undefined, skipping location check');
+          continue;
+        }
         const hasLocationInText = this.checkLocationInText(office.name, originalText);
         
         if (hasLocationInText) {

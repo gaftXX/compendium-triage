@@ -1,6 +1,6 @@
 // Note Processing Engine - Phase 4: Independent Data Ingestion System
 
-import { Office, Project, Regulation } from '../../types/firestore';
+import { Office, Project, Regulation } from '../renderer/src/types/firestore';
 import { ClaudeAIService } from './claudeAIService';
 
 export interface NoteProcessingResult {

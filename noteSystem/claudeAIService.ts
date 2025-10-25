@@ -1,6 +1,6 @@
 // Claude AI Service - Real AI-powered text analysis using Claude API
 
-import { Office, Project, Regulation } from '../../types/firestore';
+import { Office, Project, Regulation } from '../renderer/src/types/firestore';
 
 export interface ClaudeCategorizationResult {
   category: 'office' | 'project' | 'regulation' | 'unknown';
@@ -23,7 +23,7 @@ export interface ClaudeAnalysisResult {
 
 export class ClaudeAIService {
   private static instance: ClaudeAIService;
-  private apiKey: string;
+  private apiKey: string = '';
   private baseUrl: string = 'https://api.anthropic.com/v1/messages';
 
   private constructor() {
@@ -31,21 +31,10 @@ export class ClaudeAIService {
     try {
       // Try import.meta.env first (Vite)
       const env = (import.meta as any)?.env;
-      if (env) {
-        this.apiKey = env.VITE_ANTHROPIC_API_KEY || env.VITE_CLAUDE_API_KEY || '';
-      }
-      
-      // Try process.env (Node.js/Electron)
-      if (!this.apiKey && typeof process !== 'undefined' && process.env) {
-        this.apiKey = process.env.VITE_ANTHROPIC_API_KEY || process.env.VITE_CLAUDE_API_KEY || '';
-      }
-      
-      // No fallback API key for security
-      if (!this.apiKey) {
-        console.log('❌ No Claude API key found - Claude AI service will not be available');
-      }
+      // Note: API key is now passed directly to chat() method, not loaded here
+      console.log('🔍 ClaudeAIService initialized (API key will be provided at runtime)');
     } catch (error) {
-      console.warn('Could not access environment variables');
+      console.warn('Could not access environment variables:', error);
       this.apiKey = '';
     }
   }
@@ -55,6 +44,20 @@ export class ClaudeAIService {
       ClaudeAIService.instance = new ClaudeAIService();
     }
     return ClaudeAIService.instance;
+  }
+
+  /**
+   * Chat with Claude AI - General conversation
+   */
+  public async chat(userMessage: string, apiKey?: string): Promise<string> {
+    try {
+      const prompt = this.buildChatPrompt(userMessage);
+      const response = await this.callClaudeAPI(prompt, apiKey);
+      return response;
+    } catch (error) {
+      console.error('Claude AI chat error:', error);
+      throw new Error('Failed to chat with Claude AI: ' + (error as Error).message);
+    }
   }
 
   /**
@@ -70,6 +73,17 @@ export class ClaudeAIService {
       console.error('Claude AI analysis error:', error);
       throw new Error('Failed to analyze text with Claude AI: ' + (error as Error).message);
     }
+  }
+
+  /**
+   * Build the prompt for Claude AI chat
+   */
+  private buildChatPrompt(userMessage: string): string {
+    return `You are Claude, an AI assistant. Be extremely concise and direct. Give the shortest possible answer that still helps the user.
+
+User message: ${userMessage}
+
+Respond with the most direct, simple answer possible. Avoid explanations unless specifically asked. If you need current information (like weather, news, stock prices, etc.), you should explicitly say "I need to search the web for that information" so the system can help you get current data.`;
   }
 
   /**
@@ -177,13 +191,14 @@ IMPORTANT: Your categorization decision is final and authoritative. Trust your a
   /**
    * Call Claude API
    */
-  private async callClaudeAPI(prompt: string): Promise<string> {
+  private async callClaudeAPI(prompt: string, apiKey?: string): Promise<string> {
+    const keyToUse = apiKey || this.apiKey;
     console.log('🤖 Calling Claude API with Claude 4.5 for text analysis...');
-    console.log('🔑 API Key available:', !!this.apiKey);
-    console.log('🔑 API Key length:', this.apiKey ? this.apiKey.length : 0);
-    console.log('🔑 API Key preview:', this.apiKey ? this.apiKey.substring(0, 10) + '...' : 'None');
+    console.log('🔑 API Key available:', !!keyToUse);
+    console.log('🔑 API Key length:', keyToUse ? keyToUse.length : 0);
+    console.log('🔑 API Key preview:', keyToUse ? keyToUse.substring(0, 10) + '...' : 'None');
     
-    if (!this.apiKey) {
+    if (!keyToUse) {
       console.log('❌ No Claude API key found - cannot process without AI');
       throw new Error('Claude API key is required for text analysis');
     }
@@ -193,11 +208,11 @@ IMPORTANT: Your categorization decision is final and authoritative. Trust your a
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': this.apiKey,
+          'x-api-key': keyToUse,
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
-          model: 'claude-3-7-sonnet-20250219', // Claude 3.7 Sonnet for text analysis
+          model: 'claude-haiku-4-5-20251001', // Claude 4.5 Haiku
           max_tokens: 4000,
           messages: [
             {

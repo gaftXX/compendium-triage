@@ -51,7 +51,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.join(__dirname, 'src'),
-      '@/orchestrator': path.join(__dirname, '../orchestrator'),
+      '@/orchestra': path.join(__dirname, '../orchestra'),
       '@/cross': path.join(__dirname, '../cross'),
       '@/ui': path.join(__dirname, '../ui'),
       '@/shared': path.join(__dirname, '../shared'),

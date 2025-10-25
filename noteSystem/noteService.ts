@@ -1,7 +1,7 @@
 // Note Service - Handles the complete note processing workflow
 
 import { NoteProcessingEngine, NoteProcessingResult, NoteProcessingOptions } from './noteProcessingEngine';
-import { Office, Project, Regulation } from '../../types/firestore';
+import { Office, Project, Regulation } from '../renderer/src/types/firestore';
 import { FirestoreNoteService } from './firestoreNoteService';
 
 export interface NoteServiceResult {
