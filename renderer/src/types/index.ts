@@ -3,9 +3,9 @@
 export interface ElectronAPI {
   window: {
     minimize: () => Promise<void>;
-    maximize: () => Promise<void>;
     close: () => Promise<void>;
-    isMaximized: () => Promise<boolean>;
+    resizeToMaxWidth: () => Promise<void>;
+    resizeToDefault: () => Promise<void>;
   };
   app: {
     getVersion: () => Promise<string>;

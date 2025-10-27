@@ -8,6 +8,7 @@ export interface ProcessingResult {
     offices: Office[];
     projects: Project[];
     regulations: Regulation[];
+    mergedOffices?: Office[];
   };
   summary: string;
   totalCreated: number;
@@ -70,7 +71,7 @@ export class NoteProcessing {
         console.log('❌ AI analysis failed');
         return {
           success: false,
-          entitiesCreated: { offices: [], projects: [], regulations: [] },
+          entitiesCreated: { offices: [], projects: [], regulations: [], mergedOffices: [] },
           summary: 'Failed to analyze text with AI',
           totalCreated: 0
         };
@@ -101,7 +102,7 @@ export class NoteProcessing {
         success: true,
         entitiesCreated: createdEntities,
         summary: this.generateSummary(createdEntities),
-        totalCreated: createdEntities.offices.length + createdEntities.projects.length + createdEntities.regulations.length,
+        totalCreated: createdEntities.offices.length + createdEntities.projects.length + createdEntities.regulations.length + (createdEntities.mergedOffices?.length || 0),
         webSearchResults: webSearchResults
       };
 
@@ -109,7 +110,91 @@ export class NoteProcessing {
       console.error('💥 V2 processing error:', error);
       return {
         success: false,
-        entitiesCreated: { offices: [], projects: [], regulations: [] },
+        entitiesCreated: { offices: [], projects: [], regulations: [], mergedOffices: [] },
+        summary: 'Error processing text: ' + (error as Error).message,
+        totalCreated: 0
+      };
+    }
+  }
+
+  /**
+   * Process text and create entities in Firebase WITHOUT web search (for location prompt flow)
+   */
+  public async processAndCreateEntitiesWithoutWebSearch(inputText: string): Promise<ProcessingResult> {
+    try {
+      console.log('🔍 Note Processing: Starting text processing (without web search)');
+      console.log('📝 Input text length:', inputText.length);
+      console.log('📝 Input text preview:', inputText.substring(0, 100) + '...');
+
+      // Step 0: Translation to English
+      console.log('🌐 Step 0: Translating to English if needed...');
+      const { TranslationService } = await import('./translationService');
+      const translationService = TranslationService.getInstance();
+      const translationResult = await translationService.translateToEnglish(inputText);
+      
+      let processedText = inputText;
+      if (translationResult.success && translationResult.translatedText !== inputText) {
+        console.log('✅ Text translated to English');
+        console.log('📝 Original text:', inputText.substring(0, 100) + '...');
+        console.log('📝 Translated text:', translationResult.translatedText.substring(0, 100) + '...');
+        processedText = translationResult.translatedText;
+      } else {
+        console.log('✅ Text is already in English or translation not needed');
+      }
+
+      // Step 1: AI Analysis
+      console.log('🤖 Step 1: Starting AI analysis...');
+      const aiResult = await this.analyzeWithAI(processedText);
+      
+      console.log('🤖 AI Analysis Result:', {
+        success: aiResult.success,
+        officesFound: aiResult.entities.offices.length,
+        projectsFound: aiResult.entities.projects.length,
+        regulationsFound: aiResult.entities.regulations.length
+      });
+
+      if (!aiResult.success) {
+        console.log('❌ AI analysis failed');
+        return {
+          success: false,
+          entitiesCreated: { offices: [], projects: [], regulations: [], mergedOffices: [] },
+          summary: 'Failed to analyze text with AI',
+          totalCreated: 0
+        };
+      }
+
+      // SKIP Step 1.5: Web search (this is the key difference)
+      console.log('⏭️ Skipping web search for location prompt flow...');
+
+      // Step 2: Save user input to Firebase first
+      console.log('📝 Step 2: Saving user input to Firebase...');
+      await this.saveUserInput(inputText, translationResult);
+
+      // Step 3: Create entities in Firebase (only with valid location data)
+      console.log('🔥 Step 3: Creating entities in Firebase...');
+      const createdEntities = await this.createEntitiesInFirebase(aiResult.entities);
+
+      console.log('✅ Firebase Creation Result:', {
+        officesCreated: createdEntities.offices.length,
+        projectsCreated: createdEntities.projects.length,
+        regulationsCreated: createdEntities.regulations.length
+      });
+
+      // Update user input with processing results
+      await this.updateUserInputProcessing(inputText, createdEntities, this.generateSummary(createdEntities));
+
+      return {
+        success: true,
+        entitiesCreated: createdEntities,
+        summary: this.generateSummary(createdEntities),
+        totalCreated: createdEntities.offices.length + createdEntities.projects.length + createdEntities.regulations.length + (createdEntities.mergedOffices?.length || 0)
+      };
+
+    } catch (error) {
+      console.error('💥 Processing error (without web search):', error);
+      return {
+        success: false,
+        entitiesCreated: { offices: [], projects: [], regulations: [], mergedOffices: [] },
         summary: 'Error processing text: ' + (error as Error).message,
         totalCreated: 0
       };
@@ -194,6 +279,7 @@ export class NoteProcessing {
     offices: Office[];
     projects: Project[];
     regulations: Regulation[];
+    mergedOffices: Office[];
   }> {
     const { FirestoreNoteService } = await import('./firestoreNoteService');
     const firestoreService = FirestoreNoteService.getInstance();
@@ -201,7 +287,8 @@ export class NoteProcessing {
     const createdEntities = {
       offices: [] as Office[],
       projects: [] as Project[],
-      regulations: [] as Regulation[]
+      regulations: [] as Regulation[],
+      mergedOffices: [] as Office[]
     };
 
     // Create or update offices using EntityUpdateService
@@ -232,7 +319,7 @@ export class NoteProcessing {
           
           if (mergeResult.success) {
             console.log(`✅ Office merged successfully: ${mergeResult.mergedFields.join(', ')}`);
-            createdEntities.offices.push(mergeResult.entity as Office);
+            createdEntities.mergedOffices.push(mergeResult.entity as Office);
           } else {
             console.error(`❌ Failed to merge office: ${mergeResult.error}`);
           }
@@ -671,11 +758,28 @@ export class NoteProcessing {
     offices: Office[];
     projects: Project[];
     regulations: Regulation[];
+    mergedOffices?: Office[];
   }): string {
     const parts: string[] = [];
     
     if (createdEntities.offices.length > 0) {
-      parts.push(`${createdEntities.offices.length} office(s) created`);
+      const officeDetails = createdEntities.offices.map(office => {
+        if (office.name && office.id) {
+          return `${office.name} (${office.id})`;
+        }
+        return office.name || office.id;
+      });
+      parts.push(`${createdEntities.offices.length} office(s) created: ${officeDetails.join(', ')}`);
+    }
+    
+    if (createdEntities.mergedOffices && createdEntities.mergedOffices.length > 0) {
+      const mergedDetails = createdEntities.mergedOffices.map(office => {
+        if (office.name && office.id) {
+          return `${office.name} (${office.id})`;
+        }
+        return office.name || office.id;
+      });
+      parts.push(`${createdEntities.mergedOffices.length} office(s) merged (already existing): ${mergedDetails.join(', ')}`);
     }
     
     if (createdEntities.projects.length > 0) {

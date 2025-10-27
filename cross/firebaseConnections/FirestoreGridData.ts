@@ -4,7 +4,7 @@
  */
 
 import { PositionCalculator, GridPosition } from '../positionCalculator/PositionCalculator';
-import { ColorEngine, RectangleColor } from '../colorEngine/ColorEngine';
+import { ColorEngine, RectangleColor } from '../colorEngine';
 
 export interface FirestoreRectangleData {
   id: string;
@@ -82,7 +82,7 @@ export class FirestoreGridData {
    * Get rectangle data by position
    */
   getRectangleData(matrixRow: number, matrixCol: number): FirestoreRectangleData | null {
-    for (const [id, data] of this.gridData) {
+    for (const [, data] of this.gridData) {
       if (data.matrixRow === matrixRow && data.matrixCol === matrixCol) {
         return data;
       }

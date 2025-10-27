@@ -38,6 +38,7 @@ export class EntityUpdateService {
 
   /**
    * Search for existing office by name with fuzzy matching
+   * IMPORTANT: Only searches in the offices collection, never in projects
    */
   public async searchExistingOffice(officeName: string): Promise<EntitySearchResult> {
     try {
@@ -52,16 +53,19 @@ export class EntityUpdateService {
         return { found: false };
       }
 
-      // Search by exact name first
+      // Search by exact name first - ONLY in offices collection
       const exactMatch = await firestoreService.queryOffices({ 
         filters: [{ field: 'name', operator: '==', value: officeName }] 
       });
       if (exactMatch.success && exactMatch.data && exactMatch.data.length > 0) {
         console.log(`✅ Found exact match for office: ${officeName}`);
-        return { found: true, entity: exactMatch.data[0], similarity: 1.0 };
+        // Verify it's actually an office, not accidentally a project
+        if (exactMatch.data[0].name === officeName) {
+          return { found: true, entity: exactMatch.data[0], similarity: 1.0 };
+        }
       }
 
-      // Fuzzy search - look for similar names
+      // Fuzzy search - look for similar names ONLY in offices
       const fuzzyResults = await this.fuzzySearchOffices(officeName);
       if (fuzzyResults.length > 0) {
         const bestMatch = fuzzyResults[0];
@@ -81,6 +85,7 @@ export class EntityUpdateService {
 
   /**
    * Search for existing project by name with fuzzy matching
+   * IMPORTANT: Only searches in the projects collection, never in offices
    */
   public async searchExistingProject(projectName: string): Promise<EntitySearchResult> {
     try {
@@ -94,16 +99,19 @@ export class EntityUpdateService {
         return { found: false };
       }
 
-      // Search by exact name first
+      // Search by exact name first - ONLY in projects collection
       const exactMatch = await firestoreService.queryProjects({ 
         filters: [{ field: 'projectName', operator: '==', value: projectName }] 
       });
       if (exactMatch.success && exactMatch.data && exactMatch.data.length > 0) {
         console.log(`✅ Found exact match for project: ${projectName}`);
-        return { found: true, entity: exactMatch.data[0], similarity: 1.0 };
+        // Verify it's actually a project, not accidentally an office
+        if (exactMatch.data[0].projectName === projectName) {
+          return { found: true, entity: exactMatch.data[0], similarity: 1.0 };
+        }
       }
 
-      // Fuzzy search
+      // Fuzzy search - look for similar names ONLY in projects
       const fuzzyResults = await this.fuzzySearchProjects(projectName);
       if (fuzzyResults.length > 0) {
         const bestMatch = fuzzyResults[0];

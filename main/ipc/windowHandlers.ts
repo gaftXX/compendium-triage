@@ -8,14 +8,7 @@ export const windowHandlers = {
     window?.minimize();
   },
 
-  maximize: (event: Electron.IpcMainInvokeEvent) => {
-    const window = BrowserWindow.fromWebContents(event.sender);
-    if (window?.isMaximized()) {
-      window.unmaximize();
-    } else {
-      window?.maximize();
-    }
-  },
+  // Maximize functionality removed - fullscreen disabled
 
   close: (event: Electron.IpcMainInvokeEvent) => {
     const window = BrowserWindow.fromWebContents(event.sender);
@@ -27,30 +20,51 @@ export const windowHandlers = {
     window?.restore();
   },
 
-  isMaximized: (event: Electron.IpcMainInvokeEvent) => {
+  // Window resizing handlers
+  resizeToMaxWidth: (event: Electron.IpcMainInvokeEvent) => {
     const window = BrowserWindow.fromWebContents(event.sender);
-    return window?.isMaximized() || false;
+    if (window) {
+      // Temporarily enable resizing for programmatic resize
+      window.setResizable(true);
+      
+      const { screen } = require('electron');
+      const primaryDisplay = screen.getPrimaryDisplay();
+      const { width: screenWidth } = primaryDisplay.workAreaSize;
+      
+      // Set to maximum width but keep current height
+      const currentHeight = window.getBounds().height;
+      window.setSize(screenWidth, currentHeight);
+      window.center();
+      
+      // Disable resizing again after resize
+      window.setResizable(false);
+    }
   },
 
-  // Note system window management
-  maximizeWindow: (event: Electron.IpcMainInvokeEvent) => {
+  resizeToDefault: (event: Electron.IpcMainInvokeEvent) => {
     const window = BrowserWindow.fromWebContents(event.sender);
-    window?.maximize();
+    if (window) {
+      // Temporarily enable resizing for programmatic resize
+      window.setResizable(true);
+      
+      // Reset to default size (1240x700)
+      window.setSize(1240, 700);
+      window.center();
+      
+      // Disable resizing again after resize
+      window.setResizable(false);
+    }
   },
 
-  restoreWindow: (event: Electron.IpcMainInvokeEvent) => {
-    const window = BrowserWindow.fromWebContents(event.sender);
-    window?.unmaximize();
-  }
+  // Maximize/restore functionality removed - fullscreen disabled
 };
 
 // Register all window handlers
 export const registerWindowHandlers = () => {
   ipcMain.handle('window:minimize', windowHandlers.minimize);
-  ipcMain.handle('window:maximize', windowHandlers.maximize);
   ipcMain.handle('window:close', windowHandlers.close);
   ipcMain.handle('window:restore', windowHandlers.restore);
-  ipcMain.handle('window:isMaximized', windowHandlers.isMaximized);
-  ipcMain.handle('window:maximizeWindow', windowHandlers.maximizeWindow);
-  ipcMain.handle('window:restoreWindow', windowHandlers.restoreWindow);
+  ipcMain.handle('window:resizeToMaxWidth', windowHandlers.resizeToMaxWidth);
+  ipcMain.handle('window:resizeToDefault', windowHandlers.resizeToDefault);
+  // Maximize handlers removed - fullscreen disabled
 };

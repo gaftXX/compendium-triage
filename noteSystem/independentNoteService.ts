@@ -194,6 +194,20 @@ export class IndependentNoteService {
   }
 
   /**
+   * Process a note without web search (for location prompt flow)
+   */
+  public async processNoteWithoutWebSearch(inputText: string): Promise<any> {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
+    console.log('📝 Processing note without web search...');
+    
+    const noteProcessing = NoteProcessing.getInstance();
+    return await noteProcessing.processAndCreateEntitiesWithoutWebSearch(inputText);
+  }
+
+  /**
    * Check if the system is ready
    */
   public isReady(): boolean {

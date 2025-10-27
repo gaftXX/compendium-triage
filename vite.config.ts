@@ -21,8 +21,7 @@ export default defineConfig({
     minify: 'terser',
     rollupOptions: {
       input: {
-        main: path.join(__dirname, 'renderer/index.html'),
-        noteSystem: path.join(__dirname, 'renderer/noteSystem.html')
+        main: path.join(__dirname, 'renderer/index.html')
       },
       output: {
         manualChunks: {
@@ -37,6 +36,7 @@ export default defineConfig({
   
   server: {
     port: 3000,
+    strictPort: true, // Don't try other ports if 3000 is busy
     cors: true,
     hmr: {
       overlay: true

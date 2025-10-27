@@ -4,7 +4,7 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/renderer/src/setupTests.ts'],
   moduleNameMapping: {
     '^@/(.*)$': '<rootDir>/renderer/src/$1',
-    '^@/orchestrator/(.*)$': '<rootDir>/orchestrator/$1',
+
     '^@/cross/(.*)$': '<rootDir>/cross/$1',
     '^@/ui/(.*)$': '<rootDir>/ui/$1',
     '^@/shared/(.*)$': '<rootDir>/shared/$1'
@@ -17,8 +17,7 @@ module.exports = {
     'renderer/src/**/*.{ts,tsx}',
     '!renderer/src/**/*.d.ts',
     '!renderer/src/**/index.ts',
-    '!renderer/src/main.tsx',
-    '!renderer/src/noteSystemMain.tsx'
+    '!renderer/src/main.tsx'
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],

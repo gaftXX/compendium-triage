@@ -140,6 +140,7 @@ export const officesSchema: CollectionSchema<Office> = {
     name: '',
     officialName: '',
     founded: new Date().getFullYear(),
+    founder: '',
     status: 'active',
     location: {
       headquarters: {
@@ -167,7 +168,7 @@ export const officesSchema: CollectionSchema<Office> = {
     updatedAt: Timestamp.now()
   }),
   requiredFields: ['id', 'name', 'officialName', 'founded', 'status', 'location', 'size'],
-  optionalFields: ['specializations', 'notableWorks', 'connectionCounts'],
+  optionalFields: ['founder', 'specializations', 'notableWorks', 'connectionCounts'],
   validationRules: {
     id: { required: true, type: 'string', pattern: /^[A-Z]{2}[A-Z]{2}\d{3}$/ },
     name: { required: true, type: 'string', minLength: 1 },

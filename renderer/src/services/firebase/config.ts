@@ -32,14 +32,14 @@ function getFirebaseConfig(): FirebaseConfig {
       appId: env.VITE_FIREBASE_APP_ID ? 'Found' : 'Missing'
     });
     
-    // If environment variables are missing, use hardcoded values as fallback
+    // Get values from environment variables
     const config = {
-      apiKey: env.VITE_FIREBASE_API_KEY || 'AIzaSyB2-9mkI1zrPR_s_baqmr4Einjk3kxzW1Y',
-      authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || 'compendium-37790.firebaseapp.com',
-      projectId: env.VITE_FIREBASE_PROJECT_ID || 'compendium-37790',
-      storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || 'compendium-37790.firebasestorage.app',
-      messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || '963068356305',
-      appId: env.VITE_FIREBASE_APP_ID || '1:963068356305:web:1ef0fcfbc4eb4333b207f0',
+      apiKey: env.VITE_FIREBASE_API_KEY || '',
+      authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || '',
+      projectId: env.VITE_FIREBASE_PROJECT_ID || '',
+      storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || '',
+      messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
+      appId: env.VITE_FIREBASE_APP_ID || '',
       measurementId: env.VITE_FIREBASE_MEASUREMENT_ID,
     };
     
@@ -52,14 +52,15 @@ function getFirebaseConfig(): FirebaseConfig {
     
     return config;
   } catch (error) {
-    console.log('⚠️ import.meta.env failed, using hardcoded fallback:', error);
+    console.error('❌ Failed to load Firebase config:', error);
+    console.error('❌ Make sure environment variables are properly set in .env file');
     return {
-      apiKey: 'AIzaSyB2-9mkI1zrPR_s_baqmr4Einjk3kxzW1Y',
-      authDomain: 'compendium-37790.firebaseapp.com',
-      projectId: 'compendium-37790',
-      storageBucket: 'compendium-37790.firebasestorage.app',
-      messagingSenderId: '963068356305',
-      appId: '1:963068356305:web:1ef0fcfbc4eb4333b207f0',
+      apiKey: '',
+      authDomain: '',
+      projectId: '',
+      storageBucket: '',
+      messagingSenderId: '',
+      appId: '',
       measurementId: undefined,
     };
   }

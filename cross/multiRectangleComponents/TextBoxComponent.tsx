@@ -33,7 +33,6 @@ export const TextBoxComponent: React.FC<TextBoxComponentProps> = ({
   fontSize = 11,
   fontWeight = 'normal',
   textAlign = 'center',
-  padding = 4,
   width = 3,  // Default 3 columns
   height = 4, // Default 4 rows
   onCommand

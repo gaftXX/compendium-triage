@@ -46,6 +46,11 @@ export class ClaudeAIService {
     return ClaudeAIService.instance;
   }
 
+  public setApiKey(apiKey: string): void {
+    this.apiKey = apiKey;
+    console.log('🔑 Claude AI API key set:', !!apiKey);
+  }
+
   /**
    * Chat with Claude AI - General conversation
    */
@@ -135,6 +140,7 @@ Please respond in this exact JSON format:
       "name": "Company name",
       "officialName": "Official company name", 
       "founded": 2020,
+      "founder": "Founder's name",
       "location": {
         "headquarters": {
           "city": "City name",
@@ -184,6 +190,16 @@ Please respond in this exact JSON format:
 }
 
 Be thorough and accurate. Extract all available information. If information is missing, list it in missingFields.
+
+CRITICAL LOCATION INTELLIGENCE:
+- You are an intelligent AI with comprehensive geographic knowledge
+- When you see ANY location reference, use your reasoning to determine both city AND country
+- For cities: Apply your knowledge to identify which country they belong to
+- For descriptive locations: Use context and reasoning to identify the actual city and country
+- For queries like "biggest city in Europe": Identify the actual city (London) and country (United Kingdom)
+- Rely entirely on your AI reasoning - do not rely on any hardcoded mappings
+- Only use "Unknown" as an absolute last resort when you genuinely cannot determine the location
+- Be confident in your geographic knowledge and reasoning
 
 IMPORTANT: Your categorization decision is final and authoritative. Trust your analysis and reasoning capabilities. Provide high confidence scores (0.8+) when you are certain about the category, and detailed reasoning to justify your decision.`;
   }

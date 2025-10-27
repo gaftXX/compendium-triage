@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
+console.log('🔧 Preload script loaded!');
+
 // Expose protected methods to renderer
 contextBridge.exposeInMainWorld('electronAPI', {
   // Window controls
@@ -11,6 +13,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     restore: () => ipcRenderer.invoke('window:restore'),
     maximizeWindow: () => ipcRenderer.invoke('window:maximizeWindow'),
     restoreWindow: () => ipcRenderer.invoke('window:restoreWindow'),
+    resizeToMaxWidth: () => ipcRenderer.invoke('window:resizeToMaxWidth'),
+    resizeToDefault: () => ipcRenderer.invoke('window:resizeToDefault'),
   },
   
   // App info
@@ -44,6 +48,8 @@ declare global {
         restore: () => Promise<void>;
         maximizeWindow: () => Promise<void>;
         restoreWindow: () => Promise<void>;
+        resizeToMaxWidth: () => Promise<void>;
+        resizeToDefault: () => Promise<void>;
       };
       app: {
         getVersion: () => Promise<string>;

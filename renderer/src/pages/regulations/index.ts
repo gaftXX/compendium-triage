@@ -1,0 +1,1 @@
+export { RegulationsPage } from './RegulationsPage';

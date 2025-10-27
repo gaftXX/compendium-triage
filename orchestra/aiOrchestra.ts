@@ -4,6 +4,7 @@
 import { ClaudeAIService } from '../noteSystem/claudeAIService';
 import { WebSearchService } from './webSearchService';
 import { SearchResultAnalyzer } from './searchResultAnalyzer';
+import { FirestoreQueryService } from './firestoreQueryService';
 
 export interface AIResponse {
   success: boolean;
@@ -28,6 +29,7 @@ export class Orchestra {
   private claudeService: ClaudeAIService;
   private webSearchService: WebSearchService;
   private searchResultAnalyzer: SearchResultAnalyzer;
+  private firestoreQueryService: FirestoreQueryService;
   private apiKey: string = '';
   private lastSearchQuery: string = '';
 
@@ -35,6 +37,7 @@ export class Orchestra {
     this.claudeService = ClaudeAIService.getInstance();
     this.webSearchService = WebSearchService.getInstance();
     this.searchResultAnalyzer = SearchResultAnalyzer.getInstance();
+    this.firestoreQueryService = FirestoreQueryService.getInstance();
   }
 
   static getInstance(): Orchestra {
@@ -84,7 +87,14 @@ export class Orchestra {
         return await this.handleWebSearchApproval(userInput.toLowerCase().trim() === 'yes');
       }
       
-      // Check if this is a web search query first
+      // Check if this is a database query first
+      const databaseQuery = this.recognizeDatabaseQuery(userInput);
+      if (databaseQuery) {
+        console.log('📊 Database query recognized:', databaseQuery);
+        return await this.handleDatabaseQuery(databaseQuery);
+      }
+      
+      // Check if this is a web search query
       if (this.isWebSearchQuery(userInput)) {
         console.log('🔍 Detected web search query, asking for approval');
         const searchQuery = this.extractSearchQuery(userInput, '');
@@ -199,12 +209,12 @@ export class Orchestra {
     const navigationPatterns = [
       // Offices patterns
       { pattern: /^(offices|office|offices list|office list)$/, target: 'offices-list' },
-      { pattern: /^(open offices|show offices|go to offices|navigate to offices)$/, target: 'offices-list' },
+      { pattern: /^(open offices|open office list|show offices|go to offices|navigate to offices)$/, target: 'offices-list' },
       { pattern: /^(view offices|list offices|browse offices)$/, target: 'offices-list' },
       
       // Projects patterns
       { pattern: /^(projects|project|projects list|project list)$/, target: 'projects-list' },
-      { pattern: /^(open projects|show projects|go to projects|navigate to projects)$/, target: 'projects-list' },
+      { pattern: /^(open projects|open projects list|open project list|show projects|go to projects|navigate to projects)$/, target: 'projects-list' },
       { pattern: /^(view projects|list projects|browse projects)$/, target: 'projects-list' },
       
       // Regulations patterns
@@ -338,5 +348,111 @@ export class Orchestra {
     
     // Default to original user input
     return userInput;
+  }
+
+  /**
+   * Recognize database queries
+   */
+  private recognizeDatabaseQuery(userInput: string): string | null {
+    const input = userInput.toLowerCase();
+    
+    // Office-related queries
+    if (input.includes('office') && (input.includes('count') || input.includes('many') || input.includes('how many'))) {
+      return 'offices';
+    }
+    
+    // Project-related queries
+    if (input.includes('project') && (input.includes('count') || input.includes('many') || input.includes('how many'))) {
+      return 'projects';
+    }
+    
+    // Regulation-related queries
+    if (input.includes('regulation') && (input.includes('count') || input.includes('many') || input.includes('how many'))) {
+      return 'regulations';
+    }
+    
+    // General database queries
+    if (input.includes('database') && (input.includes('count') || input.includes('many') || input.includes('how many'))) {
+      return 'stats';
+    }
+    
+    return null;
+  }
+
+  /**
+   * Handle database queries
+   */
+  private async handleDatabaseQuery(queryType: string): Promise<AIResponse> {
+    try {
+      let result;
+      let message = '';
+      
+      switch (queryType) {
+        case 'offices':
+          result = await this.firestoreQueryService.countOffices();
+          if (result.success) {
+            message = `There are ${result.count} offices in the database.`;
+            if (result.data && result.data.length > 0) {
+              message += `\n\nOffice locations: ${result.data.map(office => office.location).join(', ')}`;
+            }
+          } else {
+            message = `Error querying offices: ${result.error}`;
+          }
+          break;
+          
+        case 'projects':
+          result = await this.firestoreQueryService.countProjects();
+          if (result.success) {
+            message = `There are ${result.count} projects in the database.`;
+            if (result.data && result.data.length > 0) {
+              message += `\n\nProject names: ${result.data.map(project => project.name).join(', ')}`;
+            }
+          } else {
+            message = `Error querying projects: ${result.error}`;
+          }
+          break;
+          
+        case 'regulations':
+          result = await this.firestoreQueryService.countRegulations();
+          if (result.success) {
+            message = `There are ${result.count} regulations in the database.`;
+            if (result.data && result.data.length > 0) {
+              message += `\n\nRegulation names: ${result.data.map(regulation => regulation.name).join(', ')}`;
+            }
+          } else {
+            message = `Error querying regulations: ${result.error}`;
+          }
+          break;
+          
+        case 'stats':
+          result = await this.firestoreQueryService.getDatabaseStats();
+          if (result.success) {
+            const stats = result.data;
+            message = `Database Statistics:\n\n`;
+            message += `Offices: ${stats.offices}\n`;
+            message += `Projects: ${stats.projects}\n`;
+            message += `Regulations: ${stats.regulations}\n`;
+            message += `Total entities: ${stats.total}`;
+          } else {
+            message = `Error getting database statistics: ${result.error}`;
+          }
+          break;
+          
+        default:
+          message = 'Unknown database query type.';
+      }
+      
+      return {
+        success: true,
+        message: message
+      };
+    } catch (error) {
+      console.error('Error handling database query:', error);
+      return {
+        success: false,
+        message: `Error querying database: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
 }

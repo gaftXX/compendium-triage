@@ -445,7 +445,13 @@ export class NoteProcessingV2 {
     const parts = [];
     
     if (createdEntities.offices.length > 0) {
-      parts.push(`${createdEntities.offices.length} office(s) created`);
+      const officeDetails = createdEntities.offices.map(office => {
+        if (office.name && office.id) {
+          return `${office.name} (${office.id})`;
+        }
+        return office.name || office.id;
+      });
+      parts.push(`${createdEntities.offices.length} office(s) created: ${officeDetails.join(', ')}`);
     }
     
     if (createdEntities.projects.length > 0) {

@@ -31,16 +31,17 @@ function createMainWindow(): BrowserWindow {
     
     // Window behavior
     center: true,
-    resizable: false,
+    resizable: false, // Disable manual resizing
     maximizable: false,
     minimizable: true,
+    fullscreenable: false,
     
     // Security
     webPreferences: {
       nodeIntegration: false,          // Security: disable node in renderer
       contextIsolation: true,           // Security: isolate context
       sandbox: false,                   // Disable sandbox for development
-      // preload: path.join(__dirname, 'preload.ts'), // Disabled for development
+      preload: path.join(__dirname, 'preload.js'), // Enable preload script
       
       // Development
       devTools: true, // Always enable dev tools for debugging
@@ -55,7 +56,13 @@ function createMainWindow(): BrowserWindow {
   
   // Load app
   console.log('NODE_ENV:', process.env.NODE_ENV);
-  if (process.env.NODE_ENV === 'development') {
+  
+  // Check if we're in development mode
+  const isDev = process.env.NODE_ENV === 'development' || 
+                process.env.NODE_ENV === 'dev' || 
+                !process.env.NODE_ENV; // Default to dev if not set
+  
+  if (isDev) {
     const devUrl = 'http://localhost:3000';
     console.log('Loading development URL:', devUrl);
     mainWindow.loadURL(devUrl); // Vite dev server
@@ -69,6 +76,7 @@ function createMainWindow(): BrowserWindow {
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
   });
+
   
   return mainWindow;
 }
@@ -112,6 +120,34 @@ if (!gotTheLock) {
     if (process.platform !== 'darwin') {
       app.quit();
     }
+  });
+
+  // Force quit on SIGINT (Ctrl+C)
+  process.on('SIGINT', () => {
+    console.log('SIGINT received, forcing app quit...');
+    app.quit();
+    process.exit(0);
+  });
+
+  // Force quit on SIGTERM
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, forcing app quit...');
+    app.quit();
+    process.exit(0);
+  });
+
+  // Force quit on uncaught exceptions
+  process.on('uncaughtException', (error) => {
+    console.error('Uncaught exception:', error);
+    app.quit();
+    process.exit(1);
+  });
+
+  // Force quit on unhandled promise rejections
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled rejection at:', promise, 'reason:', reason);
+    app.quit();
+    process.exit(1);
   });
 }
 

@@ -2,6 +2,7 @@
 
 import { 
   collection, 
+  collectionGroup,
   doc, 
   getDoc, 
   getDocs, 
@@ -496,120 +497,173 @@ export class FirestoreOperationsService implements FirestoreService {
   // ACTIVE COLLECTION SPECIFIC METHODS
   // ============================================================================
 
+
   /**
-   * Create an office document
+   * Create an office document with flat structure
    */
   public async createOffice(data: CreateDocument<Office>): Promise<DocumentOperationResult<Office>> {
-    console.log('🔧 Creating office with validation disabled:', { validate: false });
+    console.log('🔧 Creating office with flat structure');
     console.log('🔧 Office data being saved:', JSON.stringify(data, null, 2));
-    const result = await this.create('offices', data, { validate: false });
-    console.log('🔧 Create result:', { success: result.success, error: result.error });
-    return {
-      ...result,
-      data: result.data as Office
-    };
+    
+    try {
+      // Generate ID if not provided
+      const documentData = { ...data };
+      if (!documentData.id) {
+        documentData.id = this.generateDocumentId('offices', documentData);
+      }
+
+      // Add timestamps
+      const timestampedData = this.addTimestamps(documentData);
+
+      // Create flat structure: offices/{officeId}
+      const officeDocRef = doc(collection(this.db, 'offices'), documentData.id);
+      await setDoc(officeDocRef, timestampedData);
+
+      console.log('🔧 Office created successfully at flat path:', `offices/${documentData.id}`);
+
+      return {
+        success: true,
+        data: timestampedData as Office,
+        message: `Office created successfully at offices/${documentData.id}`
+      };
+    } catch (error) {
+      console.error('🔧 Error creating office:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error during office creation'
+      };
+    }
   }
 
   /**
-   * Get an office by ID
+   * Get an office by ID (flat structure)
    */
   public async getOffice(id: string): Promise<DocumentOperationResult<Office>> {
-    const result = await this.get('offices', id);
-    return {
-      ...result,
-      data: result.data as Office
-    };
+    return this.readDocument<Office>('offices', id);
   }
 
   /**
-   * Update an office
+   * Update an office (flat structure)
    */
   public async updateOffice(id: string, data: UpdateDocument<Office>): Promise<DocumentOperationResult<Office>> {
-    const result = await this.update('offices', id, data);
-    return {
-      ...result,
-      data: result.data as Office
-    };
+    return this.updateDocument<Office>('offices', id, data);
   }
 
   /**
-   * Delete an office
+   * Delete an office (flat structure)
    */
   public async deleteOffice(id: string): Promise<DocumentOperationResult<void>> {
-    return this.delete('offices', id);
+    return this.deleteDocument('offices', id);
   }
 
   /**
-   * Query offices
+   * Query offices (flat structure with indexed fields)
    */
   public async queryOffices(options?: QueryOptions): Promise<DocumentsOperationResult<Office>> {
-    const result = await this.query('offices', options);
-    return {
-      ...result,
-      data: result.data as Office[]
-    };
+    return this.queryDocuments<Office>('offices', options);
   }
 
   /**
-   * Create a project document
+   * Create a project document with flat structure
    */
   public async createProject(data: CreateDocument<Project>): Promise<DocumentOperationResult<Project>> {
-    const result = await this.create('projects', data, { validate: false });
-    return {
-      ...result,
-      data: result.data as Project
-    };
+    console.log('🔧 Creating project with flat structure');
+    console.log('🔧 Project data being saved:', JSON.stringify(data, null, 2));
+    
+    try {
+      // Generate ID if not provided
+      const documentData = { ...data };
+      if (!documentData.id) {
+        documentData.id = this.generateDocumentId('projects', documentData);
+      }
+
+      // Add timestamps
+      const timestampedData = this.addTimestamps(documentData);
+
+      // Create flat structure: projects/{projectId}
+      const projectDocRef = doc(collection(this.db, 'projects'), documentData.id);
+      await setDoc(projectDocRef, timestampedData);
+
+      console.log('🔧 Project created successfully at flat path:', `projects/${documentData.id}`);
+
+      return {
+        success: true,
+        data: timestampedData as Project,
+        message: `Project created successfully at projects/${documentData.id}`
+      };
+    } catch (error) {
+      console.error('🔧 Error creating project:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error during project creation'
+      };
+    }
   }
 
   /**
-   * Get a project by ID
+   * Get a project by ID (flat structure)
    */
   public async getProject(id: string): Promise<DocumentOperationResult<Project>> {
-    const result = await this.get('projects', id);
-    return {
-      ...result,
-      data: result.data as Project
-    };
+    return this.readDocument<Project>('projects', id);
   }
 
   /**
    * Update a project
    */
   public async updateProject(id: string, data: UpdateDocument<Project>): Promise<DocumentOperationResult<Project>> {
-    const result = await this.update('projects', id, data);
-    return {
-      ...result,
-      data: result.data as Project
-    };
+    return this.updateDocument<Project>('projects', id, data);
   }
 
   /**
    * Delete a project
    */
   public async deleteProject(id: string): Promise<DocumentOperationResult<void>> {
-    return this.delete('projects', id);
+    return this.deleteDocument('projects', id);
   }
 
   /**
-   * Query projects
+   * Query projects (flat structure with indexed fields)
    */
   public async queryProjects(options?: QueryOptions): Promise<DocumentsOperationResult<Project>> {
-    const result = await this.query('projects', options);
-    return {
-      ...result,
-      data: result.data as Project[]
-    };
+    return this.queryDocuments<Project>('projects', options);
   }
 
+
   /**
-   * Create a regulation document
+   * Create a regulation document with flat structure
    */
   public async createRegulation(data: CreateDocument<Regulation>): Promise<DocumentOperationResult<Regulation>> {
-    const result = await this.create('regulations', data, { validate: false });
-    return {
-      ...result,
-      data: result.data as Regulation
-    };
+    console.log('🔧 Creating regulation with flat structure');
+    console.log('🔧 Regulation data being saved:', JSON.stringify(data, null, 2));
+    
+    try {
+      // Generate ID if not provided
+      const documentData = { ...data };
+      if (!documentData.id) {
+        documentData.id = this.generateDocumentId('regulations', documentData);
+      }
+
+      // Add timestamps
+      const timestampedData = this.addTimestamps(documentData);
+
+      // Create flat structure: regulations/{regulationId}
+      const regulationDocRef = doc(collection(this.db, 'regulations'), documentData.id);
+      await setDoc(regulationDocRef, timestampedData);
+
+      console.log('🔧 Regulation created successfully at flat path:', `regulations/${documentData.id}`);
+
+      return {
+        success: true,
+        data: timestampedData as Regulation,
+        message: `Regulation created successfully at regulations/${documentData.id}`
+      };
+    } catch (error) {
+      console.error('🔧 Error creating regulation:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error during regulation creation'
+      };
+    }
   }
 
   /**

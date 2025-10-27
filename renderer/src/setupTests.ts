@@ -5,8 +5,6 @@ import '@testing-library/jest-dom';
 Object.defineProperty(window, 'electronAPI', {
   value: {
     window: {
-      maximize: jest.fn(),
-      restore: jest.fn(),
       minimize: jest.fn(),
       close: jest.fn()
     }

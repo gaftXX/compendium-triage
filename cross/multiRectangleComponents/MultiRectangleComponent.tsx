@@ -28,6 +28,29 @@ export const MultiRectangleComponent: React.FC<MultiRectangleProps> = ({
 }) => {
   const positionCalculator = new PositionCalculator();
   
+  // GRID BOUNDARY ENFORCEMENT: Validate all coordinates are within grid bounds
+  const totalRows = Math.floor(window.innerHeight / 4); // 175 rows
+  const totalCols = 31; // 31 columns
+  
+  // Check if any coordinate goes beyond grid boundaries
+  if (startRow < 1 || startRow > totalRows) {
+    throw new Error(`MultiRectangleComponent: Invalid startRow ${startRow}. Grid is limited to [1,${totalRows}]. Component cannot go beyond grid boundaries.`);
+  }
+  if (startCol < 1 || startCol > totalCols) {
+    throw new Error(`MultiRectangleComponent: Invalid startCol ${startCol}. Grid is limited to [1,${totalCols}]. Component cannot go beyond grid boundaries.`);
+  }
+  if (endRow < 1 || endRow > totalRows) {
+    throw new Error(`MultiRectangleComponent: Invalid endRow ${endRow}. Grid is limited to [1,${totalRows}]. Component cannot go beyond grid boundaries.`);
+  }
+  if (endCol < 1 || endCol > totalCols) {
+    throw new Error(`MultiRectangleComponent: Invalid endCol ${endCol}. Grid is limited to [1,${totalCols}]. Component cannot go beyond grid boundaries.`);
+  }
+  
+  // Check if start is after end (invalid bounds)
+  if (startRow > endRow || startCol > endCol) {
+    throw new Error(`MultiRectangleComponent: Invalid bounds. startRow (${startRow}) must be <= endRow (${endRow}), and startCol (${startCol}) must be <= endCol (${endCol}).`);
+  }
+  
   // Get the top-left position for positioning
   const topLeft = positionCalculator.getPosition(startRow, startCol);
   

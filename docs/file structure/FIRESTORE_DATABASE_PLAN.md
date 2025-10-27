@@ -1,5 +1,48 @@
 # Firestore Database Plan - AI Orchestrator Architecture App
 
+## Important: Flat Collection Structure
+
+**All collections use a flat structure with indexed fields for filtering.**
+
+This means:
+- ✅ **No subcollections**: All documents are at the root level of their collection
+- ✅ **Indexed fields**: Location, type, status, etc. are fields within documents for easy querying
+- ✅ **Simple queries**: No need to traverse hierarchical paths or hardcode city/country lists
+- ✅ **Scalable**: Works efficiently with Firestore's query engine
+
+### Query Examples
+
+```typescript
+// Query projects in a specific city
+query(collection(db, 'projects'), 
+  where('location.country', '==', 'Spain'),
+  where('location.city', '==', 'Barcelona')
+);
+
+// Query offices by specialization
+query(collection(db, 'offices'),
+  where('specializations', 'array-contains', 'sustainable-design')
+);
+
+// Query regulations by type and jurisdiction
+query(collection(db, 'regulations'),
+  where('regulationType', '==', 'building-code'),
+  where('jurisdiction.country', '==', 'ES')
+);
+
+// Query regulations in a specific city
+query(collection(db, 'regulations'),
+  where('jurisdiction.cityName', '==', 'Barcelona')
+);
+
+// Query regulations by jurisdiction level
+query(collection(db, 'regulations'),
+  where('jurisdiction.level', '==', 'national')
+);
+```
+
+See the [FLAT_STRUCTURE_BENEFITS.md](./FLAT_STRUCTURE_BENEFITS.md) file for more details on why this approach is better than hierarchical subcollections.
+
 ## Database Architecture Overview
 
 ### Design Principles
@@ -245,36 +288,37 @@ Computed market-specific data for consolidation tracking - 4 collections
 │   │   ├── createdAt: timestamp
 │   │   └── updatedAt: timestamp
 │   │
-├── /offices                        # Architecture Offices - PRIMARY ENTITY
-│   ├── [officeId]                  # Doc ID: CCccNNN format (e.g., "GBLO482")
-│   │   ├── id: string              # Same as document ID: CCccNNN format
-│   │   ├── name: string            # Display: "Zaha Hadid Architects" (not used for ID)
-│   │   ├── officialName: string    # Legal: "Zaha Hadid Architects Ltd."
-│   │   ├── founded: number         # Year established
-│   │   ├── status: string          # active, acquired, dissolved
-│   │   ├── location: object
-│   │   │   ├── headquarters: object
-│   │   │   │   ├── city: string
-│   │   │   │   ├── country: string
-│   │   │   │   └── coordinates: geopoint
-│   │   │   └── otherOffices: array  # Additional locations
-│   │   ├── size: object
-│   │   │   ├── employeeCount: number
-│   │   │   ├── sizeCategory: string  # boutique, medium, large, global
-│   │   │   └── annualRevenue: number
-│   │   ├── specializations: string[]
-│   │   ├── notableWorks: string[]   # Famous projects
-│   │   ├── connectionCounts: object  # DENORMALIZED for fast queries
-│   │   │   ├── totalProjects: number
-│   │   │   ├── activeProjects: number
-│   │   │   ├── clients: number
-│   │   │   ├── competitors: number
-│   │   │   └── suppliers: number
-│   │   ├── createdAt: timestamp
-│   │   └── updatedAt: timestamp
-│   │
-├── /projects                       # Projects - CORE ENTITY (Basic Shell)
-│   ├── [projectId]                 # Doc ID: "heydar-aliyev-center"
+├── /offices                        # Architecture Offices - PRIMARY ENTITY (Flat Structure)
+│   ├── [officeId]                  # Doc ID: CCccNNN format (e.g., "SPBA831")
+│   │   │   │   ├── id: string      # Same as document ID: CCccNNN format
+│   │   │   │   ├── name: string    # Display: "Zaha Hadid Architects" (not used for ID)
+│   │   │   │   ├── officialName: string    # Legal: "Zaha Hadid Architects Ltd."
+│   │   │   │   ├── founder: string         # Person who founded the office
+│   │   │   │   ├── founded: number         # Year established
+│   │   │   │   ├── status: string          # active, acquired, dissolved
+│   │   │   │   ├── location: object
+│   │   │   │   │   ├── headquarters: object
+│   │   │   │   │   │   ├── city: string
+│   │   │   │   │   │   ├── country: string
+│   │   │   │   │   │   └── coordinates: geopoint
+│   │   │   │   │   └── otherOffices: array  # Additional locations
+│   │   │   │   ├── size: object
+│   │   │   │   │   ├── employeeCount: number
+│   │   │   │   │   ├── sizeCategory: string  # boutique, medium, large, global
+│   │   │   │   │   └── annualRevenue: number
+│   │   │   │   ├── specializations: string[]
+│   │   │   │   ├── notableWorks: string[]   # Famous projects
+│   │   │   │   ├── connectionCounts: object  # DENORMALIZED for fast queries
+│   │   │   │   │   ├── totalProjects: number
+│   │   │   │   │   ├── activeProjects: number
+│   │   │   │   │   ├── clients: number
+│   │   │   │   │   ├── competitors: number
+│   │   │   │   │   └── suppliers: number
+│   │   │   │   ├── createdAt: timestamp
+│   │   │   │   └── updatedAt: timestamp
+│   │   │   │
+├── /projects                       # Projects - CORE ENTITY (Flat Structure)
+│   ├── [projectId]                 # Doc ID: unique project identifier
 │   │   ├── id: string
 │   │   ├── projectName: string
 │   │   ├── officeId: string        # PRIMARY relationship
@@ -300,6 +344,7 @@ Computed market-specific data for consolidation tracking - 4 collections
 │   │   │   └── description: string  # Brief description
 │   │   ├── createdAt: timestamp
 │   │   └── updatedAt: timestamp
+│   │
 │   │
 │━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 │ TIER 2: CONNECTIVE TISSUE (Links & Context Between Entities)
@@ -533,13 +578,12 @@ Computed market-specific data for consolidation tracking - 4 collections
 │   │   ├── createdAt: timestamp
 │   │   └── updatedAt: timestamp
 │   │
-├── /regulations                    # Laws, Codes, Regulatory Requirements (Data/Constraints)
-│   ├── [regulationId]              # e.g., "uk-building-code-2023", "london-height-restriction"
+├── /regulations                    # Laws, Codes, Regulatory Requirements (Flat Structure)
+│   ├── [regulationId]              # Document: regulation with all details
 │   │   ├── id: string
-│   │   ├── regulationType: string  # zoning, building-code, environmental, safety, accessibility, fire-safety, energy
+│   │   ├── regulationType: string  # building-code, zoning, environmental, etc.
 │   │   ├── name: string
-│   │   │
-│   │   ├── jurisdiction: object    # HIERARCHICAL STRUCTURE
+│   │   ├── jurisdiction: object    # Geographic applicability
 │   │   │   ├── level: string       # international, national, state, city
 │   │   │   ├── country: string     # ISO country code (e.g., "GB", "US", "FR")
 │   │   │   ├── countryName: string # "United Kingdom", "United States"
