@@ -131,6 +131,13 @@ class NavigationService {
   }
 
   /**
+   * Get current view
+   */
+  getCurrentView(): ViewType {
+    return this.currentState.currentView;
+  }
+
+  /**
    * Get current navigation state
    */
   getCurrentState(): NavigationState {

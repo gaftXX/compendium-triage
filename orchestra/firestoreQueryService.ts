@@ -1,6 +1,6 @@
 // Firestore Query Service - Integrates database queries with AI orchestration
 
-import { collection, collectionGroup, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, collectionGroup, getDocs, query, orderBy } from 'firebase/firestore';
 import { getFirestoreInstance } from '../renderer/src/services/firebase/config';
 
 export interface QueryResult {
@@ -106,9 +106,7 @@ export class FirestoreQueryService {
       
       const offices = snapshot.docs.map(doc => ({
         id: doc.id,
-        name: doc.data().name,
-        location: doc.data().location,
-        employeeCount: doc.data().employeeCount
+        ...doc.data()
       }));
       
       return {
@@ -138,9 +136,7 @@ export class FirestoreQueryService {
       
       const projects = snapshot.docs.map(doc => ({
         id: doc.id,
-        name: doc.data().projectName,
-        status: doc.data().status,
-        budget: doc.data().financial?.budget
+        ...doc.data()
       }));
       
       return {
@@ -169,9 +165,7 @@ export class FirestoreQueryService {
       
       const regulations = snapshot.docs.map(doc => ({
         id: doc.id,
-        name: doc.data().name,
-        jurisdiction: doc.data().jurisdiction,
-        effectiveDate: doc.data().effectiveDate
+        ...doc.data()
       }));
       
       return {
@@ -201,12 +195,12 @@ export class FirestoreQueryService {
 
       return {
         success: true,
-        data: {
+        data: [{
           offices: officesResult.count || 0,
           projects: projectsResult.count || 0,
           regulations: regulationsResult.count || 0,
           total: (officesResult.count || 0) + (projectsResult.count || 0) + (regulationsResult.count || 0)
-        }
+        }]
       };
     } catch (error) {
       console.error('Error getting database stats:', error);

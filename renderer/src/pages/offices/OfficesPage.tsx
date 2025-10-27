@@ -13,6 +13,7 @@ export const OfficesPage: React.FC = () => {
   const [offices, setOffices] = useState<Office[]>(cachedOffices);
   const [loading, setLoading] = useState(!isCachedDataLoaded);
   const [error, setError] = useState<string | null>(null);
+  const [isFullWidth, setIsFullWidth] = useState(true);
   const { isElectron, resizeToMaxWidth, resizeToDefault } = useElectron();
   
   console.log('🔧 OfficesPage - isElectron:', isElectron);
@@ -49,6 +50,31 @@ export const OfficesPage: React.FC = () => {
       fetchOffices();
     }
   }, []);
+
+  // Set to full width when page opens
+  useEffect(() => {
+    if (isElectron && isFullWidth) {
+      resizeToMaxWidth();
+    }
+  }, [isElectron, isFullWidth, resizeToMaxWidth]);
+
+  // Keyboard listener for Shift+W to toggle width
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'W' && e.shiftKey) {
+        if (isFullWidth) {
+          resizeToDefault();
+          setIsFullWidth(false);
+        } else {
+          resizeToMaxWidth();
+          setIsFullWidth(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isElectron, isFullWidth, resizeToMaxWidth, resizeToDefault]);
 
   return (
     <UniversalSpreadsheet

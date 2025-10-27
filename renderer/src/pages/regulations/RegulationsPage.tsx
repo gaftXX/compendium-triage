@@ -13,6 +13,7 @@ export const RegulationsPage: React.FC = () => {
   const [regulations, setRegulations] = useState<Regulation[]>(cachedRegulations);
   const [loading, setLoading] = useState(!isCachedDataLoaded);
   const [error, setError] = useState<string | null>(null);
+  const [isFullWidth, setIsFullWidth] = useState(true);
   const { isElectron, resizeToMaxWidth, resizeToDefault } = useElectron();
 
   const handleClose = () => {
@@ -46,6 +47,31 @@ export const RegulationsPage: React.FC = () => {
       fetchRegulations();
     }
   }, []);
+
+  // Set to full width when page opens
+  useEffect(() => {
+    if (isElectron && isFullWidth) {
+      resizeToMaxWidth();
+    }
+  }, [isElectron, isFullWidth, resizeToMaxWidth]);
+
+  // Keyboard listener for Shift+W to toggle width
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'W' && e.shiftKey) {
+        if (isFullWidth) {
+          resizeToDefault();
+          setIsFullWidth(false);
+        } else {
+          resizeToMaxWidth();
+          setIsFullWidth(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isElectron, isFullWidth, resizeToMaxWidth, resizeToDefault]);
 
   return (
     <UniversalSpreadsheet

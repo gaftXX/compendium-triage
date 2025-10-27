@@ -6,6 +6,8 @@ import { ProjectsPage } from './pages/projects';
 import { initializeFirebase } from './services/firebase';
 import { navigationService, ViewType } from './services/navigation/navigationService';
 import { OrchestratorProvider } from './context/OrchestratorContext';
+import { backgroundService } from './services/background';
+import { useElectron } from './hooks/useElectron';
 
 interface AppState {
   currentView: ViewType;
@@ -17,13 +19,18 @@ function App() {
     currentView: 'cross',
     showCross: true
   });
+  const { resizeToDefault, resizeToMaxWidth } = useElectron();
 
-  // Initialize Firebase when app starts
+  // Initialize Firebase and real-time listeners when app starts
   useEffect(() => {
     const initFirebase = async () => {
       try {
         await initializeFirebase();
         console.log('Firebase initialized successfully');
+        
+        // Initialize real-time listeners for background updates
+        await backgroundService.initializeRealtimeListeners();
+        console.log('✅ Real-time listeners initialized');
       } catch (error) {
         console.error('Failed to initialize Firebase:', error);
         console.log('App will continue with mock data');
@@ -35,30 +42,25 @@ function App() {
   // Register navigation service callbacks
   useEffect(() => {
     navigationService.registerCallbacks({
-      onNavigate: (view: ViewType) => {
+      onNavigate: async (view: ViewType) => {
         setAppState(prev => ({
           ...prev,
           currentView: view,
           showCross: view === 'cross'
         }));
+        
+        // ENFORCE WINDOW SIZE RULE
+        const windowSize = backgroundService.getWindowSizeForView(view);
+        if (windowSize === 'default') {
+          await resizeToDefault();
+          console.log('🪟 RULE ENFORCED: Set to default width for', view);
+        } else {
+          await resizeToMaxWidth();
+          console.log('🪟 RULE ENFORCED: Set to full width for', view);
+        }
       }
     });
-  }, [appState.currentView]);
-
-  // Handle window management when views change
-  useEffect(() => {
-    const handleViewChange = async () => {
-      if (appState.currentView === 'cross') {
-        // Show Cross UI - keep normal window size
-        setAppState(prev => ({ ...prev, showCross: true }));
-      } else {
-        // Hide Cross UI - keep normal window size
-        setAppState(prev => ({ ...prev, showCross: false }));
-      }
-    };
-
-    handleViewChange();
-  }, [appState.currentView]);
+  }, [appState.currentView, resizeToDefault, resizeToMaxWidth]);
 
 
 

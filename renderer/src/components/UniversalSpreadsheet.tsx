@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Office, Project, Regulation } from '../types/firestore';
 
 // Define column configurations for each data type
@@ -6,7 +6,7 @@ interface ColumnConfig {
   key: string;
   label: string;
   width?: number;
-  render?: (value: any, item: any) => React.ReactNode;
+  render?: (value: any, item: any, index?: number) => React.ReactNode;
 }
 
 interface UniversalSpreadsheetProps {
@@ -32,50 +32,57 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
   onResizeToDefault,
   isElectron = false
 }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleResizeToggle = () => {
+    if (isExpanded) {
+      onResizeToDefault?.();
+      setIsExpanded(false);
+    } else {
+      onResizeToMaxWidth?.();
+      setIsExpanded(true);
+    }
+  };
   // Define column configurations for each data type
   const getColumns = (): ColumnConfig[] => {
     switch (dataType) {
       case 'offices':
         return [
-          { key: 'name', label: 'NAME', width: 200 },
-          { key: 'officialName', label: 'OFFICIAL NAME', width: 200 },
-          { key: 'id', label: 'ID', width: 100 },
-          { key: 'founded', label: 'FOUNDED', width: 80 },
-          { key: 'location', label: 'LOCATION', width: 150, render: (value) => 
+          { key: 'rowNumber', label: '#', width: 15, render: (_value, _item, index) => (index ?? 0) + 1 },
+          { key: 'id', label: 'ID', width: 50 },
+          { key: 'name', label: 'OFFICE NAME', width: 230 },
+          { key: 'location', label: 'LOCATION', width: 250, render: (value) => 
             value?.headquarters ? `${value.headquarters.city}, ${value.headquarters.country}` : 'N/A'
-          },
-          { key: 'specializations', label: 'SPECIALIZATIONS', width: 200, render: (value) => 
-            value ? value.slice(0, 3).join(', ') + (value.length > 3 ? '...' : '') : 'N/A'
-          },
-          { key: 'status', label: 'STATUS', width: 100 }
+          }
         ];
       
       case 'projects':
         return [
+          { key: 'rowNumber', label: '#', width: 20, render: (_value, _item, index) => (index ?? 0) + 1 },
           { key: 'projectName', label: 'PROJECT NAME', width: 200 },
-          { key: 'id', label: 'ID', width: 100 },
-          { key: 'location', label: 'LOCATION', width: 150, render: (value) => 
+          { key: 'id', label: 'ID', width: 80 },
+          { key: 'location', label: 'LOCATION', width: 180, render: (value) => 
             value ? `${value.city}, ${value.country}` : 'N/A'
           },
-          { key: 'details', label: 'TYPE', width: 120, render: (value) => 
+          { key: 'details', label: 'TYPE', width: 150, render: (value) => 
             value?.projectType || 'N/A'
           },
-          { key: 'status', label: 'STATUS', width: 100 },
-          { key: 'financial', label: 'BUDGET', width: 120, render: (value) => 
+          { key: 'financial', label: 'BUDGET', width: 150, render: (value) => 
             value?.budget ? `${value.budget.toLocaleString()} ${value.currency}` : 'N/A'
           }
         ];
       
       case 'regulations':
         return [
-          { key: 'name', label: 'NAME', width: 200 },
-          { key: 'id', label: 'ID', width: 100 },
-          { key: 'regulationType', label: 'TYPE', width: 120 },
-          { key: 'jurisdiction', label: 'JURISDICTION', width: 150, render: (value) => 
+          { key: 'rowNumber', label: '#', width: 20, render: (_value, _item, index) => (index ?? 0) + 1 },
+          { key: 'name', label: 'REGULATION NAME', width: 200 },
+          { key: 'id', label: 'ID', width: 80 },
+          { key: 'regulationType', label: 'TYPE', width: 150 },
+          { key: 'jurisdiction', label: 'JURISDICTION', width: 200, render: (value) => 
             value ? `${value.cityName || value.state || value.countryName}, ${value.countryName}` : 'N/A'
           },
-          { key: 'version', label: 'VERSION', width: 80 },
-          { key: 'effectiveDate', label: 'EFFECTIVE', width: 100, render: (value) => 
+          { key: 'version', label: 'VERSION', width: 100 },
+          { key: 'effectiveDate', label: 'EFFECTIVE', width: 120, render: (value) => 
             value ? new Date(value.seconds * 1000).toLocaleDateString() : 'N/A'
           }
         ];
@@ -91,154 +98,94 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
                 'BUILDING REGULATIONS';
 
   return (
-    <div style={{ 
+    <>
+      <style>{`
+        .spreadsheet-scroll::-webkit-scrollbar {
+          display: none;
+        }
+        .spreadsheet-with-lines {
+          position: relative;
+          padding-left: 6px;
+          padding-right: 6px;
+        }
+        .spreadsheet-with-lines::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 1px;
+          height: 528px;
+          background-color: #C8EDFC;
+          pointer-events: none;
+        }
+        .spreadsheet-with-lines::after {
+          content: '';
+          position: absolute;
+          right: 0;
+          top: 0;
+          width: 1px;
+          height: 528px;
+          background-color: #C8EDFC;
+          pointer-events: none;
+        }
+      `}</style>
+      <div style={{ 
       width: '100vw', 
       height: '100vh', 
       backgroundColor: '#000000', 
-      color: '#ffffff',
+      color: '#C8EDFC',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
       fontSize: '10px',
       fontWeight: 'normal',
       textTransform: 'uppercase',
       overflow: 'hidden',
       padding: '20px',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      margin: '0 auto',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center'
     }}>
-      {/* Header with title and buttons */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1 style={{ fontSize: '10px', fontWeight: 'normal', textTransform: 'uppercase', margin: 0 }}>
-          {title}
-          {!loading && data.length > 0 && (
-            <span> ({data.length} {dataType})</span>
-          )}
-        </h1>
-        
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          {onRefresh && (
-            <button 
-              onClick={onRefresh} 
-              disabled={loading}
-              style={{
-                fontSize: '10px',
-                fontWeight: 'normal',
-                textTransform: 'uppercase',
-                backgroundColor: 'transparent',
-                color: '#ffffff',
-                border: 'none',
-                padding: '8px 16px',
-                cursor: loading ? 'not-allowed' : 'pointer'
-              }}
-            >
-              {loading ? 'Loading...' : 'Refresh'}
-            </button>
-          )}
-          
-          {isElectron && onResizeToMaxWidth && onResizeToDefault && (
-            <>
-              <button
-                onClick={onResizeToMaxWidth}
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 'normal',
-                  textTransform: 'uppercase',
-                  backgroundColor: 'transparent',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '8px 16px',
-                  cursor: 'pointer'
-                }}
-              >
-                Expand Width
-              </button>
-              <button
-                onClick={onResizeToDefault}
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 'normal',
-                  textTransform: 'uppercase',
-                  backgroundColor: 'transparent',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '8px 16px',
-                  cursor: 'pointer'
-                }}
-              >
-                Default Size
-              </button>
-            </>
-          )}
-          
-          {onClose && (
-            <button 
-              onClick={onClose}
-              style={{
-                fontSize: '10px',
-                fontWeight: 'normal',
-                textTransform: 'uppercase',
-                backgroundColor: 'transparent',
-                color: '#ffffff',
-                border: 'none',
-                padding: '8px 16px',
-                cursor: 'pointer'
-              }}
-            >
-              Close
-            </button>
-          )}
-        </div>
-      </div>
-      
       {/* Loading and error states */}
-      {loading && <div style={{ fontSize: '10px', fontWeight: 'normal', textTransform: 'uppercase', marginTop: '20px' }}>Loading {dataType}...</div>}
-      {error && <div style={{ fontSize: '10px', fontWeight: 'normal', textTransform: 'uppercase', marginTop: '20px' }}>Error: {error}</div>}
+      {loading && <div style={{ fontSize: '10px', fontWeight: 'normal', textTransform: 'uppercase', marginTop: '20px', color: '#C8EDFC' }}>Loading {dataType}...</div>}
+      {error && <div style={{ fontSize: '10px', fontWeight: 'normal', textTransform: 'uppercase', marginTop: '20px', color: '#C8EDFC' }}>Error: {error}</div>}
       
       {/* Spreadsheet content */}
       {!loading && !error && (
-        <div style={{ marginTop: '20px' }}>
+        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
           {data.length === 0 ? (
-            <div style={{ fontSize: '10px', fontWeight: 'normal', textTransform: 'uppercase' }}>No {dataType} found</div>
+            <div style={{ fontSize: '10px', fontWeight: 'normal', textTransform: 'uppercase', color: '#C8EDFC' }}>No {dataType} found</div>
           ) : (
-            <div style={{ 
+            <div className="spreadsheet-scroll spreadsheet-with-lines" style={{ 
               display: 'grid',
               gridTemplateColumns: columns.map(col => `${col.width || 150}px`).join(' '),
-              gap: '1px',
-              backgroundColor: '#333333'
+              gridAutoRows: '12px',
+              gap: '0px',
+              backgroundColor: '#000000',
+              width: dataType === 'offices' ? '450px' : 'auto',
+              height: dataType === 'offices' ? '528px' : 'auto',
+              overflow: 'auto',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
             }}>
-              {/* Header row */}
-              {columns.map((column) => (
-                <div
-                  key={column.key}
-                  style={{
-                    backgroundColor: '#1a1a1a',
-                    padding: '8px',
-                    fontSize: '10px',
-                    fontWeight: 'normal',
-                    textTransform: 'uppercase',
-                    border: '1px solid #333333',
-                    textAlign: 'left'
-                  }}
-                >
-                  {column.label}
-                </div>
-              ))}
-              
-              {/* Data rows */}
+              {/* Data rows only - no header row */}
               {data.map((item, index) => (
                 <React.Fragment key={item.id || index}>
-                  {columns.map((column) => {
+                  {columns.map((column, colIndex) => {
                     const value = (item as any)[column.key];
-                    const displayValue = column.render ? column.render(value, item) : value || 'N/A';
+                    const displayValue = column.render ? column.render(value, item, index) : value || 'N/A';
                     
                     return (
                       <div
                         key={`${item.id || index}-${column.key}`}
                         style={{
-                          backgroundColor: index % 2 === 0 ? '#000000' : '#0a0a0a',
-                          padding: '8px',
+                          backgroundColor: '#000000',
+                          padding: '1px 0px',
+                          height: '12px',
                           fontSize: '10px',
                           fontWeight: 'normal',
                           textTransform: 'uppercase',
-                          border: '1px solid #333333',
+                          borderRight: '1px solid #333333',
                           textAlign: 'left',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -256,6 +203,7 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
         </div>
       )}
     </div>
+    </>
   );
 };
 

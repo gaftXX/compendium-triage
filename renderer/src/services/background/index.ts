@@ -1,0 +1,1 @@
+export { backgroundService } from './BackgroundService';
