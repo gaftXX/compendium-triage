@@ -42,14 +42,14 @@ export class EntityUpdateService {
    */
   public async searchExistingOffice(officeName: string): Promise<EntitySearchResult> {
     try {
-      console.log(`🔍 Searching for existing office: "${officeName}"`);
+      console.log(`Searching for existing office: "${officeName}"`);
       
       // Import FirestoreService dynamically to avoid circular dependencies
-      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations');
+      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations.ts');
       const firestoreService = FirestoreOperationsService.getInstance();
       
       if (!firestoreService.isFirebaseAvailable()) {
-        console.log('⚠️ Firebase not available for office search');
+        console.log('Firebase not available for office search');
         return { found: false };
       }
 
@@ -58,7 +58,7 @@ export class EntityUpdateService {
         filters: [{ field: 'name', operator: '==', value: officeName }] 
       });
       if (exactMatch.success && exactMatch.data && exactMatch.data.length > 0) {
-        console.log(`✅ Found exact match for office: ${officeName}`);
+        console.log(`Found exact match for office: ${officeName}`);
         // Verify it's actually an office, not accidentally a project
         if (exactMatch.data[0].name === officeName) {
           return { found: true, entity: exactMatch.data[0], similarity: 1.0 };
@@ -70,12 +70,12 @@ export class EntityUpdateService {
       if (fuzzyResults.length > 0) {
         const bestMatch = fuzzyResults[0];
         if (bestMatch.entity && 'name' in bestMatch.entity && bestMatch.similarity) {
-          console.log(`✅ Found fuzzy match for office: ${officeName} -> ${bestMatch.entity.name} (${(bestMatch.similarity * 100).toFixed(1)}%)`);
+          console.log(`Found fuzzy match for office: ${officeName} -> ${bestMatch.entity.name} (${(bestMatch.similarity * 100).toFixed(1)}%)`);
           return bestMatch;
         }
       }
 
-      console.log(`❌ No existing office found for: ${officeName}`);
+      console.log(`No existing office found for: ${officeName}`);
       return { found: false };
     } catch (error) {
       console.error('Error searching for existing office:', error);
@@ -89,13 +89,13 @@ export class EntityUpdateService {
    */
   public async searchExistingProject(projectName: string): Promise<EntitySearchResult> {
     try {
-      console.log(`🔍 Searching for existing project: "${projectName}"`);
+      console.log(`Searching for existing project: "${projectName}"`);
       
-      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations');
+      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations.ts');
       const firestoreService = FirestoreOperationsService.getInstance();
       
       if (!firestoreService.isFirebaseAvailable()) {
-        console.log('⚠️ Firebase not available for project search');
+        console.log('Firebase not available for project search');
         return { found: false };
       }
 
@@ -104,7 +104,7 @@ export class EntityUpdateService {
         filters: [{ field: 'projectName', operator: '==', value: projectName }] 
       });
       if (exactMatch.success && exactMatch.data && exactMatch.data.length > 0) {
-        console.log(`✅ Found exact match for project: ${projectName}`);
+        console.log(`Found exact match for project: ${projectName}`);
         // Verify it's actually a project, not accidentally an office
         if (exactMatch.data[0].projectName === projectName) {
           return { found: true, entity: exactMatch.data[0], similarity: 1.0 };
@@ -116,12 +116,12 @@ export class EntityUpdateService {
       if (fuzzyResults.length > 0) {
         const bestMatch = fuzzyResults[0];
         if (bestMatch.entity && 'name' in bestMatch.entity && bestMatch.similarity) {
-          console.log(`✅ Found fuzzy match for project: ${projectName} -> ${bestMatch.entity.name} (${(bestMatch.similarity * 100).toFixed(1)}%)`);
+          console.log(`Found fuzzy match for project: ${projectName} -> ${bestMatch.entity.name} (${(bestMatch.similarity * 100).toFixed(1)}%)`);
           return bestMatch;
         }
       }
 
-      console.log(`❌ No existing project found for: ${projectName}`);
+      console.log(`No existing project found for: ${projectName}`);
       return { found: false };
     } catch (error) {
       console.error('Error searching for existing project:', error);
@@ -134,13 +134,13 @@ export class EntityUpdateService {
    */
   public async searchExistingRegulation(regulationName: string): Promise<EntitySearchResult> {
     try {
-      console.log(`🔍 Searching for existing regulation: "${regulationName}"`);
+      console.log(`Searching for existing regulation: "${regulationName}"`);
       
-      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations');
+      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations.ts');
       const firestoreService = FirestoreOperationsService.getInstance();
       
       if (!firestoreService.isFirebaseAvailable()) {
-        console.log('⚠️ Firebase not available for regulation search');
+        console.log('Firebase not available for regulation search');
         return { found: false };
       }
 
@@ -149,7 +149,7 @@ export class EntityUpdateService {
         filters: [{ field: 'name', operator: '==', value: regulationName }] 
       });
       if (exactMatch.success && exactMatch.data && exactMatch.data.length > 0) {
-        console.log(`✅ Found exact match for regulation: ${regulationName}`);
+        console.log(`Found exact match for regulation: ${regulationName}`);
         return { found: true, entity: exactMatch.data[0], similarity: 1.0 };
       }
 
@@ -158,12 +158,12 @@ export class EntityUpdateService {
       if (fuzzyResults.length > 0) {
         const bestMatch = fuzzyResults[0];
         if (bestMatch.entity && 'name' in bestMatch.entity && bestMatch.similarity) {
-          console.log(`✅ Found fuzzy match for regulation: ${regulationName} -> ${bestMatch.entity.name} (${(bestMatch.similarity * 100).toFixed(1)}%)`);
+          console.log(`Found fuzzy match for regulation: ${regulationName} -> ${bestMatch.entity.name} (${(bestMatch.similarity * 100).toFixed(1)}%)`);
           return bestMatch;
         }
       }
 
-      console.log(`❌ No existing regulation found for: ${regulationName}`);
+      console.log(`No existing regulation found for: ${regulationName}`);
       return { found: false };
     } catch (error) {
       console.error('Error searching for existing regulation:', error);
@@ -237,13 +237,13 @@ export class EntityUpdateService {
       }
 
       // Update the office in Firestore
-      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations');
+      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations.ts');
       const firestoreService = FirestoreOperationsService.getInstance();
       
       const updateResult = await firestoreService.updateOffice(existingOffice.id, mergedOffice);
       
       if (updateResult.success) {
-        console.log(`✅ Office merged successfully: ${mergedFields.length} fields updated`);
+        console.log(`Office merged successfully: ${mergedFields.length} fields updated`);
         return {
           success: true,
           entity: mergedOffice,
@@ -311,13 +311,13 @@ export class EntityUpdateService {
       }
 
       // Update the project in Firestore
-      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations');
+      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations.ts');
       const firestoreService = FirestoreOperationsService.getInstance();
       
       const updateResult = await firestoreService.updateProject(existingProject.id, mergedProject);
       
       if (updateResult.success) {
-        console.log(`✅ Project merged successfully: ${mergedFields.length} fields updated`);
+        console.log(`Project merged successfully: ${mergedFields.length} fields updated`);
         return {
           success: true,
           entity: mergedProject,
@@ -378,13 +378,13 @@ export class EntityUpdateService {
       }
 
       // Update the regulation in Firestore
-      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations');
+      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations.ts');
       const firestoreService = FirestoreOperationsService.getInstance();
       
       const updateResult = await firestoreService.updateRegulation(existingRegulation.id, mergedRegulation);
       
       if (updateResult.success) {
-        console.log(`✅ Regulation merged successfully: ${mergedFields.length} fields updated`);
+        console.log(`Regulation merged successfully: ${mergedFields.length} fields updated`);
         return {
           success: true,
           entity: mergedRegulation,
@@ -419,11 +419,11 @@ export class EntityUpdateService {
     try {
       console.log(`🔗 Creating bidirectional relationship: ${relationship.sourceId} <-> ${relationship.targetId}`);
       
-      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations');
+      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations.ts');
       const firestoreService = FirestoreOperationsService.getInstance();
       
       if (!firestoreService.isFirebaseAvailable()) {
-        console.log('⚠️ Firebase not available for relationship creation');
+        console.log('Firebase not available for relationship creation');
         return false;
       }
 
@@ -438,18 +438,18 @@ export class EntityUpdateService {
         
         const success = result1.success && result2.success;
         if (success) {
-          console.log(`✅ Bidirectional relationship created successfully`);
+          console.log(`Bidirectional relationship created successfully`);
           await this.updateConnectionCounts(relationship.sourceId, relationship.targetId, relationship.relationshipType);
         } else {
-          console.log(`❌ Failed to create bidirectional relationship`);
+          console.log(`Failed to create bidirectional relationship`);
         }
         return success;
       } else {
         if (result1.success) {
-          console.log(`✅ Unidirectional relationship created successfully`);
+          console.log(`Unidirectional relationship created successfully`);
           await this.updateConnectionCounts(relationship.sourceId, relationship.targetId, relationship.relationshipType);
         } else {
-          console.log(`❌ Failed to create relationship`);
+          console.log(`Failed to create relationship`);
         }
         return result1.success;
       }
@@ -466,7 +466,7 @@ export class EntityUpdateService {
     try {
       console.log(`📊 Updating connection counts for relationship: ${relationshipType}`);
       
-      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations');
+      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations.ts');
       const firestoreService = FirestoreOperationsService.getInstance();
       
       // TODO: Implement connection count updates when increment methods are available
@@ -485,7 +485,7 @@ export class EntityUpdateService {
           break;
       }
       
-      console.log(`✅ Connection counts updated successfully`);
+      console.log(`Connection counts updated successfully`);
     } catch (error) {
       console.error('Error updating connection counts:', error);
     }
@@ -496,7 +496,7 @@ export class EntityUpdateService {
    */
   private async fuzzySearchOffices(query: string): Promise<EntitySearchResult[]> {
     try {
-      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations');
+      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations.ts');
       const firestoreService = FirestoreOperationsService.getInstance();
       
       // Get all offices for fuzzy matching
@@ -535,7 +535,7 @@ export class EntityUpdateService {
    */
   private async fuzzySearchProjects(query: string): Promise<EntitySearchResult[]> {
     try {
-      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations');
+      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations.ts');
       const firestoreService = FirestoreOperationsService.getInstance();
       
       const allProjects = await firestoreService.queryProjects();
@@ -571,7 +571,7 @@ export class EntityUpdateService {
    */
   private async fuzzySearchRegulations(query: string): Promise<EntitySearchResult[]> {
     try {
-      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations');
+      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations.ts');
       const firestoreService = FirestoreOperationsService.getInstance();
       
       const allRegulations = await firestoreService.queryRegulations();

@@ -131,7 +131,7 @@ export function initializeFirebase(): FirebaseInit | null {
 // Global Firebase instance
 let firebaseInstance: FirebaseInit | null = null;
 
-export function getFirebase(): FirebaseInit {
+export function getFirebase(): FirebaseInit | null {
   if (!firebaseInstance) {
     firebaseInstance = initializeFirebase();
   }
@@ -147,5 +147,9 @@ export function getFirestoreInstance(): Firestore {
 }
 
 export function getAuthInstance(): Auth {
-  return getFirebase().auth;
+  const firebase = getFirebase();
+  if (!firebase) {
+    throw new Error('Firebase not initialized');
+  }
+  return firebase.auth;
 }

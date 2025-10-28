@@ -1,6 +1,6 @@
 // Firestore Note Service - Handles real database operations for the Note System
 
-import { FirestoreOperationsService } from '../renderer/src/services/firebase/firestoreOperations';
+import { FirestoreOperationsService } from '../renderer/src/services/firebase/firestoreOperations.ts';
 import { Office, Project, Regulation } from '../renderer/src/types/firestore';
 import { NoteServiceResult } from './noteService';
 
@@ -51,7 +51,7 @@ export class FirestoreNoteService {
         };
       }
       
-      console.log('🏢 Creating new office:', officeData.name);
+      console.log('Creating new office:', officeData.name);
       const result = await this.firestoreService.createOffice(officeData as any);
       
       if (result.success && result.data) {

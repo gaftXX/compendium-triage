@@ -1,7 +1,7 @@
 // Test utility to demonstrate enhanced Claude categorization system
 // This file demonstrates how the system now enforces Claude's logic for identifying project/office/regulation types
 
-import { ClaudeAIService } from './claudeAIService';
+import { ClaudeAIService } from '../renderer/src/services/claudeAIService';
 import { NoteProcessingEngine } from './noteProcessingEngine';
 
 export class CategorizationTest {

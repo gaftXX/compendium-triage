@@ -274,19 +274,72 @@ class BackgroundService {
 
   // Initialize real-time listeners
   async initializeRealtimeListeners(): Promise<void> {
-    // Setup offices listener
-    if (!this.cachedOffices.unsubscribe) {
-      this.cachedOffices.unsubscribe = await this.setupOfficesListener();
-    }
+    // For cost optimization, we can choose between real-time listeners or periodic polling
+    const useRealTimeListeners = true; // Set to false for polling-based updates
+    
+    if (useRealTimeListeners) {
+      // Setup offices listener
+      if (!this.cachedOffices.unsubscribe) {
+        this.cachedOffices.unsubscribe = await this.setupOfficesListener();
+      }
 
-    // Setup projects listener
-    if (!this.cachedProjects.unsubscribe) {
-      this.cachedProjects.unsubscribe = await this.setupProjectsListener();
-    }
+      // Setup projects listener
+      if (!this.cachedProjects.unsubscribe) {
+        this.cachedProjects.unsubscribe = await this.setupProjectsListener();
+      }
 
-    // Setup regulations listener
-    if (!this.cachedRegulations.unsubscribe) {
-      this.cachedRegulations.unsubscribe = await this.setupRegulationsListener();
+      // Setup regulations listener
+      if (!this.cachedRegulations.unsubscribe) {
+        this.cachedRegulations.unsubscribe = await this.setupRegulationsListener();
+      }
+    } else {
+      // Alternative: Periodic polling (more cost-effective for large datasets)
+      this.startPeriodicUpdates();
+    }
+  }
+
+  /**
+   * Alternative approach: Periodic updates instead of real-time listeners
+   * This is more cost-effective for large datasets
+   */
+  private startPeriodicUpdates(): void {
+    // Update every 30 seconds
+    setInterval(async () => {
+      await this.refreshAllData();
+    }, 30000);
+    
+    // Initial load
+    this.refreshAllData();
+  }
+
+  /**
+   * Refresh all cached data (for polling approach)
+   */
+  private async refreshAllData(): Promise<void> {
+    try {
+      // Only fetch if we have subscribers
+      if (this.officesChangeCallbacks.length > 0) {
+        const officesResult = await firestoreOperations.queryOffices();
+        if (officesResult.success && officesResult.data) {
+          this.setCachedOffices(officesResult.data);
+        }
+      }
+      
+      if (this.projectsChangeCallbacks.length > 0) {
+        const projectsResult = await firestoreOperations.queryProjects();
+        if (projectsResult.success && projectsResult.data) {
+          this.setCachedProjects(projectsResult.data);
+        }
+      }
+      
+      if (this.regulationsChangeCallbacks.length > 0) {
+        const regulationsResult = await firestoreOperations.queryRegulations();
+        if (regulationsResult.success && regulationsResult.data) {
+          this.setCachedRegulations(regulationsResult.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing data:', error);
     }
   }
 
@@ -295,25 +348,34 @@ class BackgroundService {
       const unsubscribe = firestoreOperations.subscribeToCollection(
         'offices',
         (snapshot) => {
+          // Only process if there are actual changes (not just metadata)
+          if (snapshot.metadata.fromCache) {
+            console.log('Real-time offices update: from cache, skipping');
+            return;
+          }
+          
           const offices = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
           })) as Office[];
           
-          console.log('🔄 Real-time offices update:', offices.length, 'offices');
+          console.log('Real-time offices update:', offices.length, 'offices (from server)');
           this.setCachedOffices(offices);
         },
         {
           filters: [],
           orderBy: [{ field: 'name', direction: 'asc' }],
-          includeMetadataChanges: false
+          includeMetadataChanges: false, // Don't trigger on metadata changes
+          onError: (error) => {
+            console.error('Offices listener error:', error);
+          }
         }
       );
       
-      console.log('✅ Real-time listener setup for offices');
+      console.log('Real-time listener setup for offices');
       return unsubscribe;
     } catch (error) {
-      console.error('❌ Failed to setup offices listener:', error);
+      console.error('Failed to setup offices listener:', error);
       return () => {};
     }
   }
@@ -328,7 +390,7 @@ class BackgroundService {
             ...doc.data()
           })) as Project[];
           
-          console.log('🔄 Real-time projects update:', projects.length, 'projects');
+          console.log('Real-time projects update:', projects.length, 'projects');
           this.setCachedProjects(projects);
         },
         {
@@ -356,7 +418,7 @@ class BackgroundService {
             ...doc.data()
           })) as Regulation[];
           
-          console.log('🔄 Real-time regulations update:', regulations.length, 'regulations');
+          console.log('Real-time regulations update:', regulations.length, 'regulations');
           this.setCachedRegulations(regulations);
         },
         {

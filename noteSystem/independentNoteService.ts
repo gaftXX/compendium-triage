@@ -5,7 +5,7 @@ import { NoteProcessing } from './noteProcessing';
 import { NoteProcessingEngine } from './noteProcessingEngine';
 import { NoteService } from './noteService';
 import { EntityUpdateService } from './entityUpdateService';
-import { ClaudeAIService } from './claudeAIService';
+import { ClaudeAIService } from '../renderer/src/services/claudeAIService';
 import { FirestoreNoteService } from './firestoreNoteService';
 
 export interface IndependentNoteSystemStatus {
@@ -153,7 +153,7 @@ export class IndependentNoteService {
    */
   private async verifyDirectFirestoreAccess(): Promise<boolean> {
     try {
-      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations');
+      const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations.ts');
       const firestoreService = FirestoreOperationsService.getInstance();
       
       return firestoreService.isFirebaseAvailable();

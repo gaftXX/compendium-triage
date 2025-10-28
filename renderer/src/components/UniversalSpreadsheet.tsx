@@ -48,21 +48,21 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
     switch (dataType) {
       case 'offices':
         return [
-          { key: 'rowNumber', label: '#', width: 15, render: (_value, _item, index) => (index ?? 0) + 1 },
+          { key: 'rowNumber', label: '#', width: 20, render: (_value, _item, index) => (index ?? 0) + 1 },
           { key: 'id', label: 'ID', width: 50 },
-          { key: 'name', label: 'OFFICE NAME', width: 230 },
+          { key: 'name', label: 'OFFICE NAME', width: 240 },
           { key: 'location', label: 'LOCATION', width: 250, render: (value) => 
-            value?.headquarters ? `${value.headquarters.city}, ${value.headquarters.country}` : 'N/A'
+            value?.headquarters ? `${value.headquarters.city?.replace(/^\d+\s*/, '')}, ${value.headquarters.country?.substring(0, 2).toUpperCase()}` : 'N/A'
           }
         ];
       
       case 'projects':
         return [
-          { key: 'rowNumber', label: '#', width: 20, render: (_value, _item, index) => (index ?? 0) + 1 },
+          { key: 'rowNumber', label: '#', width: 25, render: (_value, _item, index) => (index ?? 0) + 1 },
           { key: 'projectName', label: 'PROJECT NAME', width: 200 },
           { key: 'id', label: 'ID', width: 80 },
           { key: 'location', label: 'LOCATION', width: 180, render: (value) => 
-            value ? `${value.city}, ${value.country}` : 'N/A'
+            value ? `${value.city?.replace(/^\d+\s*/, '')}, ${value.country?.substring(0, 2).toUpperCase()}` : 'N/A'
           },
           { key: 'details', label: 'TYPE', width: 150, render: (value) => 
             value?.projectType || 'N/A'
@@ -74,12 +74,12 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
       
       case 'regulations':
         return [
-          { key: 'rowNumber', label: '#', width: 20, render: (_value, _item, index) => (index ?? 0) + 1 },
+          { key: 'rowNumber', label: '#', width: 25, render: (_value, _item, index) => (index ?? 0) + 1 },
           { key: 'name', label: 'REGULATION NAME', width: 200 },
           { key: 'id', label: 'ID', width: 80 },
           { key: 'regulationType', label: 'TYPE', width: 150 },
           { key: 'jurisdiction', label: 'JURISDICTION', width: 200, render: (value) => 
-            value ? `${value.cityName || value.state || value.countryName}, ${value.countryName}` : 'N/A'
+            value ? `${(value.cityName || value.state || value.countryName)?.replace(/^\d+\s*/, '')}, ${value.countryName?.substring(0, 2).toUpperCase()}` : 'N/A'
           },
           { key: 'version', label: 'VERSION', width: 100 },
           { key: 'effectiveDate', label: 'EFFECTIVE', width: 120, render: (value) => 
@@ -103,30 +103,32 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
         .spreadsheet-scroll::-webkit-scrollbar {
           display: none;
         }
-        .spreadsheet-with-lines {
+        .spreadsheet-container {
           position: relative;
           padding-left: 6px;
           padding-right: 6px;
         }
-        .spreadsheet-with-lines::before {
+        .spreadsheet-container::before {
           content: '';
           position: absolute;
           left: 0;
           top: 0;
           width: 1px;
-          height: 528px;
+          height: 100%;
           background-color: #C8EDFC;
           pointer-events: none;
+          z-index: 1;
         }
-        .spreadsheet-with-lines::after {
+        .spreadsheet-container::after {
           content: '';
           position: absolute;
           right: 0;
           top: 0;
           width: 1px;
-          height: 528px;
+          height: 100%;
           background-color: #C8EDFC;
           pointer-events: none;
+          z-index: 1;
         }
       `}</style>
       <div style={{ 
@@ -156,18 +158,23 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
           {data.length === 0 ? (
             <div style={{ fontSize: '10px', fontWeight: 'normal', textTransform: 'uppercase', color: '#C8EDFC' }}>No {dataType} found</div>
           ) : (
-            <div className="spreadsheet-scroll spreadsheet-with-lines" style={{ 
-              display: 'grid',
-              gridTemplateColumns: columns.map(col => `${col.width || 150}px`).join(' '),
-              gridAutoRows: '12px',
-              gap: '0px',
-              backgroundColor: '#000000',
+            <div className="spreadsheet-container" style={{ 
               width: dataType === 'offices' ? '450px' : 'auto',
               height: dataType === 'offices' ? '528px' : 'auto',
-              overflow: 'auto',
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none'
             }}>
+              <div className="spreadsheet-scroll" style={{ 
+                display: 'grid',
+                gridTemplateColumns: columns.map(col => `${col.width || 150}px`).join(' '),
+                gridAutoRows: '12px',
+                gap: '0px',
+                backgroundColor: '#000000',
+                width: '100%',
+                height: '100%',
+                overflowX: 'hidden',
+                overflowY: 'auto',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none'
+              }}>
               {/* Data rows only - no header row */}
               {data.map((item, index) => (
                 <React.Fragment key={item.id || index}>
@@ -198,6 +205,7 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
                   })}
                 </React.Fragment>
               ))}
+              </div>
             </div>
           )}
         </div>

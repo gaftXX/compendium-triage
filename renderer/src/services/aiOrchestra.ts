@@ -1,10 +1,11 @@
 // Orchestra - Claude AI Integration with Web Search and Action Recognition
 // Sends user input to Claude AI and returns response, also recognizes navigation actions
 
-import { ClaudeAIService } from '../noteSystem/claudeAIService';
+import { ClaudeAIService } from './claudeAIService';
 import { WebSearchService } from './webSearchService';
 import { SearchResultAnalyzer } from './searchResultAnalyzer';
-import { FirestoreQueryService } from './firestoreQueryService';
+import { FirestoreQueryService } from './firebase/firestoreQueryService';
+import { OfficeScraperService, ScrapePrompt } from '../../../scraper/officeScraperService.ts';
 
 export interface AIResponse {
   success: boolean;
@@ -12,6 +13,9 @@ export interface AIResponse {
   error?: string;
   needsWebSearch?: boolean;
   searchQuery?: string;
+  needsOfficeScrape?: boolean;
+  scrapePrompt?: ScrapePrompt;
+  sessionId?: string;
   action?: {
     type: 'navigate';
     target: string;
@@ -30,14 +34,19 @@ export class Orchestra {
   private webSearchService: WebSearchService;
   private searchResultAnalyzer: SearchResultAnalyzer;
   private firestoreQueryService: FirestoreQueryService;
+  private officeScraperService: OfficeScraperService;
   private apiKey: string = '';
   private lastSearchQuery: string = '';
+  private lastScrapePrompt: ScrapePrompt | null = null;
+  private isScrapingActive: boolean = false;
+  private activeScrapingSessionId: string | null = null;
 
   private constructor() {
     this.claudeService = ClaudeAIService.getInstance();
     this.webSearchService = WebSearchService.getInstance();
     this.searchResultAnalyzer = SearchResultAnalyzer.getInstance();
     this.firestoreQueryService = FirestoreQueryService.getInstance();
+    this.officeScraperService = OfficeScraperService.getInstance();
   }
 
   static getInstance(): Orchestra {
@@ -53,7 +62,7 @@ export class Orchestra {
   setApiKey(apiKey: string): void {
     this.apiKey = apiKey;
     this.searchResultAnalyzer.setApiKey(apiKey);
-    console.log('🔑 Orchestra API key set:', !!apiKey);
+    console.log('Orchestra API key set:', !!apiKey);
   }
 
   /**
@@ -61,7 +70,7 @@ export class Orchestra {
    */
   async processInput(userInput: string): Promise<AIResponse> {
     try {
-      console.log('🤖 Orchestra processing with Claude:', userInput);
+      console.log('Orchestra processing with Claude:', userInput);
       
       if (!this.apiKey) {
         return {
@@ -69,6 +78,11 @@ export class Orchestra {
           message: 'Claude API key not set. Please configure your API key.',
           error: 'No API key available'
         };
+      }
+      
+      // Check if we're in active scraping mode
+      if (this.isScrapingActive && this.activeScrapingSessionId) {
+        return await this.handleScrapingModeInput(userInput);
       }
       
       // First, check for navigation actions
@@ -86,6 +100,73 @@ export class Orchestra {
       if (userInput.toLowerCase().trim() === 'yes' || userInput.toLowerCase().trim() === 'no') {
         return await this.handleWebSearchApproval(userInput.toLowerCase().trim() === 'yes');
       }
+
+      // Check if this is an office scraping request
+      const scrapePrompt = this.officeScraperService.detectScrapePrompt(userInput);
+      if (scrapePrompt) {
+        console.log('Office scraping request detected:', scrapePrompt);
+        this.lastScrapePrompt = scrapePrompt;
+        
+        if (scrapePrompt.location) {
+          return {
+            success: true,
+            message: `${scrapePrompt.location}${scrapePrompt.radius ? ` ${scrapePrompt.radius/1000}km` : ''}\n\nType "start scraper" to begin the search, or provide a different location.`,
+            needsOfficeScrape: true,
+            scrapePrompt: scrapePrompt
+          };
+        } else {
+          return {
+            success: true,
+            message: 'I can help you scrape architecture offices! Please specify the location and optionally the radius (e.g., "office scrape in Barcelona" or "office scrape in New York within 5km").',
+            needsOfficeScrape: true,
+            scrapePrompt: scrapePrompt
+          };
+        }
+      }
+
+      // Check if this is a scraper start command
+      if (userInput.toLowerCase().trim() === 'start scraper' && this.lastScrapePrompt) {
+        return await this.handleOfficeScrapingStart();
+      }
+
+      // Check if this is a direct scraper start command
+      const scraperStartPhrases = [
+        'start office scraper',
+        'start scraper',
+        'begin scraper',
+        'run scraper',
+        'launch scraper',
+        'start scraping',
+        'begin scraping',
+        'run scraping',
+        'launch scraping',
+        'start office search',
+        'begin office search',
+        'run office search',
+        'launch office search',
+        'find offices',
+        'search offices',
+        'scrape offices',
+        'office scraper',
+        'scraper',
+        'scraping'
+      ];
+      
+      const normalizedInput = userInput.toLowerCase().trim();
+      const isScraperStart = scraperStartPhrases.some(phrase => 
+        normalizedInput === phrase || 
+        normalizedInput.includes(phrase) ||
+        phrase.includes(normalizedInput)
+      );
+      
+      if (isScraperStart) {
+        return {
+          success: true,
+          message: 'Please specify the location and the search radius.',
+          needsOfficeScrape: true,
+          scrapePrompt: { confirmed: false }
+        };
+      }
       
       // Check if this is a database query first
       const databaseQuery = this.recognizeDatabaseQuery(userInput);
@@ -96,7 +177,7 @@ export class Orchestra {
       
       // Check if this is a web search query
       if (this.isWebSearchQuery(userInput)) {
-        console.log('🔍 Detected web search query, asking for approval');
+        console.log('Detected web search query, asking for approval');
         const searchQuery = this.extractSearchQuery(userInput, '');
         this.lastSearchQuery = searchQuery;
         
@@ -111,17 +192,17 @@ export class Orchestra {
       // Call Claude AI service with the API key
       const response = await this.claudeService.chat(userInput, this.apiKey);
       
-      console.log('🤖 Claude response received:', response);
-      console.log('🤖 Response length:', response.length);
+      console.log('Claude response received:', response);
+      console.log('Response length:', response.length);
       
       // Check if Claude indicates it needs web search
       const needsWeb = this.needsWebSearch(response);
-      console.log('🔍 Needs web search:', needsWeb);
+      console.log('Needs web search:', needsWeb);
       
       if (needsWeb) {
         const searchQuery = this.extractSearchQuery(userInput, response);
         this.lastSearchQuery = searchQuery; // Store the search query
-        console.log('🔍 Search query extracted:', searchQuery);
+        console.log('Search query extracted:', searchQuery);
         return {
           success: true,
           message: `I need to search the web for current information about: ${searchQuery}\n\nType "yes" to search the web, or "no" to skip.`,
@@ -130,19 +211,26 @@ export class Orchestra {
         };
       }
       
-      console.log('✅ Returning normal AI response');
+      console.log('Returning normal AI response');
       return {
         success: true,
         message: response
       };
     } catch (error) {
-      console.error('❌ AI Orchestra error:', error);
+      console.error('AI Orchestra error:', error);
       return {
         success: false,
         message: 'Error processing request with Claude AI',
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
+  }
+
+  /**
+   * Get the last scrape prompt
+   */
+  public getLastScrapePrompt(): ScrapePrompt | null {
+    return this.lastScrapePrompt;
   }
 
   /**
@@ -158,7 +246,7 @@ export class Orchestra {
 
     // Get the last search query from stored state
     const searchQuery = this.lastSearchQuery;
-    console.log('🔍 Performing web search for:', searchQuery);
+    console.log('Performing web search for:', searchQuery);
     
     const searchResults = await this.webSearchService.searchWeb({
       query: searchQuery,
@@ -168,7 +256,7 @@ export class Orchestra {
     
     if (searchResults.success && searchResults.results.length > 0) {
       // Analyze search results with AI to provide a direct answer
-      console.log('🔍 Analyzing search results with AI...');
+      console.log('Analyzing search results with AI...');
       const analysis = await this.searchResultAnalyzer.analyzeSearchResults(searchQuery, searchResults.results);
       
       if (analysis.success) {
@@ -427,12 +515,16 @@ export class Orchestra {
         case 'stats':
           result = await this.firestoreQueryService.getDatabaseStats();
           if (result.success) {
-            const stats = result.data;
+            const stats: any = result.data as any;
+            const offices = (stats && typeof stats.offices !== 'undefined') ? stats.offices : 'unknown';
+            const projects = (stats && typeof stats.projects !== 'undefined') ? stats.projects : 'unknown';
+            const regulations = (stats && typeof stats.regulations !== 'undefined') ? stats.regulations : 'unknown';
+            const total = (stats && typeof stats.total !== 'undefined') ? stats.total : 'unknown';
             message = `Database Statistics:\n\n`;
-            message += `Offices: ${stats.offices}\n`;
-            message += `Projects: ${stats.projects}\n`;
-            message += `Regulations: ${stats.regulations}\n`;
-            message += `Total entities: ${stats.total}`;
+            message += `Offices: ${offices}\n`;
+            message += `Projects: ${projects}\n`;
+            message += `Regulations: ${regulations}\n`;
+            message += `Total entities: ${total}`;
           } else {
             message = `Error getting database statistics: ${result.error}`;
           }
@@ -454,5 +546,166 @@ export class Orchestra {
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
+  }
+
+  /**
+   * Handle office scraping start
+   */
+  private async handleOfficeScrapingStart(): Promise<AIResponse> {
+    try {
+      if (!this.lastScrapePrompt) {
+        return {
+          success: true,
+          message: 'I can help you scrape architecture offices! Please specify the location and optionally the radius (e.g., "office scrape in Barcelona" or "office scrape in New York within 5km").',
+          needsOfficeScrape: true,
+          scrapePrompt: { confirmed: false }
+        };
+      }
+
+      const { location, radius = 10000 } = this.lastScrapePrompt;
+      
+      if (!location) {
+        return {
+          success: true,
+          message: 'I can help you scrape architecture offices! Please specify the location and optionally the radius (e.g., "office scrape in Barcelona" or "office scrape in New York within 5km").',
+          needsOfficeScrape: true,
+          scrapePrompt: { confirmed: false }
+        };
+      }
+
+      console.log('Starting office scraping for:', location, 'radius:', radius);
+      
+      // Use IPC to start scraping (this will be handled by the main process)
+      // For now, we'll use the direct service call but this should be updated to use IPC
+      const result = await this.officeScraperService.startScrapingSession(location, radius);
+      
+      if (result.success) {
+        // Set scraping state
+        this.isScrapingActive = true;
+        this.activeScrapingSessionId = result.sessionId!;
+        
+        // Start a timer to check for completion and return results
+        this.checkScrapingCompletion(result.sessionId!);
+        
+        return {
+          success: true,
+          message: result.message + '\n\nScraping is now active. You can ask about the progress or type "stop scraper" to cancel.',
+          sessionId: result.sessionId
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message
+        };
+      }
+
+    } catch (error) {
+      console.error('Error starting office scraping:', error);
+      return {
+        success: false,
+        message: `Failed to start office scraping: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  }
+
+  /**
+   * Handle input while in scraping mode
+   */
+  private async handleScrapingModeInput(userInput: string): Promise<AIResponse> {
+    const input = userInput.toLowerCase().trim();
+    
+    // Check for scraping-specific commands
+    if (input === 'stop scraper' || input === 'cancel scraper') {
+      this.isScrapingActive = false;
+      this.activeScrapingSessionId = null;
+      return {
+        success: true,
+        message: 'Scraping cancelled. You can now use other commands.'
+      };
+    }
+    
+    if (input === 'status' || input === 'progress' || input === 'how is it going') {
+      if (!this.activeScrapingSessionId) {
+        return {
+          success: true,
+          message: 'No active scraping session.'
+        };
+      }
+      
+      const session = this.officeScraperService.getSessionStatus(this.activeScrapingSessionId);
+      if (!session) {
+        return {
+          success: true,
+          message: 'Scraping session not found.'
+        };
+      }
+      
+      if (session.status === 'completed') {
+        const results = this.officeScraperService.getSessionResults(this.activeScrapingSessionId);
+        this.isScrapingActive = false;
+        this.activeScrapingSessionId = null;
+        return {
+          success: true,
+          message: `Scraping completed!\n\n${results}`
+        };
+      } else if (session.status === 'failed') {
+        this.isScrapingActive = false;
+        this.activeScrapingSessionId = null;
+        return {
+          success: true,
+          message: 'Scraping failed. You can try again with a different location.'
+        };
+      } else {
+        const elapsed = Math.floor((Date.now() - session.createdAt.getTime()) / 1000);
+        return {
+          success: true,
+          message: `Scraping in progress... (${elapsed}s elapsed)\n\nStatus: ${session.status}\nLocation: ${session.location}\nRadius: ${session.radius/1000}km\n\nType "status" to check again or "stop scraper" to cancel.`
+        };
+      }
+    }
+    
+    // For any other input while scraping, provide context-aware response
+    return {
+      success: true,
+      message: `I'm currently scraping architecture offices in ${this.lastScrapePrompt?.location || 'the specified location'}.\n\nYou can:\n- Type "status" to check progress\n- Type "stop scraper" to cancel\n- Wait for completion\n\nOr ask me about the scraping process.`
+    };
+  }
+
+  /**
+   * Check scraping completion and return results when done
+   */
+  private checkScrapingCompletion(sessionId: string): void {
+    const checkInterval = setInterval(() => {
+      const session = this.officeScraperService.getSessionStatus(sessionId);
+      
+      if (!session) {
+        clearInterval(checkInterval);
+        this.isScrapingActive = false;
+        this.activeScrapingSessionId = null;
+        return;
+      }
+
+      if (session.status === 'completed') {
+        clearInterval(checkInterval);
+        this.isScrapingActive = false;
+        this.activeScrapingSessionId = null;
+        const results = this.officeScraperService.getSessionResults(sessionId);
+        console.log('Scraping completed with results:', results);
+        // Results are logged but not returned to user automatically
+        // User can check results by asking for them
+      } else if (session.status === 'failed') {
+        clearInterval(checkInterval);
+        this.isScrapingActive = false;
+        this.activeScrapingSessionId = null;
+        console.log('Scraping failed for session:', sessionId);
+      }
+    }, 2000); // Check every 2 seconds
+  }
+
+  /**
+   * Get scraping results for a session
+   */
+  public getScrapingResults(sessionId: string): string {
+    return this.officeScraperService.getSessionResults(sessionId);
   }
 }

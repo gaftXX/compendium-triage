@@ -8,6 +8,7 @@ import { UniversalSpreadsheet } from '../../components/UniversalSpreadsheet';
 // Global cache that persists across component unmounts
 let cachedOffices: Office[] = [];
 let isCachedDataLoaded = false;
+let lastLoadTimestamp: number | null = null;
 
 export const OfficesPage: React.FC = () => {
   const [offices, setOffices] = useState<Office[]>(cachedOffices);
@@ -23,16 +24,57 @@ export const OfficesPage: React.FC = () => {
     navigationService.navigateToCross();
   };
 
+  const handleRefresh = () => {
+    // Reset timestamp to force full reload
+    lastLoadTimestamp = null;
+    fetchOffices();
+  };
+
   const fetchOffices = async () => {
     try {
       setLoading(true);
       setError(null);
-      const result = await firestoreOperations.queryOffices();
+      
+      let result;
+      if (lastLoadTimestamp === null) {
+        // First load - get all offices
+        console.log('First load: fetching all offices');
+        result = await firestoreOperations.queryOffices();
+      } else {
+        // Subsequent loads - only get new offices
+        console.log('Subsequent load: fetching only new offices since', new Date(lastLoadTimestamp));
+        result = await firestoreOperations.queryOffices({
+          filters: [{
+            field: 'createdAt',
+            operator: '>',
+            value: new Date(lastLoadTimestamp)
+          }]
+        });
+      }
       
       if (result.success && result.data) {
-        // Update both local state and global cache
-        setOffices(result.data);
-        cachedOffices = result.data;
+        if (lastLoadTimestamp === null) {
+          // First load - replace all data
+          setOffices(result.data);
+          cachedOffices = result.data;
+        } else {
+          // Subsequent load - merge new data with existing
+          const newOffices = result.data;
+          const existingIds = new Set(cachedOffices.map(office => office.id));
+          const uniqueNewOffices = newOffices.filter(office => !existingIds.has(office.id));
+          
+          if (uniqueNewOffices.length > 0) {
+            console.log(`Found ${uniqueNewOffices.length} new offices`);
+            const mergedOffices = [...cachedOffices, ...uniqueNewOffices];
+            setOffices(mergedOffices);
+            cachedOffices = mergedOffices;
+          } else {
+            console.log('No new offices found');
+          }
+        }
+        
+        // Update timestamp
+        lastLoadTimestamp = Date.now();
         isCachedDataLoaded = true;
       } else {
         setError(result.error || 'Failed to fetch offices');
@@ -45,10 +87,8 @@ export const OfficesPage: React.FC = () => {
   };
 
   useEffect(() => {
-    // Only fetch if we haven't loaded data before (check global cache)
-    if (!isCachedDataLoaded) {
-      fetchOffices();
-    }
+    // Always fetch data - either all (first time) or just new (subsequent times)
+    fetchOffices();
   }, []);
 
   // Set to full width when page opens
@@ -82,7 +122,7 @@ export const OfficesPage: React.FC = () => {
       dataType="offices"
       loading={loading}
       error={error}
-      onRefresh={fetchOffices}
+      onRefresh={handleRefresh}
       onClose={handleClose}
       onResizeToMaxWidth={resizeToMaxWidth}
       onResizeToDefault={resizeToDefault}

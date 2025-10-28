@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   
   root: path.join(__dirname, 'renderer'),
+  base: './', // Use relative paths for Electron
   
   // Load environment variables from project root
   envDir: path.join(__dirname),
@@ -51,7 +52,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.join(__dirname, 'src'),
-      '@/orchestra': path.join(__dirname, '../orchestra'),
       '@/cross': path.join(__dirname, '../cross'),
       '@/ui': path.join(__dirname, '../ui'),
       '@/shared': path.join(__dirname, '../shared'),

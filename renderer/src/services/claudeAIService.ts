@@ -1,6 +1,6 @@
 // Claude AI Service - Real AI-powered text analysis using Claude API
 
-import { Office, Project, Regulation } from '../renderer/src/types/firestore';
+import { Office, Project, Regulation } from '../types/firestore';
 
 export interface ClaudeCategorizationResult {
   category: 'office' | 'project' | 'regulation' | 'unknown';
@@ -30,7 +30,7 @@ export class ClaudeAIService {
     // Get API key from environment or use fallback
     try {
       // Try import.meta.env first (Vite)
-      const env = (import.meta as any)?.env;
+      (import.meta as any)?.env; // Access to ensure Vite env tree-shakes safely
       // Note: API key is now passed directly to chat() method, not loaded here
       console.log('🔍 ClaudeAIService initialized (API key will be provided at runtime)');
     } catch (error) {
@@ -209,22 +209,55 @@ IMPORTANT: Your categorization decision is final and authoritative. Trust your a
    */
   private async callClaudeAPI(prompt: string, apiKey?: string): Promise<string> {
     const keyToUse = apiKey || this.apiKey;
-    console.log('🤖 Calling Claude API with Claude 4.5 for text analysis...');
-    console.log('🔑 API Key available:', !!keyToUse);
-    console.log('🔑 API Key length:', keyToUse ? keyToUse.length : 0);
-    console.log('🔑 API Key preview:', keyToUse ? keyToUse.substring(0, 10) + '...' : 'None');
+    console.log('Calling Claude API with Claude 4.5 for text analysis...');
+    console.log('API Key available:', !!keyToUse);
+    console.log('API Key length:', keyToUse ? keyToUse.length : 0);
+    console.log('API Key preview:', keyToUse ? keyToUse.substring(0, 10) + '...' : 'None');
     
     if (!keyToUse) {
-      console.log('❌ No Claude API key found - cannot process without AI');
+      console.log('No Claude API key found - cannot process without AI');
       throw new Error('Claude API key is required for text analysis');
     }
 
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`API call attempt ${attempt}/${maxRetries}`);
+        return await this.makeAPICall(prompt, keyToUse);
+      } catch (error) {
+        lastError = error as Error;
+        console.log(`Attempt ${attempt} failed:`, lastError.message);
+        
+        // Check if error is retryable
+        const isRetryable = lastError.message.includes('overloaded') || 
+                           lastError.message.includes('server error') ||
+                           lastError.message.includes('Rate limit') ||
+                           lastError.message.includes('temporarily');
+        
+        if (attempt < maxRetries && isRetryable) {
+          const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s
+          console.log(`Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } else if (attempt < maxRetries) {
+          // For non-retryable errors, don't retry
+          console.log('Non-retryable error, stopping retries');
+          break;
+        }
+      }
+    }
+
+    throw lastError || new Error('All retry attempts failed');
+  }
+
+  private async makeAPICall(prompt: string, apiKey: string): Promise<string> {
     try {
       const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': keyToUse,
+          'x-api-key': apiKey,
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
@@ -240,22 +273,34 @@ IMPORTANT: Your categorization decision is final and authoritative. Trust your a
       });
 
       if (!response.ok) {
-        console.error('❌ Claude API error:', response.status, response.statusText);
-        throw new Error(`Claude API error: ${response.status} ${response.statusText}`);
+        console.error('Claude API error:', response.status, response.statusText);
+        
+        // Handle specific error codes
+        if (response.status === 529) {
+          throw new Error('Claude API is temporarily overloaded. Please try again in a few moments.');
+        } else if (response.status === 429) {
+          throw new Error('Rate limit exceeded. Please wait before making another request.');
+        } else if (response.status === 401) {
+          throw new Error('Invalid API key. Please check your Claude API key.');
+        } else if (response.status >= 500) {
+          throw new Error('Claude API server error. Please try again later.');
+        } else {
+          throw new Error(`Claude API error: ${response.status} ${response.statusText}`);
+        }
       }
 
       const data = await response.json();
-      console.log('✅ Claude API response received successfully');
+      console.log('Claude API response received successfully');
       
       if (data.content && data.content[0] && data.content[0].text) {
         return data.content[0].text;
       } else {
-        console.error('❌ Invalid Claude API response format:', data);
+        console.error('Invalid Claude API response format:', data);
         throw new Error('Invalid response format from Claude API');
       }
 
     } catch (error) {
-      console.error('❌ Claude API request failed:', error);
+      console.error('Claude API request failed:', error);
       throw new Error('Failed to call Claude API: ' + (error as Error).message);
     }
   }

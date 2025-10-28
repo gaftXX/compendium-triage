@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron';
 import { registerWindowHandlers } from './windowHandlers';
+import { registerOfficeScrapingHandlers } from './officeScrapingHandlers';
 
 // App info handlers
 const appHandlers = {
@@ -13,6 +14,9 @@ const appHandlers = {
 export const registerAllHandlers = () => {
   // Register window handlers
   registerWindowHandlers();
+  
+  // Register office scraping handlers
+  registerOfficeScrapingHandlers();
   
   // Register app handlers
   ipcMain.handle('app:getVersion', appHandlers.getVersion);

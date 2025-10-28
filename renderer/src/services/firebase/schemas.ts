@@ -167,13 +167,14 @@ export const officesSchema: CollectionSchema<Office> = {
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now()
   }),
-  requiredFields: ['id', 'name', 'officialName', 'founded', 'status', 'location', 'size'],
+  requiredFields: ['id', 'name', 'officialName', 'status', 'location', 'size'],
   optionalFields: ['founder', 'specializations', 'notableWorks', 'connectionCounts'],
   validationRules: {
     id: { required: true, type: 'string', pattern: /^[A-Z]{2}[A-Z]{2}\d{3}$/ },
     name: { required: true, type: 'string', minLength: 1 },
     officialName: { required: true, type: 'string', minLength: 1 },
-    founded: { required: true, type: 'number', min: 1800, max: 2030 },
+    // founded is optional now; if provided, validate range
+    founded: { required: false, type: 'number', min: 1800, max: 2030 },
     status: { required: true, enum: ['active', 'acquired', 'dissolved'] },
     location: { required: true, type: 'object' },
     size: { required: true, type: 'object' }

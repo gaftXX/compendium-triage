@@ -86,7 +86,7 @@ export class SearchResultAnalyzer {
       
       // If analysis failed or gave a generic response, try direct extraction
       if (!analysis.success || analysis.answer.toLowerCase().includes('cannot provide') || analysis.answer.toLowerCase().includes('visit')) {
-        console.log('🔄 AI analysis failed, trying direct extraction');
+        console.log('AI analysis failed, trying direct extraction');
         const directAnswer = this.extractDirectAnswer(userQuestion, searchResults);
         if (directAnswer) {
           return {

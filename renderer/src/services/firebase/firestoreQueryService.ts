@@ -1,7 +1,7 @@
 // Firestore Query Service - Integrates database queries with AI orchestration
 
 import { collection, collectionGroup, getDocs, query, orderBy } from 'firebase/firestore';
-import { getFirestoreInstance } from '../renderer/src/services/firebase/config';
+import { getFirestoreInstance } from './config';
 
 export interface QueryResult {
   success: boolean;

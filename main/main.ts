@@ -26,6 +26,9 @@ function createMainWindow(): BrowserWindow {
     backgroundColor: 'transparent', // Transparent background
     transparent: true, // Enable transparency
     
+    // Icon
+    icon: path.join(process.cwd(), 'build/icon.png'),
+    
     // Frame options
     frame: false, // No window frame at all
     
@@ -59,8 +62,7 @@ function createMainWindow(): BrowserWindow {
   
   // Check if we're in development mode
   const isDev = process.env.NODE_ENV === 'development' || 
-                process.env.NODE_ENV === 'dev' || 
-                !process.env.NODE_ENV; // Default to dev if not set
+                process.env.NODE_ENV === 'dev';
   
   if (isDev) {
     const devUrl = 'http://localhost:3000';

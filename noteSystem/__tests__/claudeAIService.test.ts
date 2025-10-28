@@ -1,5 +1,5 @@
 // Sample test file for ClaudeAIService
-import { ClaudeAIService } from '../claudeAIService';
+import { ClaudeAIService } from '../../renderer/src/services/claudeAIService';
 
 describe('ClaudeAIService', () => {
   let claudeService: ClaudeAIService;

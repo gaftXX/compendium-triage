@@ -138,11 +138,11 @@ export class FirestoreOperationsService implements FirestoreService {
     // If db is null, try to reinitialize
     if (this.db === null) {
       try {
-        console.log('🔄 FirestoreOperationsService: Attempting to reinitialize Firebase...');
+        console.log('FirestoreOperationsService: Attempting to reinitialize Firebase...');
         this.db = getFirestoreInstance();
-        console.log('✅ FirestoreOperationsService: Firebase reinitialized successfully');
+        console.log('FirestoreOperationsService: Firebase reinitialized successfully');
       } catch (error) {
-        console.log('❌ FirestoreOperationsService: Firebase reinitialization failed:', error);
+        console.log('FirestoreOperationsService: Firebase reinitialization failed:', error);
         this.db = null;
       }
     }
@@ -252,20 +252,20 @@ export class FirestoreOperationsService implements FirestoreService {
       }
 
       // Validate data if requested
-      console.log('🔧 Validation check:', { validate, collectionName });
+      console.log('Validation check:', { validate, collectionName });
       if (validate) {
-        console.log('🔧 Running validation...');
+        console.log('Running validation...');
         const validation = this.validateDocument(collectionName, data);
         if (!validation.isValid) {
-          console.log('🔧 Validation failed:', validation.errors);
+          console.log('Validation failed:', validation.errors);
           return {
             success: false,
             error: `Validation failed: ${validation.errors.join(', ')}`
           };
         }
-        console.log('🔧 Validation passed');
+        console.log('Validation passed');
       } else {
-        console.log('🔧 Validation skipped');
+        console.log('Validation skipped');
       }
 
       // Add timestamps if requested
@@ -502,8 +502,8 @@ export class FirestoreOperationsService implements FirestoreService {
    * Create an office document with flat structure
    */
   public async createOffice(data: CreateDocument<Office>): Promise<DocumentOperationResult<Office>> {
-    console.log('🔧 Creating office with flat structure');
-    console.log('🔧 Office data being saved:', JSON.stringify(data, null, 2));
+    console.log('Creating office with flat structure');
+    console.log('Office data being saved:', JSON.stringify(data, null, 2));
     
     try {
       // Generate ID if not provided
@@ -519,7 +519,7 @@ export class FirestoreOperationsService implements FirestoreService {
       const officeDocRef = doc(collection(this.db, 'offices'), documentData.id);
       await setDoc(officeDocRef, timestampedData);
 
-      console.log('🔧 Office created successfully at flat path:', `offices/${documentData.id}`);
+      console.log('Office created successfully at flat path:', `offices/${documentData.id}`);
 
       return {
         success: true,
@@ -527,7 +527,7 @@ export class FirestoreOperationsService implements FirestoreService {
         message: `Office created successfully at offices/${documentData.id}`
       };
     } catch (error) {
-      console.error('🔧 Error creating office:', error);
+      console.error('Error creating office:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error during office creation'
@@ -567,8 +567,8 @@ export class FirestoreOperationsService implements FirestoreService {
    * Create a project document with flat structure
    */
   public async createProject(data: CreateDocument<Project>): Promise<DocumentOperationResult<Project>> {
-    console.log('🔧 Creating project with flat structure');
-    console.log('🔧 Project data being saved:', JSON.stringify(data, null, 2));
+    console.log('Creating project with flat structure');
+    console.log('Project data being saved:', JSON.stringify(data, null, 2));
     
     try {
       // Generate ID if not provided
@@ -584,7 +584,7 @@ export class FirestoreOperationsService implements FirestoreService {
       const projectDocRef = doc(collection(this.db, 'projects'), documentData.id);
       await setDoc(projectDocRef, timestampedData);
 
-      console.log('🔧 Project created successfully at flat path:', `projects/${documentData.id}`);
+      console.log('Project created successfully at flat path:', `projects/${documentData.id}`);
 
       return {
         success: true,
@@ -592,7 +592,7 @@ export class FirestoreOperationsService implements FirestoreService {
         message: `Project created successfully at projects/${documentData.id}`
       };
     } catch (error) {
-      console.error('🔧 Error creating project:', error);
+      console.error('Error creating project:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error during project creation'
@@ -633,8 +633,8 @@ export class FirestoreOperationsService implements FirestoreService {
    * Create a regulation document with flat structure
    */
   public async createRegulation(data: CreateDocument<Regulation>): Promise<DocumentOperationResult<Regulation>> {
-    console.log('🔧 Creating regulation with flat structure');
-    console.log('🔧 Regulation data being saved:', JSON.stringify(data, null, 2));
+    console.log('Creating regulation with flat structure');
+    console.log('Regulation data being saved:', JSON.stringify(data, null, 2));
     
     try {
       // Generate ID if not provided
@@ -650,7 +650,7 @@ export class FirestoreOperationsService implements FirestoreService {
       const regulationDocRef = doc(collection(this.db, 'regulations'), documentData.id);
       await setDoc(regulationDocRef, timestampedData);
 
-      console.log('🔧 Regulation created successfully at flat path:', `regulations/${documentData.id}`);
+      console.log('Regulation created successfully at flat path:', `regulations/${documentData.id}`);
 
       return {
         success: true,
@@ -658,7 +658,7 @@ export class FirestoreOperationsService implements FirestoreService {
         message: `Regulation created successfully at regulations/${documentData.id}`
       };
     } catch (error) {
-      console.error('🔧 Error creating regulation:', error);
+      console.error('Error creating regulation:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error during regulation creation'

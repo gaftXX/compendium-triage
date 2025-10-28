@@ -23,6 +23,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getPlatform: () => process.platform,
   },
   
+  // Office scraping
+  officeScraping: {
+    start: (location: string, radius?: number) => ipcRenderer.invoke('office-scraping:start', location, radius),
+    getStatus: (sessionId: string) => ipcRenderer.invoke('office-scraping:getStatus', sessionId),
+    getResults: (sessionId: string) => ipcRenderer.invoke('office-scraping:getResults', sessionId),
+    getAllSessions: () => ipcRenderer.invoke('office-scraping:getAllSessions'),
+    setApiKey: (apiKey: string) => ipcRenderer.invoke('office-scraping:setApiKey', apiKey),
+  },
+  
   // Event listeners
   on: (channel: string, callback: (...args: any[]) => void) => {
     const validChannels = ['window:maximized', 'window:unmaximized'];
@@ -54,6 +63,13 @@ declare global {
       app: {
         getVersion: () => Promise<string>;
         getPlatform: () => string;
+      };
+      officeScraping: {
+        start: (location: string, radius?: number) => Promise<any>;
+        getStatus: (sessionId: string) => Promise<any>;
+        getResults: (sessionId: string) => Promise<any>;
+        getAllSessions: () => Promise<any>;
+        setApiKey: (apiKey: string) => Promise<any>;
       };
       on: (channel: string, callback: (...args: any[]) => void) => void;
       off: (channel: string, callback: (...args: any[]) => void) => void;

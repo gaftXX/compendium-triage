@@ -126,7 +126,7 @@ export class NoteProcessingV2 {
     console.log('🤖 Attempting to use Claude AI for analysis...');
     
     try {
-      const { ClaudeAIService } = await import('./claudeAIService');
+      const { ClaudeAIService } = await import('../renderer/src/services/claudeAIService');
       const claudeAI = ClaudeAIService.getInstance();
       
       console.log('✅ Claude AI service available, using real AI analysis');

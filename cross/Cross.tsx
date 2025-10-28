@@ -2,10 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { PageEngine } from './engine/PageEngine';
 import { TextBoxComponent } from './multiRectangleComponents/TextBoxComponent';
 import { DisplayBoxComponent } from './multiRectangleComponents/DisplayBoxComponent';
-import { Orchestra } from '../orchestra/aiOrchestra';
+import { DisplayBoxComponent2 } from './multiRectangleComponents/DisplayBoxComponent2';
+import { Orchestra } from '../renderer/src/services/aiOrchestra';
 import { navigationService } from '../renderer/src/services/navigation/navigationService';
 import { PositionCalculator } from './positionCalculator/PositionCalculator';
-import { IndependentNoteService } from '../noteSystem/independentNoteService';
+import { IndependentNoteService } from '../noteSystem/independentNoteService.ts';
 
 interface CrossProps {
   className?: string;
@@ -20,15 +21,43 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
   const [isLocationPrompt, setIsLocationPrompt] = useState(false); // State for location prompt
   const [pendingOfficeData, setPendingOfficeData] = useState<any>(null); // Store office data while waiting for location
   
+  // Scraper session tracking
+  const [scraperSessionId, setScraperSessionId] = useState<string | null>(null);
+  const [scraperStartTime, setScraperStartTime] = useState<number | null>(null);
+  const [scraperTimer, setScraperTimer] = useState<number>(0);
+  const [scraperLocation, setScraperLocation] = useState<string>('');
+  const [scraperRadius, setScraperRadius] = useState<number>(0);
+  const [activeScrapers, setActiveScrapers] = useState<any[]>([]);
+  const [scraperResults, setScraperResults] = useState<string>('');
+  const [showScraperInWindow2, setShowScraperInWindow2] = useState<boolean>(false);
+  const [aiResponseActive, setAiResponseActive] = useState<boolean>(false);
+  const [claudeApiStatus, setClaudeApiStatus] = useState<'working' | 'error'>('error');
+  
   // Memoized instances to prevent recreation on every render
   const pageEngine = useMemo(() => PageEngine.getInstance(), []);
   const orchestra = useMemo(() => Orchestra.getInstance(), []);
   const positionCalculator = useMemo(() => new PositionCalculator(), []);
   const noteService = useMemo(() => IndependentNoteService.getInstance(), []);
 
-  // Get API key from environment
+  // Check Claude API status
+  const checkClaudeApiStatus = async () => {
+    try {
+      const { ClaudeAIService } = await import('../renderer/src/services/claudeAIService');
+      const claudeAI = ClaudeAIService.getInstance();
+      claudeAI.setApiKey(claudeApiKey);
+      
+      // Make a simple test call
+      await claudeAI.chat('test');
+      setClaudeApiStatus('working');
+    } catch (error) {
+      console.log('Claude API status check failed:', error);
+      setClaudeApiStatus('error');
+    }
+  };
+
+  // Get API keys from environment
   const claudeApiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-  console.log('🔍 Cross component - Claude API key available:', !!claudeApiKey);
+  const googlePlacesApiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
 
   // Hotkeys are owned by PageEngine
   // Grid: 31 columns, dynamic rows to fill window height with 4px cells
@@ -91,7 +120,7 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
         return;
       }
 
-      const { ClaudeAIService } = await import('../noteSystem/claudeAIService');
+      const { ClaudeAIService } = await import('../renderer/src/services/claudeAIService');
       const claudeAI = ClaudeAIService.getInstance();
       claudeAI.setApiKey(claudeApiKey); // Set API key for note service
 
@@ -130,6 +159,7 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
             ? `${location.city || 'Unknown City'}, ${location.country || 'Unknown Country'}`
             : 'Unknown Location';
           setAiResponse(`new project added - ${projectName}, ${locationStr}`);
+          setShowScraperInWindow2(true);
           return;
         }
         
@@ -143,15 +173,19 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
           const officeName = office.name || 'Unknown';
           const officeId = office.id || 'Unknown';
           setAiResponse(`office added - ${officeName} ${officeId}`);
+          setShowScraperInWindow2(true);
         } else {
-          setAiResponse(`✅ NOTE CREATED SUCCESSFULLY!`);
+          setAiResponse(`NOTE CREATED SUCCESSFULLY!`);
+          setShowScraperInWindow2(true);
         }
       } else {
-        setAiResponse(`❌ ERROR: ${result.summary || 'Failed to process note'}`);
+        setAiResponse(`ERROR: ${result.summary || 'Failed to process note'}`);
+        setShowScraperInWindow2(true);
       }
     } catch (error) {
       console.error('Note creation error:', error);
-      setAiResponse(`❌ ERROR: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
+      setAiResponse(`ERROR: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
+      setShowScraperInWindow2(true);
     }
   };
 
@@ -166,12 +200,12 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
       if (locationInput.toLowerCase() === 'cancel') {
         setIsLocationPrompt(false);
         setPendingOfficeData(null);
-        setAiResponse('❌ Note creation cancelled.');
+        setAiResponse('Note creation cancelled.');
         return;
       }
 
       // Use Claude AI to intelligently parse the location input
-      const { ClaudeAIService } = await import('../noteSystem/claudeAIService');
+      const { ClaudeAIService } = await import('../renderer/src/services/claudeAIService');
       const claudeAI = ClaudeAIService.getInstance();
       claudeAI.setApiKey(claudeApiKey);
 
@@ -252,20 +286,20 @@ Example inputs and expected outputs:
           const officeId = office.id || 'Unknown';
           setAiResponse(`office added - ${officeName} ${officeId}`);
         } else {
-          setAiResponse(`✅ NOTE CREATED SUCCESSFULLY!`);
+          setAiResponse(`NOTE CREATED SUCCESSFULLY!`);
         }
       } else {
-        setAiResponse(`❌ ERROR: ${result.summary || 'Failed to process office with location'}`);
+        setAiResponse(`ERROR: ${result.summary || 'Failed to process office with location'}`);
       }
     } catch (error) {
       console.error('Location input error:', error);
-      setAiResponse(`❌ ERROR: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
+      setAiResponse(`ERROR: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
     }
   };
 
   // Handle command from TextBoxComponent
   const handleCommand = async (command: string) => {
-    console.log('🤖 Processing command:', command);
+    console.log('Processing command:', command);
     
     // Immediately replace any existing text with THINKING...
     setAiResponse('THINKING...');
@@ -275,6 +309,14 @@ Example inputs and expected outputs:
       if (command.toLowerCase() === 'add note') {
         setIsNoteMode(true);
         setAiResponse('Enter your note content and press Enter to analyze and save.');
+        return;
+      }
+
+      // Check for reset command to clear AI response and return scraper to window 1
+      if (command.toLowerCase() === 'reset' || command.toLowerCase() === 'clear') {
+        setAiResponseActive(false);
+        setShowScraperInWindow2(false);
+        setAiResponse('');
         return;
       }
 
@@ -295,19 +337,28 @@ Example inputs and expected outputs:
         return;
       }
 
-      // Set the API key before processing
+      // Set the API keys before processing
       orchestra.setApiKey(claudeApiKey);
       
+      // Initialize Google Places API key for office scraping
+      if (googlePlacesApiKey) {
+        const { OfficeScraperService } = await import('../scraper/officeScraperService.ts');
+        const officeScraperService = OfficeScraperService.getInstance();
+        officeScraperService.setGooglePlacesApiKey(googlePlacesApiKey);
+      }
+      
       const response = await orchestra.processInput(command);
-      console.log('🔍 Orchestra Response received:', response);
+      console.log('Orchestra Response received:', response);
       
       if (response.success) {
-        console.log('🔍 Setting response:', response.message);
+        console.log('Setting response:', response.message);
         
         // Check if this is a navigation action
         if (response.action && response.action.type === 'navigate') {
           console.log('🎯 Navigation action detected:', response.action);
           setAiResponse(response.message);
+          setAiResponseActive(true); // Mark AI response as active
+          setShowScraperInWindow2(true); // Move scraper to window 2
           
           // Handle navigation action using navigation service
           const target = response.action.target;
@@ -330,20 +381,53 @@ Example inputs and expected outputs:
         else if (response.needsWebSearch && response.searchQuery) {
           setPendingWebSearch(response.searchQuery);
           setAiResponse(`I need to search the web for current information about: ${response.searchQuery}\n\nType "yes" to search the web, or "no" to skip.`);
+          setAiResponseActive(true); // Mark AI response as active
+          setShowScraperInWindow2(true); // Move scraper to window 2
+        }
+        // Check if this is an office scraping request
+        else if (response.needsOfficeScrape && response.scrapePrompt) {
+          setAiResponse(response.message);
+          setAiResponseActive(true); // Mark AI response as active
+          setShowScraperInWindow2(true); // Move scraper to window 2
+        }
+        // Check if this is a scraper start command with session ID
+        else if (response.sessionId && command.toLowerCase().trim() === 'start scraper') {
+          // Start the scraper session tracking (persistent)
+          setScraperSessionId(response.sessionId);
+          setScraperStartTime(Date.now());
+          setScraperTimer(0);
+          
+          // Get location and radius from the last scrape prompt
+          const lastPrompt = orchestra.getLastScrapePrompt();
+          if (lastPrompt) {
+            setScraperLocation(lastPrompt.location || '');
+            setScraperRadius(lastPrompt.radius || 5000);
+          }
+          
+          // Show timer message
+          setAiResponse(`SCRAPER STARTED (PERSISTENT)\n\nLOCATION: ${scraperLocation || 'Unknown'}\nRADIUS: ${(scraperRadius || 5000) / 1000}km\n\nELAPSED: 0s\n\nScraper will continue running even when navigating pages.`);
+          setAiResponseActive(true); // Mark AI response as active
+          setShowScraperInWindow2(true); // Move scraper to window 2
         } else {
           // Regular response
           setAiResponse(response.message);
+          setAiResponseActive(true); // Mark AI response as active
+          setShowScraperInWindow2(true); // Move scraper to window 2 when showing AI response
           setPendingWebSearch(null); // Clear any pending search
         }
       } else {
         console.log('🔍 Orchestra Error:', response.error);
         // Replace THINKING... with error message
         setAiResponse(`ERROR: ${response.error || 'Unknown error'}`);
+        setAiResponseActive(true); // Mark AI response as active
+        setShowScraperInWindow2(true); // Move scraper to window 2 when showing error
         setPendingWebSearch(null); // Clear any pending search
       }
     } catch (error) {
       // Replace THINKING... with error message
       setAiResponse(`ERROR: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setAiResponseActive(true); // Mark AI response as active
+      setShowScraperInWindow2(true); // Move scraper to window 2 when showing error
       setPendingWebSearch(null); // Clear any pending search
     }
   };
@@ -376,6 +460,147 @@ Example inputs and expected outputs:
       pageEngine.destroy();
     };
   }, []);
+
+  // Log API key status once on mount
+  useEffect(() => {
+    console.log('Cross component - Claude API key available:', !!claudeApiKey);
+    console.log('Cross component - Google Places API key available:', !!googlePlacesApiKey);
+  }, []);
+
+  // Check Claude API status on mount and periodically
+  useEffect(() => {
+    // Initial check
+    checkClaudeApiStatus();
+    
+    // Check every 2 minutes (120000ms)
+    const interval = setInterval(checkClaudeApiStatus, 120000);
+    
+    return () => clearInterval(interval);
+  }, [claudeApiKey]);
+
+  // Timer effect for scraper
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (scraperSessionId && scraperStartTime) {
+      interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - scraperStartTime) / 1000);
+        setScraperTimer(elapsed);
+        
+        // Update display with current timer
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+        
+        setScraperResults(`SCRAPER RUNNING\n\nLOCATION: ${scraperLocation}\nRADIUS: ${scraperRadius / 1000}km\n\nELAPSED: ${timeStr}`);
+        // Only move scraper back to window 1 if no AI response is active
+        if (!aiResponseActive) {
+          setShowScraperInWindow2(false);
+        }
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [scraperSessionId, scraperStartTime, scraperLocation, scraperRadius]);
+
+  // Persistent scraper polling effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    const pollScrapers = async () => {
+      try {
+        const { OfficeScraperService } = await import('../scraper/officeScraperService.ts');
+        const officeScraperService = OfficeScraperService.getInstance();
+        const activeSessions = officeScraperService.getActivePersistentSessions();
+        
+        setActiveScrapers(activeSessions);
+        
+        // Update results for completed sessions
+        const allSessions = officeScraperService.getPersistentSessions();
+        const completedSessions = allSessions.filter(s => s.status === 'completed');
+        
+        if (completedSessions.length > 0) {
+          let resultsText = 'SCRAPER RESULTS:\n';
+          completedSessions.forEach(session => {
+            if (session.stats) {
+              resultsText += `LOCATION: ${session.location}\n`;
+              resultsText += `FOUND: ${session.stats.totalFound}\n`;
+              resultsText += `SAVED: ${session.stats.successfullySaved}\n`;
+              resultsText += `MERGED: ${session.stats.duplicatesMerged}\n\n`;
+            }
+          });
+          setScraperResults(resultsText);
+          // Only move scraper back to window 1 if no AI response is active
+          if (!aiResponseActive) {
+            setShowScraperInWindow2(false);
+          }
+        }
+        
+        // Handle current session if it exists
+        if (scraperSessionId) {
+          const session = officeScraperService.getSessionStatus(scraperSessionId);
+          if (session) {
+            if (session.status === 'completed' && session.results) {
+              const duration = scraperStartTime ? Math.floor((Date.now() - scraperStartTime) / 1000) : 0;
+              const minutes = Math.floor(duration / 60);
+              const seconds = duration % 60;
+              const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+              
+              const resultText = `SCRAPER COMPLETED\n\n` +
+                `OFFICES FOUND: ${session.results.totalFound}\n` +
+                `DURATION: ${timeStr}\n` +
+                `LOCATION: ${scraperLocation}\n` +
+                `RADIUS: ${scraperRadius / 1000}km`;
+              
+              setScraperResults(resultText);
+              // Only move scraper back to window 1 if no AI response is active
+              if (!aiResponseActive) {
+                setShowScraperInWindow2(false);
+              }
+              
+              // Clear current session state but keep persistent sessions
+              setScraperSessionId(null);
+              setScraperStartTime(null);
+              setScraperTimer(0);
+              setScraperLocation('');
+              setScraperRadius(0);
+            } else if (session.status === 'failed') {
+              setScraperResults(`SCRAPER FAILED\n\nERROR: ${session.results?.error || 'Unknown error'}`);
+              // Only move scraper back to window 1 if no AI response is active
+              if (!aiResponseActive) {
+                setShowScraperInWindow2(false);
+              }
+              
+              // Clear current session state
+              setScraperSessionId(null);
+              setScraperStartTime(null);
+              setScraperTimer(0);
+              setScraperLocation('');
+              setScraperRadius(0);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error polling scraper status:', error);
+      }
+    };
+    
+    // Poll every 2 seconds
+    interval = setInterval(pollScrapers, 2000);
+    
+    // Initial poll
+    pollScrapers();
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [scraperSessionId, scraperStartTime, scraperLocation, scraperRadius]);
 
   return (
     <div 
@@ -435,6 +660,24 @@ Example inputs and expected outputs:
             />
           );
         })()}
+
+        {/* Claude API Status indicator at x=2, y=160 */}
+        {(() => {
+          const position = positionCalculator.getPosition(160, 2);
+          const fillColor = claudeApiStatus === 'working' ? '#C8EDFC' : '#FF6B6B'; // Light blue when working, red when error
+          
+          return (
+            <rect
+              key="claude-api-status"
+              x={position.screenX}
+              y={position.screenY}
+              width={position.width}
+              height={position.height}
+              fill={fillColor}
+              opacity={1}
+            />
+          );
+        })()}
       </svg>
 
       {/* TextBoxComponent appears in left side bottom corner when Shift+S is active */}
@@ -453,12 +696,12 @@ Example inputs and expected outputs:
         />
       )}
 
-      {/* DisplayBoxComponent appears in bottom right corner when Shift+S is active */}
+      {/* DisplayWindow 1: Prompt results */}
       {isShiftSActive && (
         <DisplayBoxComponent
           startRow={25}         // Moved up further (row 1 is bottom, so row 25 is much higher up)
           startCol={22}         // Right side (31 - 10 + 1 = 22)
-          text={aiResponse}
+          text={showScraperInWindow2 ? aiResponse : (scraperResults || aiResponse)}
           backgroundColor="transparent"
           textColor="#C8EDFC"
           textAlign="left"
@@ -466,6 +709,22 @@ Example inputs and expected outputs:
           height={24}           // 24 rows tall (doubled from 12)
           borderWidth={0}
           style={{ zIndex: 10 }}
+        />
+      )}
+
+      {/* DisplayWindow 2: Persistent scraper results and active sessions */}
+      {isShiftSActive && showScraperInWindow2 && (activeScrapers.length > 0 || scraperResults) && (
+        <DisplayBoxComponent2
+          startRow={25 + 6 - 25 + 50 + 12.5 - 25}     // moved up by 100px (25 rows * 4px = 100px)
+          startCol={22}
+          text={scraperResults || `ACTIVE SCRAPERS: ${activeScrapers.length}\n\n${activeScrapers.map(s => `LOCATION: ${s.location}\nRADIUS: ${s.radius/1000}km\nSTATUS: ${s.status.toUpperCase()}\n`).join('\n')}`}
+          backgroundColor="transparent"
+          textColor="#C8EDFC"
+          textAlign="left"
+          width={10}
+          height={17}     // expanded height by 20px (5 rows * 4px = 20px, from 12 to 17)
+          borderWidth={0}
+          style={{ zIndex: 11 }}
         />
       )}
 
