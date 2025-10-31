@@ -117,6 +117,38 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
         return;
       }
 
+      // Check if note starts with "/" - if so, create record directly without AI analysis
+      const trimmedContent = noteContent.trim();
+      if (trimmedContent.startsWith('/')) {
+        const recordText = trimmedContent.substring(1).trim();
+        if (!recordText) {
+          setAiResponse('ERROR: Please provide text after "/" to create a record.');
+          return;
+        }
+
+        // Import necessary services
+        const { firestoreOperations } = await import('../renderer/src/services/firebase/firestoreOperations');
+        const { RecordData } = await import('../renderer/src/types/firestore');
+        const { Timestamp } = await import('firebase/firestore');
+
+        // Create record directly (ID will be auto-generated as {number}-{DDMMYYYY})
+        const now = Timestamp.now();
+        const recordData: Omit<RecordData, 'id'> = {
+          text: recordText,
+          createdAt: now,
+          updatedAt: now
+        };
+
+        const result = await firestoreOperations.create<RecordData>('records', recordData);
+
+        if (result.success) {
+          setAiResponse(`Record created successfully: "${recordText}"`);
+        } else {
+          setAiResponse(`ERROR: Failed to create record: ${result.error}`);
+        }
+        return;
+      }
+
       const { ClaudeAIService } = await import('../renderer/src/services/claudeAIService');
       const claudeAI = ClaudeAIService.getInstance();
       claudeAI.setApiKey(claudeApiKey); // Set API key for note service
@@ -362,6 +394,9 @@ Example inputs and expected outputs:
               break;
             case 'map':
               navigationService.navigateToMap();
+              break;
+            case 'records-list':
+              navigationService.navigateToRecords();
               break;
             default:
               console.log('Unknown navigation target:', target);

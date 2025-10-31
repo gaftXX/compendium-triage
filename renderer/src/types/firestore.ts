@@ -1197,7 +1197,9 @@ export type CollectionName =
   | 'trends'
   | 'competitiveAnalysis'
   | 'financialMetrics'
-  | 'externalForcesImpact';
+  | 'externalForcesImpact'
+  // Records Collection
+  | 'records';
 
 export type DocumentType = 
   | City
@@ -1230,7 +1232,8 @@ export type DocumentType =
   | Trend
   | CompetitiveAnalysis
   | FinancialMetrics
-  | ExternalForcesImpact;
+  | ExternalForcesImpact
+  | RecordData;
 
 // ============================================================================
 // UTILITY TYPES
@@ -1284,6 +1287,9 @@ export const COLLECTION_CONFIGS: Record<CollectionName, CollectionConfig> = {
   competitiveAnalysis: { name: 'competitiveAnalysis', type: 'dormant', tier: 4, category: 'market-intelligence' },
   financialMetrics: { name: 'financialMetrics', type: 'dormant', tier: 4, category: 'market-intelligence' },
   externalForcesImpact: { name: 'externalForcesImpact', type: 'dormant', tier: 4, category: 'market-intelligence' },
+  
+  // Records Collection
+  records: { name: 'records', type: 'active', tier: 1 },
 };
 
 // ============================================================================
@@ -1294,8 +1300,19 @@ export const ACTIVE_COLLECTIONS: CollectionName[] = [
   'offices',
   'projects', 
   'regulations',
-  'relationships'
+  'relationships',
+  'records'
 ];
 
 export const DORMANT_COLLECTIONS: CollectionName[] = Object.keys(COLLECTION_CONFIGS)
   .filter(name => !ACTIVE_COLLECTIONS.includes(name as CollectionName)) as CollectionName[];
+
+// ============================================================================
+// RECORDS COLLECTION - Simple text records
+// ============================================================================
+
+export interface RecordData extends BaseDocument {
+  text: string;
+}
+
+export type RecordType = RecordData;

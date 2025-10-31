@@ -6,6 +6,9 @@ import { WebSearchService } from './webSearchService';
 import { SearchResultAnalyzer } from './searchResultAnalyzer';
 import { FirestoreQueryService } from './firebase/firestoreQueryService';
 import { OfficeScraperService, ScrapePrompt } from '../../../scraper/officeScraperService.ts';
+import { firestoreOperations } from './firebase/firestoreOperations';
+import { RecordData } from '../../types/firestore';
+import { Timestamp } from 'firebase/firestore';
 
 export interface AIResponse {
   success: boolean;
@@ -85,6 +88,16 @@ export class Orchestra {
         return await this.handleScrapingModeInput(userInput);
       }
       
+      // Check for record creation pattern: "add note /" followed by text
+      const recordPattern = /^add note\s*\/\s*(.+)$/i;
+      const recordMatch = userInput.match(recordPattern);
+      if (recordMatch) {
+        const recordText = recordMatch[1].trim();
+        if (recordText) {
+          return await this.createRecord(recordText);
+        }
+      }
+
       // First, check for navigation actions
       const navigationAction = this.recognizeNavigationAction(userInput);
       if (navigationAction) {
@@ -319,7 +332,12 @@ export class Orchestra {
       // Note system patterns
       { pattern: /^(notes|note|note system|notes app)$/, target: 'note-system' },
       { pattern: /^(open notes|show notes|go to notes|navigate to notes)$/, target: 'note-system' },
-      { pattern: /^(view notes|list notes|browse notes)$/, target: 'note-system' }
+      { pattern: /^(view notes|list notes|browse notes)$/, target: 'note-system' },
+      
+      // Records patterns
+      { pattern: /^(records|record|records list|record list)$/, target: 'records-list' },
+      { pattern: /^(open records|open record list|show records|go to records|navigate to records)$/, target: 'records-list' },
+      { pattern: /^(view records|list records|browse records)$/, target: 'records-list' }
     ];
     
     // Check each pattern
@@ -705,6 +723,45 @@ export class Orchestra {
         console.log('Scraping failed for session:', sessionId);
       }
     }, 2000); // Check every 2 seconds
+  }
+
+  /**
+   * Create a record from text (for "add note /" pattern)
+   */
+  private async createRecord(text: string): Promise<AIResponse> {
+    try {
+      console.log('Creating record with text:', text);
+      
+      // Create record (ID will be auto-generated as {number}-{DDMMYYYY})
+      const now = Timestamp.now();
+      const recordData: Omit<RecordData, 'id'> = {
+        text: text,
+        createdAt: now,
+        updatedAt: now
+      };
+      
+      const result = await firestoreOperations.create<RecordData>('records', recordData);
+      
+      if (result.success) {
+        return {
+          success: true,
+          message: `Record created successfully: "${text}"`
+        };
+      } else {
+        return {
+          success: false,
+          message: `Failed to create record: ${result.error}`,
+          error: result.error
+        };
+      }
+    } catch (error) {
+      console.error('Error creating record:', error);
+      return {
+        success: false,
+        message: `Error creating record: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
 
   /**

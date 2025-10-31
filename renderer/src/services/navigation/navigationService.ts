@@ -5,7 +5,7 @@
  * to programmatically navigate between different views in the app.
  */
 
-export type ViewType = 'cross' | 'offices-list' | 'office-detail' | 'projects-list' | 'project-detail' | 'regulations-list' | 'regulatory-detail' | 'map';
+export type ViewType = 'cross' | 'offices-list' | 'office-detail' | 'projects-list' | 'project-detail' | 'regulations-list' | 'regulatory-detail' | 'map' | 'records-list';
 
 export interface NavigationState {
   currentView: ViewType;
@@ -89,6 +89,13 @@ class NavigationService {
    */
   navigateToMap() {
     this.navigateTo('map');
+  }
+
+  /**
+   * Navigate to Records List
+   */
+  navigateToRecords() {
+    this.navigateTo('records-list');
   }
 
   /**

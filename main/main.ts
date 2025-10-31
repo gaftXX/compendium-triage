@@ -66,8 +66,8 @@ function createTray(): void {
   
   // Create tray
   try {
-    tray = new Tray(trayIcon);
-    tray.setToolTip('Compendium Triage');
+  tray = new Tray(trayIcon);
+  tray.setToolTip('Compendium Triage');
     console.log('Tray icon created successfully from:', finalIconPath);
   } catch (error) {
     console.error('Failed to create tray icon:', error);

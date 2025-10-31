@@ -237,10 +237,10 @@ export const BarcelonaMapPage: React.FC = () => {
 
   if (!mapboxToken) {
     return (
-      <div style={{ width: '100vw', height: '100vh', backgroundColor: '#000000', color: '#C8EDFC', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif', fontSize: '12px', textTransform: 'uppercase' }}>
+      <div style={{ width: '100vw', height: '100vh', backgroundColor: '#000000', color: '#C8EDFC', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif', fontSize: '10px', fontWeight: 'normal', textTransform: 'uppercase' }}>
         <div>
           <div style={{ marginBottom: '20px' }}>Mapbox token not configured</div>
-          <div style={{ fontSize: '10px', opacity: 0.7 }}>Please set VITE_MAPBOX_TOKEN environment variable</div>
+          <div style={{ fontSize: '10px', fontWeight: 'normal', opacity: 0.7 }}>Please set VITE_MAPBOX_TOKEN environment variable</div>
         </div>
       </div>
     );
@@ -248,10 +248,10 @@ export const BarcelonaMapPage: React.FC = () => {
 
   if (error) {
     return (
-      <div style={{ width: '100vw', height: '100vh', backgroundColor: '#000000', color: '#C8EDFC', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif', fontSize: '12px', textTransform: 'uppercase' }}>
+      <div style={{ width: '100vw', height: '100vh', backgroundColor: '#000000', color: '#C8EDFC', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif', fontSize: '10px', fontWeight: 'normal', textTransform: 'uppercase' }}>
         <div>
           <div style={{ marginBottom: '20px' }}>Error: {error}</div>
-          <button onClick={handleClose} style={{ padding: '10px 20px', backgroundColor: '#C8EDFC', color: '#000000', border: 'none', cursor: 'pointer', fontSize: '10px', textTransform: 'uppercase', fontFamily: 'inherit' }}>
+          <button onClick={handleClose} style={{ padding: '10px 20px', backgroundColor: '#C8EDFC', color: '#000000', border: 'none', cursor: 'pointer', fontSize: '10px', fontWeight: 'normal', textTransform: 'uppercase', fontFamily: 'inherit' }}>
             Close
           </button>
         </div>
@@ -297,7 +297,8 @@ export const BarcelonaMapPage: React.FC = () => {
           alignItems: 'center', 
           justifyContent: 'center', 
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif', 
-          fontSize: '12px', 
+          fontSize: '10px',
+          fontWeight: 'normal',
           textTransform: 'uppercase',
           zIndex: 1000
         }}>

@@ -31,7 +31,8 @@ import {
   ACTIVE_COLLECTIONS,
   Office,
   Project,
-  Regulation
+  Regulation,
+  RecordData
 } from '../../types/firestore';
 import {
   QueryOptions, 
@@ -273,7 +274,12 @@ export class FirestoreOperationsService implements FirestoreService {
 
       // Generate ID if not provided
       if (!documentData.id) {
-        documentData.id = this.generateDocumentId(collectionName, documentData);
+        // Special handling for records - use {number}-{DDMMYYYY} format
+        if (collectionName === 'records') {
+          documentData.id = await this.generateRecordId();
+        } else {
+          documentData.id = this.generateDocumentId(collectionName, documentData);
+        }
       }
 
       // Create document
@@ -1085,9 +1091,48 @@ export class FirestoreOperationsService implements FirestoreService {
         }
         return `regulation-${timestamp}-${random}`;
       
+      case 'records':
+        // Records use {number}-{DDMMYYYY} format
+        // This will be handled separately in async function
+        return `temp-${timestamp}`;
+      
       default:
         return `${collectionName}-${timestamp}-${random}`;
     }
+  }
+
+  /**
+   * Generate record ID based on {number}-{DDMMYYYY} template
+   */
+  public async generateRecordId(): Promise<string> {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const dateStr = `${day}${month}${year}`; // DDMMYYYY format
+    
+    // Query all records to find the highest number for today
+    const recordsResult = await this.query<RecordData>('records');
+    
+    let maxNumber = 0;
+    if (recordsResult.success && recordsResult.data) {
+      // Pattern to match: {number}-{DDMMYYYY}
+      const pattern = new RegExp(`^(\\d+)-${dateStr}$`);
+      
+      for (const record of recordsResult.data) {
+        const match = record.id.match(pattern);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNumber) {
+            maxNumber = num;
+          }
+        }
+      }
+    }
+    
+    // Next number is maxNumber + 1
+    const nextNumber = maxNumber + 1;
+    return `${nextNumber}-${dateStr}`;
   }
 
   /**
