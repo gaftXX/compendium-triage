@@ -1,8 +1,120 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, Tray, Menu, nativeImage } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { registerAllHandlers } from './ipc';
 
+// Read app version from package.json
+function getAppVersion(): string {
+  try {
+    const packagePath = path.join(process.cwd(), 'package.json');
+    const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+    return packageJson.version || '0.1.0';
+  } catch (error) {
+    // Fallback to dist package.json in production
+    try {
+      const packagePath = path.join(__dirname, '../../package.json');
+      const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+      return packageJson.version || '0.1.0';
+    } catch {
+      return '0.1.0';
+    }
+  }
+}
+
 const PHI = 1.618033988749;
+
+let tray: Tray | null = null;
+let mainWindow: BrowserWindow | null = null;
+let isAppQuitting = false;
+
+function createTray(): void {
+  // Create tray icon - use dedicated tray-icon.png file
+  const iconPathDev = path.join(process.cwd(), 'build/tray-icon.png');
+  const iconPathProd = path.join(__dirname, '../build/tray-icon.png');
+  const iconPath = fs.existsSync(iconPathDev) ? iconPathDev : iconPathProd;
+  
+  // Fallback to regular icon if tray icon doesn't exist
+  const fallbackPathDev = path.join(process.cwd(), 'build/icon.png');
+  const fallbackPathProd = path.join(__dirname, '../build/icon.png');
+  const fallbackPath = fs.existsSync(fallbackPathDev) ? fallbackPathDev : fallbackPathProd;
+  
+  const finalIconPath = fs.existsSync(iconPath) ? iconPath : fallbackPath;
+  
+  if (!fs.existsSync(finalIconPath)) {
+    console.error('Tray icon file not found:', finalIconPath);
+    return;
+  }
+  
+  let trayIcon = nativeImage.createFromPath(finalIconPath);
+  
+  // Check if icon loaded correctly
+  if (trayIcon.isEmpty()) {
+    console.error('Failed to load tray icon from:', finalIconPath);
+    return;
+  }
+  
+  // Resize icon to appropriate size for macOS (22x22 for standard, 44x44 for retina)
+  if (process.platform === 'darwin') {
+    const size = trayIcon.getSize();
+    if (size.width !== 26 && size.height !== 26) {
+      // Resize to 26x26 (will be 52x52 on retina displays automatically)
+      trayIcon = trayIcon.resize({ width: 26, height: 26 });
+    }
+    // Set as template image for macOS (allows system to adjust for dark mode)
+    trayIcon.setTemplateImage(true);
+  }
+  
+  // Create tray
+  try {
+    tray = new Tray(trayIcon);
+    tray.setToolTip('Compendium Triage');
+    console.log('Tray icon created successfully from:', finalIconPath);
+  } catch (error) {
+    console.error('Failed to create tray icon:', error);
+    return;
+  }
+  
+  // Create context menu
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Compendium',
+      enabled: false
+    },
+    {
+      label: 'Check for updates',
+      click: () => {
+        // TODO: Implement check for updates functionality
+      }
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: () => {
+        app.quit();
+      }
+    }
+  ]);
+  
+  // Single click handler (toggle window)
+  tray.on('click', () => {
+    if (mainWindow) {
+      if (mainWindow.isVisible()) {
+        mainWindow.hide();
+      } else {
+        if (mainWindow.isMinimized()) {
+          mainWindow.restore();
+        }
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    }
+  });
+
+  // Right-click handler (show context menu)
+  tray.on('right-click', () => {
+    tray?.popUpContextMenu(contextMenu);
+  });
+}
 
 function createMainWindow(): BrowserWindow {
   // Calculate dimensions for 1/6 ratio rectangles
@@ -78,9 +190,70 @@ function createMainWindow(): BrowserWindow {
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
   });
-
+  
+  // Handle window close (on macOS, keep app running)
+  mainWindow.on('close', (event) => {
+    if (process.platform === 'darwin') {
+      // On macOS, hide window instead of closing
+      if (!isAppQuitting) {
+        event.preventDefault();
+        mainWindow.hide();
+      }
+    }
+  });
   
   return mainWindow;
+}
+
+function setupMacMenu(): void {
+  if (process.platform !== 'darwin') {
+    return;
+  }
+
+  const appVersion = getAppVersion();
+  
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: 'Compendium',
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
+    {
+      label: 'Version',
+      submenu: [
+        {
+          label: appVersion,
+          enabled: false
+        }
+      ]
+    }
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
 }
 
 // Single instance lock
@@ -104,15 +277,29 @@ if (!gotTheLock) {
     app.commandLine.appendSwitch('--disable-web-security');
     app.commandLine.appendSwitch('--disable-features', 'VizDisplayCompositor');
     
+    // Setup macOS application menu
+    setupMacMenu();
+    
     // Register IPC handlers
     registerAllHandlers();
     
-    createMainWindow();
+    mainWindow = createMainWindow();
+    
+    // Create tray icon
+    createTray();
+    
+    // Handle quit from menu
+    app.on('before-quit', () => {
+      isAppQuitting = true;
+    });
     
     // macOS: Re-create window when dock icon clicked
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
-        createMainWindow();
+        mainWindow = createMainWindow();
+      } else if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
       }
     });
   });
