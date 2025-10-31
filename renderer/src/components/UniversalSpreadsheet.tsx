@@ -32,7 +32,12 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
   onResizeToDefault,
   isElectron = false
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  // Mark optional props as used to satisfy linter without changing behavior
+  void onRefresh;
+  void onClose;
+  void isElectron;
+  void onResizeToMaxWidth;
+  void onResizeToDefault;
   const [hoveredRowIndex, setHoveredRowIndex] = useState<number | null>(null);
   const [selectedOffices, setSelectedOffices] = useState<Array<{office: Office; position: 'left' | 'right'}>>([]);
   const [stickySelectedIds, setStickySelectedIds] = useState<string[]>([]);
@@ -103,15 +108,7 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
     setSelectedOffices(prev => [...prev, { office, position }]);
   };
 
-  const handleResizeToggle = () => {
-    if (isExpanded) {
-      onResizeToDefault?.();
-      setIsExpanded(false);
-    } else {
-      onResizeToMaxWidth?.();
-      setIsExpanded(true);
-    }
-  };
+  // (removed unused resize toggle handler)
 
   const formatOfficeData = (office: Office): string => {
     const lines: string[] = [];
@@ -257,9 +254,6 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
   };
 
   const columns = getColumns();
-  const title = dataType === 'offices' ? 'ARCHITECTURE OFFICES' : 
-                dataType === 'projects' ? 'ARCHITECTURE PROJECTS' : 
-                'BUILDING REGULATIONS';
 
   return (
     <>
@@ -438,7 +432,7 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
                 
                 return (
                   <React.Fragment key={item.id || index}>
-                    {columns.map((column, colIndex) => {
+                    {columns.map((column) => {
                       const value = (item as any)[column.key];
                       const isIdColumn = column.key === 'id';
                       const isHoveredIdCell = isRowHovered && isIdColumn && dataType === 'offices';

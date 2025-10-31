@@ -29,7 +29,8 @@
     "orchestrator",
     "cross",
     "ui",
-    "shared"
+    "shared",
+    "map"
   ],
   "exclude": [
     "node_modules",

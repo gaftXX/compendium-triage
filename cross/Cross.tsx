@@ -360,6 +360,9 @@ Example inputs and expected outputs:
             case 'regulatory-list':
               navigationService.navigateToRegulatory();
               break;
+            case 'map':
+              navigationService.navigateToMap();
+              break;
             default:
               console.log('Unknown navigation target:', target);
               setAiResponse(`Unknown navigation target: ${target}`);

@@ -3,6 +3,7 @@ import { Cross } from '../../cross/Cross';
 import { RegulationsPage } from './pages/regulations';
 import { OfficesPage } from './pages/offices';
 import { ProjectsPage } from './pages/projects';
+import { BarcelonaMapPage } from './pages/map';
 import { initializeFirebase } from './services/firebase';
 import { navigationService, ViewType } from './services/navigation/navigationService';
 import { OrchestratorProvider } from './context/OrchestratorContext';
@@ -73,6 +74,8 @@ function App() {
         return <ProjectsPage />;
       case 'regulations-list':
         return <RegulationsPage />;
+      case 'map':
+        return <BarcelonaMapPage />;
       case 'cross':
       default:
         return <Cross />;

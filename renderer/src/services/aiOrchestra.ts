@@ -311,6 +311,11 @@ export class Orchestra {
       { pattern: /^(view regulations|list regulations|browse regulations)$/, target: 'regulatory-list' },
       { pattern: /^(open regulatory|show regulatory|go to regulatory|navigate to regulatory)$/, target: 'regulatory-list' },
       
+      // Map patterns
+      { pattern: /^(map|barcelona map|barcelona)$/, target: 'map' },
+      { pattern: /^(open map|show map|go to map|navigate to map)$/, target: 'map' },
+      { pattern: /^(view map|browse map)$/, target: 'map' },
+      
       // Note system patterns
       { pattern: /^(notes|note|note system|notes app)$/, target: 'note-system' },
       { pattern: /^(open notes|show notes|go to notes|navigate to notes)$/, target: 'note-system' },
