@@ -41,15 +41,9 @@ export const OfficesPage: React.FC = () => {
         console.log('First load: fetching all offices');
         result = await firestoreOperations.queryOffices();
       } else {
-        // Subsequent loads - only get new offices
-        console.log('Subsequent load: fetching only new offices since', new Date(lastLoadTimestamp));
-        result = await firestoreOperations.queryOffices({
-          filters: [{
-            field: 'createdAt',
-            operator: '>',
-            value: new Date(lastLoadTimestamp)
-          }]
-        });
+        // Subsequent loads - get all offices to check for deletions
+        console.log('Subsequent load: fetching all offices to check for changes since', new Date(lastLoadTimestamp));
+        result = await firestoreOperations.queryOffices();
       }
       
       if (result.success && result.data) {
@@ -58,18 +52,31 @@ export const OfficesPage: React.FC = () => {
           setOffices(result.data);
           cachedOffices = result.data;
         } else {
-          // Subsequent load - merge new data with existing
-          const newOffices = result.data;
-          const existingIds = new Set(cachedOffices.map(office => office.id));
-          const uniqueNewOffices = newOffices.filter(office => !existingIds.has(office.id));
+          // Subsequent load - compare with cached data to detect changes
+          const currentOffices = result.data;
+          const currentIds = new Set(currentOffices.map(office => office.id));
+          const cachedIds = new Set(cachedOffices.map(office => office.id));
           
-          if (uniqueNewOffices.length > 0) {
-            console.log(`Found ${uniqueNewOffices.length} new offices`);
-            const mergedOffices = [...cachedOffices, ...uniqueNewOffices];
-            setOffices(mergedOffices);
-            cachedOffices = mergedOffices;
+          // Find new offices (in current but not in cached)
+          const newOffices = currentOffices.filter(office => !cachedIds.has(office.id));
+          
+          // Find deleted offices (in cached but not in current)
+          const deletedOffices = cachedOffices.filter(office => !currentIds.has(office.id));
+          
+          if (newOffices.length > 0) {
+            console.log(`Found ${newOffices.length} new offices`);
+          }
+          
+          if (deletedOffices.length > 0) {
+            console.log(`Found ${deletedOffices.length} deleted offices:`, deletedOffices.map(o => o.name));
+          }
+          
+          // Update the offices list with current data
+          if (newOffices.length > 0 || deletedOffices.length > 0) {
+            setOffices(currentOffices);
+            cachedOffices = currentOffices;
           } else {
-            console.log('No new offices found');
+            console.log('No changes found');
           }
         }
         

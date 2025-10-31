@@ -3,7 +3,7 @@ import { navigationService } from '../../services/navigation/navigationService';
 import { firestoreOperations } from '../../services/firebase/firestoreOperations';
 import { Project } from '../../types/firestore';
 import { useElectron } from '../../hooks/useElectron';
-import { UniversalSpreadsheet } from '../../components/UniversalSpreadsheet';
+import { ProjectsSpreadsheet } from '../../components/ProjectsSpreadsheet';
 
 // Global cache that persists across component unmounts
 let cachedProjects: Project[] = [];
@@ -74,9 +74,8 @@ export const ProjectsPage: React.FC = () => {
   }, [isElectron, isFullWidth, resizeToMaxWidth, resizeToDefault]);
 
   return (
-    <UniversalSpreadsheet
+    <ProjectsSpreadsheet
       data={projects}
-      dataType="projects"
       loading={loading}
       error={error}
       onRefresh={fetchProjects}

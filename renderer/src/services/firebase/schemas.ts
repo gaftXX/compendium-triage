@@ -167,8 +167,8 @@ export const officesSchema: CollectionSchema<Office> = {
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now()
   }),
-  requiredFields: ['id', 'name', 'officialName', 'status', 'location', 'size'],
-  optionalFields: ['founder', 'specializations', 'notableWorks', 'connectionCounts'],
+    requiredFields: ['id', 'name', 'officialName', 'status', 'location', 'size'],
+    optionalFields: ['founder', 'website', 'specializations', 'notableWorks', 'connectionCounts'],
   validationRules: {
     id: { required: true, type: 'string', pattern: /^[A-Z]{2}[A-Z]{2}\d{3}$/ },
     name: { required: true, type: 'string', minLength: 1 },

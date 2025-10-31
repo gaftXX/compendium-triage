@@ -31,7 +31,7 @@ VITE_GOOGLE_PLACES_API_KEY=your_google_places_api_key_here
 The system detects office scraping requests through natural language patterns:
 
 - "office scrape in Barcelona"
-- "make a office scrape in New York"
+- "make a office scrape in New York"n
 - "scrape offices in London"
 - "find architecture offices in Tokyo"
 

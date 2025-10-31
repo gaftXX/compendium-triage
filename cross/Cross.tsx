@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { PageEngine } from './engine/PageEngine';
 import { TextBoxComponent } from './multiRectangleComponents/TextBoxComponent';
 import { DisplayBoxComponent } from './multiRectangleComponents/DisplayBoxComponent';
-import { DisplayBoxComponent2 } from './multiRectangleComponents/DisplayBoxComponent2';
 import { Orchestra } from '../renderer/src/services/aiOrchestra';
 import { navigationService } from '../renderer/src/services/navigation/navigationService';
 import { PositionCalculator } from './positionCalculator/PositionCalculator';
@@ -29,8 +28,6 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
   const [scraperRadius, setScraperRadius] = useState<number>(0);
   const [activeScrapers, setActiveScrapers] = useState<any[]>([]);
   const [scraperResults, setScraperResults] = useState<string>('');
-  const [showScraperInWindow2, setShowScraperInWindow2] = useState<boolean>(false);
-  const [aiResponseActive, setAiResponseActive] = useState<boolean>(false);
   const [claudeApiStatus, setClaudeApiStatus] = useState<'working' | 'error'>('error');
   
   // Memoized instances to prevent recreation on every render
@@ -159,7 +156,6 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
             ? `${location.city || 'Unknown City'}, ${location.country || 'Unknown Country'}`
             : 'Unknown Location';
           setAiResponse(`new project added - ${projectName}, ${locationStr}`);
-          setShowScraperInWindow2(true);
           return;
         }
         
@@ -173,19 +169,15 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
           const officeName = office.name || 'Unknown';
           const officeId = office.id || 'Unknown';
           setAiResponse(`office added - ${officeName} ${officeId}`);
-          setShowScraperInWindow2(true);
         } else {
           setAiResponse(`NOTE CREATED SUCCESSFULLY!`);
-          setShowScraperInWindow2(true);
         }
       } else {
         setAiResponse(`ERROR: ${result.summary || 'Failed to process note'}`);
-        setShowScraperInWindow2(true);
       }
     } catch (error) {
       console.error('Note creation error:', error);
       setAiResponse(`ERROR: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
-      setShowScraperInWindow2(true);
     }
   };
 
@@ -312,10 +304,8 @@ Example inputs and expected outputs:
         return;
       }
 
-      // Check for reset command to clear AI response and return scraper to window 1
+      // Check for reset command to clear AI response
       if (command.toLowerCase() === 'reset' || command.toLowerCase() === 'clear') {
-        setAiResponseActive(false);
-        setShowScraperInWindow2(false);
         setAiResponse('');
         return;
       }
@@ -357,8 +347,6 @@ Example inputs and expected outputs:
         if (response.action && response.action.type === 'navigate') {
           console.log('🎯 Navigation action detected:', response.action);
           setAiResponse(response.message);
-          setAiResponseActive(true); // Mark AI response as active
-          setShowScraperInWindow2(true); // Move scraper to window 2
           
           // Handle navigation action using navigation service
           const target = response.action.target;
@@ -381,14 +369,10 @@ Example inputs and expected outputs:
         else if (response.needsWebSearch && response.searchQuery) {
           setPendingWebSearch(response.searchQuery);
           setAiResponse(`I need to search the web for current information about: ${response.searchQuery}\n\nType "yes" to search the web, or "no" to skip.`);
-          setAiResponseActive(true); // Mark AI response as active
-          setShowScraperInWindow2(true); // Move scraper to window 2
         }
         // Check if this is an office scraping request
         else if (response.needsOfficeScrape && response.scrapePrompt) {
           setAiResponse(response.message);
-          setAiResponseActive(true); // Mark AI response as active
-          setShowScraperInWindow2(true); // Move scraper to window 2
         }
         // Check if this is a scraper start command with session ID
         else if (response.sessionId && command.toLowerCase().trim() === 'start scraper') {
@@ -404,30 +388,23 @@ Example inputs and expected outputs:
             setScraperRadius(lastPrompt.radius || 5000);
           }
           
-          // Show timer message
-          setAiResponse(`SCRAPER STARTED (PERSISTENT)\n\nLOCATION: ${scraperLocation || 'Unknown'}\nRADIUS: ${(scraperRadius || 5000) / 1000}km\n\nELAPSED: 0s\n\nScraper will continue running even when navigating pages.`);
-          setAiResponseActive(true); // Mark AI response as active
-          setShowScraperInWindow2(true); // Move scraper to window 2
+          // Show timer message and clear THINKING...
+          setAiResponse('');
+          setScraperResults(`SCRAPER STARTED (PERSISTENT)\n\nLOCATION: ${scraperLocation || 'Unknown'}\nRADIUS: ${(scraperRadius || 5000) / 1000}km\n\nELAPSED: 0s\n\nScraper will continue running even when navigating pages.`);
         } else {
           // Regular response
           setAiResponse(response.message);
-          setAiResponseActive(true); // Mark AI response as active
-          setShowScraperInWindow2(true); // Move scraper to window 2 when showing AI response
           setPendingWebSearch(null); // Clear any pending search
         }
       } else {
         console.log('🔍 Orchestra Error:', response.error);
         // Replace THINKING... with error message
         setAiResponse(`ERROR: ${response.error || 'Unknown error'}`);
-        setAiResponseActive(true); // Mark AI response as active
-        setShowScraperInWindow2(true); // Move scraper to window 2 when showing error
         setPendingWebSearch(null); // Clear any pending search
       }
     } catch (error) {
       // Replace THINKING... with error message
       setAiResponse(`ERROR: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setAiResponseActive(true); // Mark AI response as active
-      setShowScraperInWindow2(true); // Move scraper to window 2 when showing error
       setPendingWebSearch(null); // Clear any pending search
     }
   };
@@ -492,11 +469,8 @@ Example inputs and expected outputs:
         const seconds = elapsed % 60;
         const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
         
+        // Update scraper results with current timer
         setScraperResults(`SCRAPER RUNNING\n\nLOCATION: ${scraperLocation}\nRADIUS: ${scraperRadius / 1000}km\n\nELAPSED: ${timeStr}`);
-        // Only move scraper back to window 1 if no AI response is active
-        if (!aiResponseActive) {
-          setShowScraperInWindow2(false);
-        }
       }, 1000);
     }
     
@@ -534,10 +508,6 @@ Example inputs and expected outputs:
             }
           });
           setScraperResults(resultsText);
-          // Only move scraper back to window 1 if no AI response is active
-          if (!aiResponseActive) {
-            setShowScraperInWindow2(false);
-          }
         }
         
         // Handle current session if it exists
@@ -557,10 +527,6 @@ Example inputs and expected outputs:
                 `RADIUS: ${scraperRadius / 1000}km`;
               
               setScraperResults(resultText);
-              // Only move scraper back to window 1 if no AI response is active
-              if (!aiResponseActive) {
-                setShowScraperInWindow2(false);
-              }
               
               // Clear current session state but keep persistent sessions
               setScraperSessionId(null);
@@ -570,10 +536,6 @@ Example inputs and expected outputs:
               setScraperRadius(0);
             } else if (session.status === 'failed') {
               setScraperResults(`SCRAPER FAILED\n\nERROR: ${session.results?.error || 'Unknown error'}`);
-              // Only move scraper back to window 1 if no AI response is active
-              if (!aiResponseActive) {
-                setShowScraperInWindow2(false);
-              }
               
               // Clear current session state
               setScraperSessionId(null);
@@ -696,12 +658,12 @@ Example inputs and expected outputs:
         />
       )}
 
-      {/* DisplayWindow 1: Prompt results */}
+      {/* DisplayWindow: Prompt results and scraper results */}
       {isShiftSActive && (
         <DisplayBoxComponent
           startRow={25}         // Moved up further (row 1 is bottom, so row 25 is much higher up)
           startCol={22}         // Right side (31 - 10 + 1 = 22)
-          text={showScraperInWindow2 ? aiResponse : (scraperResults || aiResponse)}
+          text={aiResponse || scraperResults}
           backgroundColor="transparent"
           textColor="#C8EDFC"
           textAlign="left"
@@ -709,22 +671,6 @@ Example inputs and expected outputs:
           height={24}           // 24 rows tall (doubled from 12)
           borderWidth={0}
           style={{ zIndex: 10 }}
-        />
-      )}
-
-      {/* DisplayWindow 2: Persistent scraper results and active sessions */}
-      {isShiftSActive && showScraperInWindow2 && (activeScrapers.length > 0 || scraperResults) && (
-        <DisplayBoxComponent2
-          startRow={25 + 6 - 25 + 50 + 12.5 - 25}     // moved up by 100px (25 rows * 4px = 100px)
-          startCol={22}
-          text={scraperResults || `ACTIVE SCRAPERS: ${activeScrapers.length}\n\n${activeScrapers.map(s => `LOCATION: ${s.location}\nRADIUS: ${s.radius/1000}km\nSTATUS: ${s.status.toUpperCase()}\n`).join('\n')}`}
-          backgroundColor="transparent"
-          textColor="#C8EDFC"
-          textAlign="left"
-          width={10}
-          height={17}     // expanded height by 20px (5 rows * 4px = 20px, from 12 to 17)
-          borderWidth={0}
-          style={{ zIndex: 11 }}
         />
       )}
 

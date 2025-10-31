@@ -52,6 +52,7 @@ export class PlaceToOfficeConverter {
         officialName: place.name,
         founded: this.extractFoundedYear(place),
         status: this.determineStatus(place.business_status),
+        website: place.website,
         location: {
           headquarters: {
             city: city,

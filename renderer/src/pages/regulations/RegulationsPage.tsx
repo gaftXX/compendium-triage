@@ -3,7 +3,7 @@ import { navigationService } from '../../services/navigation/navigationService';
 import { firestoreOperations } from '../../services/firebase/firestoreOperations';
 import { Regulation } from '../../types/firestore';
 import { useElectron } from '../../hooks/useElectron';
-import { UniversalSpreadsheet } from '../../components/UniversalSpreadsheet';
+import { RegulationsSpreadsheet } from '../../components/RegulationsSpreadsheet';
 
 // Global cache that persists across component unmounts
 let cachedRegulations: Regulation[] = [];
@@ -74,9 +74,8 @@ export const RegulationsPage: React.FC = () => {
   }, [isElectron, isFullWidth, resizeToMaxWidth, resizeToDefault]);
 
   return (
-    <UniversalSpreadsheet
+    <RegulationsSpreadsheet
       data={regulations}
-      dataType="regulations"
       loading={loading}
       error={error}
       onRefresh={fetchRegulations}

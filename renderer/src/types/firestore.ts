@@ -59,6 +59,7 @@ export interface Office extends BaseDocument {
   founded: number;
   founder?: string; // Person who founded the office
   status: 'active' | 'acquired' | 'dissolved';
+  website?: string; // Office website URL
   location: {
     headquarters: Location;
     otherOffices: Location[];
