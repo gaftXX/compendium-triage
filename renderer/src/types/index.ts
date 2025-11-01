@@ -10,6 +10,7 @@ export interface ElectronAPI {
   app: {
     getVersion: () => Promise<string>;
     getPlatform: () => string;
+    openExternal: (url: string) => Promise<void>;
   };
   on: (channel: string, callback: Function) => void;
   off: (channel: string, callback: Function) => void;

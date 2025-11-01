@@ -115,7 +115,7 @@ export class SeedDataDemoService {
         }
       });
 
-      console.log('\n✅ Seed Data Demo Completed!');
+      console.log('\nSeed Data Demo Completed!');
       console.log(`Total Operations: ${results.length}`);
       console.log(`Successful: ${successfulOperations}`);
       console.log(`Failed: ${failedOperations}`);
@@ -159,7 +159,7 @@ export class SeedDataDemoService {
     try {
       const stats = getSeedDataStatistics();
       
-      console.log('📊 Seed Data Statistics:');
+      console.log('Seed Data Statistics:');
       console.log(`   Offices: ${stats.offices}`);
       console.log(`   Projects: ${stats.projects}`);
       console.log(`   Regulations: ${stats.regulations}`);
@@ -191,7 +191,7 @@ export class SeedDataDemoService {
     try {
       const validation = validateSeedData();
       
-      console.log('✅ Seed Data Validation:');
+      console.log('Seed Data Validation:');
       if (validation.isValid) {
         console.log('   All seed data is valid');
       } else {
@@ -267,7 +267,7 @@ export class SeedDataDemoService {
     const results: DemoResult[] = [];
 
     try {
-      console.log('🔍 Querying Collections:');
+      console.log('Querying Collections:');
 
       // Query offices
       const officesResult = await this.queryOffices();
@@ -466,7 +466,7 @@ export class SeedDataDemoService {
     const results: DemoResult[] = [];
 
     try {
-      console.log('🚀 Advanced Query Demonstrations:');
+      console.log('Advanced Query Demonstrations:');
 
       // Get offices by country
       const ukOfficesResult = await this.getOfficesByCountry('GB');
@@ -641,7 +641,7 @@ export class SeedDataDemoService {
     const results: DemoResult[] = [];
 
     try {
-      console.log('🔗 Relationship Analysis:');
+      console.log('Relationship Analysis:');
 
       // Get relationships by entity
       const entityRelationshipsResult = await this.getRelationshipsByEntity('office', 'GBLO001');

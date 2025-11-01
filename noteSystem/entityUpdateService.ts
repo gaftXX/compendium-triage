@@ -176,7 +176,7 @@ export class EntityUpdateService {
    */
   public async mergeOfficeData(existingOffice: Office, newData: Partial<Office>): Promise<EntityMergeResult> {
     try {
-      console.log(`🔄 Merging office data: ${existingOffice.name}`);
+      console.log(`Merging office data: ${existingOffice.name}`);
       
       const mergedFields: string[] = [];
       const mergedOffice = { ...existingOffice };
@@ -199,19 +199,69 @@ export class EntityUpdateService {
 
       // Merge location data
       if (newData.location) {
-        if (newData.location.headquarters && newData.location.headquarters !== existingOffice.location.headquarters) {
-          mergedOffice.location.headquarters = { ...existingOffice.location.headquarters, ...newData.location.headquarters };
-          mergedFields.push('location.headquarters');
+        // CRITICAL: Headquarters location is IMMUTABLE - once set, it cannot be changed
+        // Only allow updates if headquarters doesn't exist yet (shouldn't happen but safety check)
+        if (newData.location.headquarters && 
+            (!existingOffice.location.headquarters || 
+             !existingOffice.location.headquarters.city || 
+             !existingOffice.location.headquarters.country ||
+             existingOffice.location.headquarters.city === 'Unknown' ||
+             existingOffice.location.headquarters.country === 'Unknown')) {
+          // Only set headquarters if it doesn't exist or is invalid
+          if (!existingOffice.location.headquarters || 
+              !existingOffice.location.headquarters.city || 
+              !existingOffice.location.headquarters.country ||
+              existingOffice.location.headquarters.city === 'Unknown' ||
+              existingOffice.location.headquarters.country === 'Unknown') {
+            mergedOffice.location.headquarters = { 
+              ...existingOffice.location.headquarters, 
+              ...newData.location.headquarters 
+            };
+            mergedFields.push('location.headquarters');
+            console.log('Headquarters location set for existing office (was missing/invalid)');
+          }
+        } else if (newData.location.headquarters && 
+                   existingOffice.location.headquarters &&
+                   existingOffice.location.headquarters.city &&
+                   existingOffice.location.headquarters.country &&
+                   existingOffice.location.headquarters.city !== 'Unknown' &&
+                   existingOffice.location.headquarters.country !== 'Unknown') {
+          // Headquarters already exists and is valid - DO NOT CHANGE IT
+          console.log('Headquarters location is immutable - keeping existing:', existingOffice.location.headquarters);
+          // Keep existing headquarters, don't merge
         }
         
         if (newData.location.otherOffices && Array.isArray(newData.location.otherOffices)) {
           const existingOtherOffices = existingOffice.location.otherOffices || [];
-          const newOtherOffices = newData.location.otherOffices.filter(office => 
-            !existingOtherOffices.some(existing => existing.city === office.city && existing.country === office.country)
-          );
+          const newOtherOffices = newData.location.otherOffices.filter(office => {
+            // Only include if it has at least an address (required field)
+            if (!office.address || !office.address.trim()) {
+              return false;
+            }
+            
+            // Match by address or coordinates if they're similar enough
+            return !existingOtherOffices.some(existing => {
+              if (office.address && existing.address) {
+                // Normalize addresses for comparison (case-insensitive, trim)
+                return existing.address.trim().toLowerCase() === office.address.trim().toLowerCase();
+              }
+              if (office.coordinates && existing.coordinates && 
+                  (office.coordinates as any).latitude !== 0 && 
+                  (office.coordinates as any).longitude !== 0 &&
+                  (existing.coordinates as any).latitude !== 0 && 
+                  (existing.coordinates as any).longitude !== 0) {
+                const latDiff = Math.abs((existing.coordinates as any).latitude - (office.coordinates as any).latitude);
+                const lngDiff = Math.abs((existing.coordinates as any).longitude - (office.coordinates as any).longitude);
+                // Consider same if within 0.001 degrees (~100 meters)
+                return latDiff < 0.001 && lngDiff < 0.001;
+              }
+              return false;
+            });
+          });
           if (newOtherOffices.length > 0) {
             mergedOffice.location.otherOffices = [...existingOtherOffices, ...newOtherOffices];
             mergedFields.push('location.otherOffices');
+            console.log(`Merged ${newOtherOffices.length} new other office(s): ${newOtherOffices.map(o => o.address).join(', ')}`);
           }
         }
       }
@@ -228,13 +278,25 @@ export class EntityUpdateService {
         }
       }
 
-      // Merge size data
+      // Merge size data - but don't merge employeeCount (it's calculated from workforce)
       if (newData.size) {
-        if (newData.size.employeeCount && newData.size.employeeCount !== existingOffice.size?.employeeCount) {
-          mergedOffice.size = { ...existingOffice.size, ...newData.size };
+        // Merge sizeCategory and annualRevenue, but exclude employeeCount
+        const sizeToMerge: Partial<typeof newData.size> = { ...newData.size };
+        delete sizeToMerge.employeeCount; // Don't merge employeeCount - it's calculated from workforce
+        
+        if (Object.keys(sizeToMerge).length > 0) {
+          mergedOffice.size = { 
+            ...existingOffice.size, 
+            ...sizeToMerge,
+            // Keep existing employeeCount (it will be recalculated from workforce)
+            employeeCount: existingOffice.size?.employeeCount
+          };
           mergedFields.push('size');
         }
       }
+
+      // Increment infoEntries counter
+      mergedOffice.infoEntries = (existingOffice.infoEntries || 0) + 1;
 
       // Update the office in Firestore
       const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations.ts');
@@ -243,6 +305,11 @@ export class EntityUpdateService {
       const updateResult = await firestoreService.updateOffice(existingOffice.id, mergedOffice);
       
       if (updateResult.success) {
+        // Recalculate employee count from workforce (employee count is always calculated from workforce)
+        const { FirestoreNoteService } = await import('./firestoreNoteService');
+        const noteService = FirestoreNoteService.getInstance();
+        await noteService.updateOfficeEmployeeCount(existingOffice.id);
+        
         console.log(`Office merged successfully: ${mergedFields.length} fields updated`);
         return {
           success: true,
@@ -276,7 +343,7 @@ export class EntityUpdateService {
    */
   public async mergeProjectData(existingProject: Project, newData: Partial<Project>): Promise<EntityMergeResult> {
     try {
-      console.log(`🔄 Merging project data: ${existingProject.projectName}`);
+      console.log(`Merging project data: ${existingProject.projectName}`);
       
       const mergedFields: string[] = [];
       const mergedProject = { ...existingProject };
@@ -350,7 +417,7 @@ export class EntityUpdateService {
    */
   public async mergeRegulationData(existingRegulation: Regulation, newData: Partial<Regulation>): Promise<EntityMergeResult> {
     try {
-      console.log(`🔄 Merging regulation data: ${existingRegulation.name}`);
+      console.log(`Merging regulation data: ${existingRegulation.name}`);
       
       const mergedFields: string[] = [];
       const mergedRegulation = { ...existingRegulation };
@@ -417,7 +484,7 @@ export class EntityUpdateService {
    */
   public async createBidirectionalRelationship(relationship: RelationshipUpdate): Promise<boolean> {
     try {
-      console.log(`🔗 Creating bidirectional relationship: ${relationship.sourceId} <-> ${relationship.targetId}`);
+      console.log(`Creating bidirectional relationship: ${relationship.sourceId} <-> ${relationship.targetId}`);
       
       const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations.ts');
       const firestoreService = FirestoreOperationsService.getInstance();
@@ -429,11 +496,11 @@ export class EntityUpdateService {
 
       // Create relationship in both directions
       // TODO: Implement relationship creation when methods are available
-      console.log(`🔗 Would create relationship: ${relationship.sourceId} -> ${relationship.targetId} (${relationship.relationshipType})`);
+      console.log(`Would create relationship: ${relationship.sourceId} -> ${relationship.targetId} (${relationship.relationshipType})`);
       const result1 = { success: true }; // Placeholder
 
       if (relationship.bidirectional) {
-        console.log(`🔗 Would create bidirectional relationship: ${relationship.targetId} -> ${relationship.sourceId} (${relationship.relationshipType})`);
+        console.log(`Would create bidirectional relationship: ${relationship.targetId} -> ${relationship.sourceId} (${relationship.relationshipType})`);
         const result2 = { success: true }; // Placeholder
         
         const success = result1.success && result2.success;
@@ -464,24 +531,24 @@ export class EntityUpdateService {
    */
   private async updateConnectionCounts(sourceId: string, targetId: string, relationshipType: string): Promise<void> {
     try {
-      console.log(`📊 Updating connection counts for relationship: ${relationshipType}`);
+      console.log(`Updating connection counts for relationship: ${relationshipType}`);
       
       const { FirestoreOperationsService } = await import('../renderer/src/services/firebase/firestoreOperations.ts');
       const firestoreService = FirestoreOperationsService.getInstance();
       
       // TODO: Implement connection count updates when increment methods are available
-      console.log(`📊 Would update connection counts for relationship: ${relationshipType} between ${sourceId} and ${targetId}`);
+      console.log(`Would update connection counts for relationship: ${relationshipType} between ${sourceId} and ${targetId}`);
       
       // Placeholder - connection count updates would go here
       switch (relationshipType) {
         case 'office-project':
-          console.log(`📊 Would increment totalProjects for ${sourceId} and totalOffices for ${targetId}`);
+          console.log(`Would increment totalProjects for ${sourceId} and totalOffices for ${targetId}`);
           break;
         case 'office-regulation':
-          console.log(`📊 Would increment totalRegulations for ${sourceId} and totalOffices for ${targetId}`);
+          console.log(`Would increment totalRegulations for ${sourceId} and totalOffices for ${targetId}`);
           break;
         case 'project-regulation':
-          console.log(`📊 Would increment totalRegulations for ${sourceId} and totalProjects for ${targetId}`);
+          console.log(`Would increment totalRegulations for ${sourceId} and totalProjects for ${targetId}`);
           break;
       }
       

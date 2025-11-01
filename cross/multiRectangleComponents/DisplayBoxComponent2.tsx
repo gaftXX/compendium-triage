@@ -82,7 +82,8 @@ export const DisplayBoxComponent2: React.FC<DisplayBoxComponent2Props> = ({
     boxSizing: 'border-box',
     textAlign: textAlign,
     whiteSpace: 'pre-wrap',
-    wordWrap: 'break-word'
+    wordWrap: 'break-word',
+    userSelect: 'text' // Allow text selection
   };
 
   return (

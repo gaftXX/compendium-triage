@@ -43,7 +43,7 @@ export class WebSearchAPI {
    */
   public async searchWeb(request: WebSearchRequest): Promise<WebSearchResult> {
     try {
-      console.log('🔍 Web Search API: Starting search for:', request.query);
+      console.log('Web Search API: Starting search for:', request.query);
 
       if (!this.apiKey) {
         throw new Error('No Anthropic API key found');
@@ -73,12 +73,12 @@ export class WebSearchAPI {
       }
 
       const data = await response.json();
-      console.log('✅ Web Search API: Search completed');
+      console.log('Web Search API: Search completed');
 
       return this.parseSearchResults(data, request);
 
     } catch (error) {
-      console.error('❌ Web Search API Error:', error);
+      console.error('Web Search API Error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'

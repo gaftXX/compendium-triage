@@ -43,12 +43,12 @@ export class SearchResultAnalyzer {
     searchResults: SearchResult[]
   ): Promise<SearchResultAnalysis> {
     try {
-      console.log('🔍 Analyzing search results for question:', userQuestion);
-      console.log('🔍 Search results to analyze:', searchResults.length);
-      console.log('🔍 API key available:', !!this.apiKey);
+      console.log('Analyzing search results for question:', userQuestion);
+      console.log('Search results to analyze:', searchResults.length);
+      console.log('API key available:', !!this.apiKey);
       
       if (!this.apiKey) {
-        console.log('❌ No API key available for analysis');
+        console.log('No API key available for analysis');
         return {
           success: false,
           answer: 'AI analysis unavailable - no API key configured',
@@ -98,11 +98,11 @@ export class SearchResultAnalyzer {
         }
       }
       
-      console.log('✅ Search results analyzed successfully');
+      console.log('Search results analyzed successfully');
       return analysis;
 
     } catch (error) {
-      console.error('❌ Search result analysis error:', error);
+      console.error('Search result analysis error:', error);
       return {
         success: false,
         answer: 'Failed to analyze search results',

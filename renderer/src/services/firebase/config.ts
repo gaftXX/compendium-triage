@@ -22,7 +22,7 @@ function getFirebaseConfig(): FirebaseConfig {
   try {
     // @ts-ignore - import.meta.env exists in Vite renderer builds
     const env = (import.meta as any).env || {};
-    console.log('🔍 Debugging Firebase config loading...');
+    console.log('Debugging Firebase config loading...');
     console.log('import.meta.env available:', !!(import.meta as any).env);
     console.log('Full import.meta.env object:', env);
     console.log('Environment variables found:', {
@@ -43,7 +43,7 @@ function getFirebaseConfig(): FirebaseConfig {
       measurementId: env.VITE_FIREBASE_MEASUREMENT_ID,
     };
     
-    console.log('🔧 Using Firebase config:', {
+    console.log('Using Firebase config:', {
       apiKey: config.apiKey ? `Found (${config.apiKey.substring(0, 10)}...)` : 'Missing',
       authDomain: config.authDomain || 'Missing',
       projectId: config.projectId || 'Missing',
@@ -52,8 +52,8 @@ function getFirebaseConfig(): FirebaseConfig {
     
     return config;
   } catch (error) {
-    console.error('❌ Failed to load Firebase config:', error);
-    console.error('❌ Make sure environment variables are properly set in .env file');
+    console.error('Failed to load Firebase config:', error);
+    console.error('Make sure environment variables are properly set in .env file');
     return {
       apiKey: '',
       authDomain: '',
@@ -70,7 +70,7 @@ function validateFirebaseConfig(config: FirebaseConfig): boolean {
   const required = ['apiKey', 'authDomain', 'projectId', 'appId'];
   const missing = required.filter(key => !config[key as keyof FirebaseConfig]);
   
-  console.log('🔍 Validating Firebase config:', {
+  console.log('Validating Firebase config:', {
     apiKey: config.apiKey ? `Found (${config.apiKey.substring(0, 10)}...)` : 'Missing',
     authDomain: config.authDomain || 'Missing',
     projectId: config.projectId || 'Missing',
@@ -87,17 +87,17 @@ function validateFirebaseConfig(config: FirebaseConfig): boolean {
     return false;
   }
   
-  console.log('✅ Firebase configuration is valid');
+  console.log('Firebase configuration is valid');
   return true;
 }
 
 export function initializeFirebase(): FirebaseInit | null {
-  console.log('🔥 Initializing Firebase...');
+  console.log('Initializing Firebase...');
   const config = getFirebaseConfig();
   const isValid = validateFirebaseConfig(config);
   
   if (!isValid) {
-    console.log('❌ Firebase initialization failed - invalid config');
+    console.log('Firebase initialization failed - invalid config');
     return null;
   }
 
@@ -124,7 +124,7 @@ export function initializeFirebase(): FirebaseInit | null {
     }
   }
 
-  console.log('✅ Firebase initialization successful');
+  console.log('Firebase initialization successful');
   return { app, db, auth };
 }
 

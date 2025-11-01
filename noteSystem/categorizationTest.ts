@@ -53,20 +53,20 @@ export class CategorizationTest {
     
     for (const test of this.testExamples) {
       try {
-        console.log(`\n📝 Testing: ${test.description}`);
+        console.log(`\nTesting: ${test.description}`);
         console.log(`Input: "${test.text}"`);
         
         const result = await claudeAI.analyzeText(test.text);
         
-        console.log(`✅ Claude's Decision:`);
+        console.log(`Claude's Decision:`);
         console.log(`   Category: ${result.categorization.category}`);
         console.log(`   Confidence: ${(result.categorization.confidence * 100).toFixed(1)}%`);
         console.log(`   Reasoning: ${result.categorization.reasoning}`);
         console.log(`   Expected: ${test.expectedCategory}`);
-        console.log(`   Match: ${result.categorization.category === test.expectedCategory ? '✅ CORRECT' : '❌ INCORRECT'}`);
+        console.log(`   Match: ${result.categorization.category === test.expectedCategory ? 'CORRECT' : 'INCORRECT'}`);
         
       } catch (error) {
-        console.error(`❌ Test failed for "${test.description}":`, error);
+        console.error(`Test failed for "${test.description}":`, error);
       }
     }
     
@@ -77,18 +77,18 @@ export class CategorizationTest {
    * Test the full note processing pipeline
    */
   public static async runFullPipelineTests(): Promise<void> {
-    console.log('\n🔄 Running Full Pipeline Tests...');
+    console.log('\nRunning Full Pipeline Tests...');
     console.log('==================================');
 
     const processingEngine = NoteProcessingEngine.getInstance();
     
     for (const test of this.testExamples.slice(0, 3)) { // Test first 3 examples
       try {
-        console.log(`\n📝 Processing: ${test.description}`);
+        console.log(`\nProcessing: ${test.description}`);
         
         const result = await processingEngine.processNote(test.text);
         
-        console.log(`✅ Pipeline Result:`);
+        console.log(`Pipeline Result:`);
         console.log(`   Success: ${result.success}`);
         console.log(`   Category: ${result.category}`);
         console.log(`   Confidence: ${((result.confidence || 0) * 100).toFixed(1)}%`);
@@ -98,7 +98,7 @@ export class CategorizationTest {
         }
         
       } catch (error) {
-        console.error(`❌ Pipeline test failed for "${test.description}":`, error);
+        console.error(`Pipeline test failed for "${test.description}":`, error);
       }
     }
     
@@ -109,7 +109,7 @@ export class CategorizationTest {
    * Demonstrate confidence threshold behavior
    */
   public static async demonstrateConfidenceThresholds(): Promise<void> {
-    console.log('\n📊 Demonstrating Confidence Thresholds...');
+    console.log('\nDemonstrating Confidence Thresholds...');
     console.log('==========================================');
     
     const ambiguousExamples = [
@@ -122,18 +122,18 @@ export class CategorizationTest {
     
     for (const text of ambiguousExamples) {
       try {
-        console.log(`\n📝 Ambiguous input: "${text}"`);
+        console.log(`\nAmbiguous input: "${text}"`);
         
         const result = await processingEngine.processNote(text);
         
-        console.log(`✅ Result:`);
+        console.log(`Result:`);
         console.log(`   Category: ${result.category}`);
         console.log(`   Confidence: ${((result.confidence || 0) * 100).toFixed(1)}%`);
         console.log(`   Accepted: ${result.success ? 'YES' : 'NO'}`);
         console.log(`   Reason: ${result.error || 'High confidence - accepted'}`);
         
       } catch (error) {
-        console.error(`❌ Test failed:`, error);
+        console.error(`Test failed:`, error);
       }
     }
   }

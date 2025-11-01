@@ -1,18 +1,47 @@
 // Claude AI Service - Real AI-powered text analysis using Claude API
 
-import { Office, Project, Regulation } from '../types/firestore';
+import { Office, Project, Regulation, Client, Technology, Financial, SupplyChain, LandData, CityData, ProjectData, CompanyStructure, DivisionPercentages, NewsArticle, PoliticalContext } from '../types/firestore';
 
 export interface ClaudeCategorizationResult {
-  category: 'office' | 'project' | 'regulation' | 'unknown';
+  category: 'office' | 'project' | 'regulation' | 'client' | 'technology' | 'financial' | 'supplyChain' | 'landData' | 'cityData' | 'projectData' | 'companyStructure' | 'divisionPercentages' | 'newsArticle' | 'politicalContext' | 'unknown';
   confidence: number;
   reasoning: string;
 }
 
 export interface ClaudeExtractionResult {
-  extractedData: Partial<Office> | Partial<Project> | Partial<Regulation>;
+  extractedData: Partial<Office> | Partial<Project> | Partial<Regulation> | Partial<Client> | Partial<Technology> | Partial<Financial> | Partial<SupplyChain> | Partial<LandData> | Partial<CityData> | Partial<ProjectData> | Partial<CompanyStructure> | Partial<DivisionPercentages> | Partial<NewsArticle> | Partial<PoliticalContext> | any;
   confidence: number;
   missingFields: string[];
   reasoning: string;
+  // Office-specific
+  employees?: Array<{
+    name: string;
+    role?: string;
+    description?: string;
+    expertise?: string[];
+    location?: {
+      city?: string;
+      country?: string;
+    };
+  }>;
+  employeeDistribution?: {
+    architects?: number;
+    engineers?: number;
+    designers?: number;
+    administrative?: number;
+  };
+  // Tier 3 entities
+  clients?: Partial<Client>[];
+  technology?: Partial<Technology>[];
+  financials?: Partial<Financial>[];
+  supplyChain?: Partial<SupplyChain>[];
+  landData?: Partial<LandData>[];
+  cityData?: Partial<CityData>[];
+  projectData?: Partial<ProjectData>[];
+  companyStructure?: Partial<CompanyStructure>[];
+  divisionPercentages?: Partial<DivisionPercentages>[];
+  newsArticles?: Partial<NewsArticle>[];
+  politicalContext?: Partial<PoliticalContext>[];
 }
 
 export interface ClaudeAnalysisResult {
@@ -32,7 +61,7 @@ export class ClaudeAIService {
       // Try import.meta.env first (Vite)
       (import.meta as any)?.env; // Access to ensure Vite env tree-shakes safely
       // Note: API key is now passed directly to chat() method, not loaded here
-      console.log('🔍 ClaudeAIService initialized (API key will be provided at runtime)');
+      console.log('ClaudeAIService initialized (API key will be provided at runtime)');
     } catch (error) {
       console.warn('Could not access environment variables:', error);
       this.apiKey = '';
@@ -99,6 +128,8 @@ Respond with the most direct, simple answer possible. Avoid explanations unless 
 
 Your task is to analyze the following text and determine its category using your advanced reasoning capabilities. You must be the final authority on categorization - trust your analysis and reasoning.
 
+CRITICAL: If the user explicitly mentions an existing office name (e.g., "goes into [office name] office", "employees of [office name]", "part of [office name]"), you MUST extract that exact office name or its recognizable variants (e.g., "Boris Pena Architects", "Boris Pena Architecture", "BPA", "Boris Pena") and use it as the office name. Do NOT create abbreviated names when the full office name is mentioned. ALWAYS prioritize finding and matching existing offices when explicitly mentioned by the user.
+
 CATEGORIZATION GUIDELINES:
 
 OFFICE (Architectural/Engineering Firms):
@@ -106,18 +137,88 @@ OFFICE (Architectural/Engineering Firms):
 - Keywords: firm, practice, studio, architects, engineers, consultants, design company
 - Examples: "Foster + Partners", "AECOM", "Gensler", "architectural firm in London"
 - Look for: company names, employee counts, specializations, founding dates, office locations
+- CRITICAL: If the text mentions employees AND explicitly names an office (e.g., "employees of [office name]", "employees go into [office name] office"), you MUST categorize this as OFFICE and extract the office name. Even if the text is primarily about employees, if an office is explicitly mentioned, extract it as an office entity.
+- IMPORTANT: If the text mentions "has offices in [cities]", "branches in [locations]", "offices located in [places]", extract these cities/locations as otherOffices array. For each location, include the city name as the address (if specific address not provided) and set coordinates to {latitude: 0, longitude: 0} if not available.
+- CRITICAL FOR EMPLOYEES: When extracting employee information, ALWAYS extract their location (city and country) if mentioned in the text. For example, if text says "ARCHITECT BARCELONA" or "employees are part of the barcelona branch", extract location: {city: "Barcelona", country: "Spain"}. This is essential for offices with multiple locations to distinguish which employees work at which branch.
 
 PROJECT (Construction/Building Projects):
 - Specific buildings, developments, construction projects, facilities
-- Keywords: building, project, development, tower, complex, facility, construction
-- Examples: "Burj Khalifa", "Central Park Tower", "mixed-use development in Manhattan"
-- Look for: project names, locations, budgets, timelines, building types, construction phases
+- Keywords: building, project, development, tower, complex, facility, construction, hospital, competition, design, unveil, create
+- Examples: "Burj Khalifa", "Central Park Tower", "mixed-use development in Manhattan", "competition to create a hospital", "BPA unveils design for hospital"
+- Look for: project names, locations, budgets, timelines, building types, construction phases, competition mentions, site sizes (m²), building areas (GBA)
+- CRITICAL: If text mentions "competition to create", "design for", "unveils design for", "project", "building", "hospital", "facility" with a location and/or size (m²), categorize as PROJECT even if the project name isn't explicitly stated
 
 REGULATION (Laws/Codes/Standards):
 - Legal requirements, building codes, zoning laws, compliance standards
 - Keywords: code, regulation, law, standard, requirement, compliance, zoning, permit
 - Examples: "International Building Code", "zoning law", "fire safety regulation"
 - Look for: jurisdiction, effective dates, regulation numbers, compliance requirements
+
+CLIENT (Clients/Organizations):
+- Companies, institutions, or individuals who commission projects
+- Keywords: client, customer, owner, developer, institution, corporation, company hiring architects
+- Examples: "Google commissioned a project", "client relationship", "corporate client"
+- Look for: client names, client types (private/public/corporate/institutional), industries, locations, project relationships
+
+TECHNOLOGY (Technology/Tools/Software):
+- Software, tools, or technologies used by architectural firms
+- Keywords: BIM, software, technology, tool, platform, system, AI, parametric, VR, fabrication
+- Examples: "Revit implementation", "uses Rhino", "adopted Autodesk BIM 360"
+- Look for: technology names, vendors, categories, adoption dates, usage levels, ROI data
+
+FINANCIAL (Financial Transactions/Data):
+- Financial information related to offices or projects
+- Keywords: funding, revenue, expense, investment, debt, budget, financial transaction, payment
+- Examples: "raised $10M funding", "annual revenue of $50M", "expense report", "investment in office"
+- Look for: amounts, currencies, dates, record types (funding/debt/revenue/expense/investment), sources, destinations
+
+SUPPLYCHAIN (Suppliers/Vendors):
+- Suppliers, vendors, or material providers
+- Keywords: supplier, vendor, material provider, contractor, supply chain, materials, services
+- Examples: "steel supplier", "glass vendor", "material provider in China"
+- Look for: supplier names, types (materials/services/equipment), locations, reliability scores, pricing
+
+LANDDATA (Land/Property):
+- Land parcels, properties, or real estate data
+- Keywords: land, property, parcel, site, plot, real estate, acquisition, zoning
+- Examples: "acquired land in Manhattan", "property development", "zoning for residential"
+- Look for: locations, sizes, zoning classifications, ownership, valuations, development status
+
+CITYDATA (City Enrichment):
+- Detailed demographic, economic, and cultural data about cities
+- Keywords: city demographics, population data, economic indicators, cultural context, infrastructure
+- Examples: "London population growth", "city GDP data", "cultural influences in Tokyo"
+- Look for: demographics, economic data, architectural styles, cultural context, infrastructure
+
+PROJECTDATA (Project Details):
+- Comprehensive project execution and performance data
+- Keywords: project team, design philosophy, performance metrics, awards, client satisfaction
+- Examples: "project won award", "team composition", "schedule delays", "client feedback"
+- Look for: vision/design, team members, performance metrics, technical details, awards, legacy
+
+COMPANYSTRUCTURE (Organizational Structure):
+- Company organizational structure and leadership
+- Keywords: company structure, departments, divisions, leadership, hierarchy, governance
+- Examples: "company reorganized into divisions", "new CEO appointed", "department structure"
+- Look for: organization type, departments, leadership, divisions, governance structure
+
+DIVISIONPERCENTAGES (Analytics Breakdown):
+- Percentage breakdowns by revenue, workforce, projects, or regions
+- Keywords: revenue breakdown, workforce distribution, project percentages, regional split
+- Examples: "60% revenue from commercial projects", "workforce split by region"
+- Look for: division type, breakdown percentages, period, methodology
+
+NEWSARTICLE (News/Media Coverage):
+- News articles, press releases, or media coverage
+- Keywords: news article, press release, media coverage, announcement, published
+- Examples: "ArchDaily reported on project", "press release announced merger", "article in Dezeen"
+- Look for: title, source, publication date, content, entities mentioned, sentiment, impact
+
+POLITICALCONTEXT (Political/Governance):
+- Political context, governance, institutions, and policy information
+- Keywords: government, policy, political stability, regulatory bodies, governance, institutions
+- Examples: "government announced new policy", "regulatory body changes", "political stability"
+- Look for: jurisdiction, governance type, institutions, policies, elections, stability indicators
 
 ANALYSIS PROCESS:
 1. Read the text carefully and identify key indicators
@@ -130,14 +231,18 @@ Text to analyze: "${text}"
 Please respond in this exact JSON format:
 {
   "categorization": {
-    "category": "office|project|regulation|unknown",
+    "category": "office|project|regulation|client|technology|financial|supplyChain|landData|cityData|projectData|companyStructure|divisionPercentages|newsArticle|politicalContext|unknown",
     "confidence": 0.95,
     "reasoning": "Detailed explanation of your analysis process, key indicators identified, and why this category was chosen. Be specific about the evidence that led to your decision."
   },
   "extraction": {
     "extractedData": {
       // For offices:
-      "name": "Company name",
+      // CRITICAL: When the user explicitly mentions an office name (e.g., "goes into [office name] office", "employees of [office name]", "part of [office name]"), extract the FULL office name, NOT an abbreviation.
+      // Example: If user says "employees of Boris Pena Architecture office", extract "Boris Pena Architecture" or "Boris Pena Architects", NOT "BPA".
+      // Only use abbreviations if that's the only name mentioned in the text.
+      // IMPORTANT: If the text is about employees but explicitly mentions an office name, you MUST still extract an office entity with the mentioned office name.
+      "name": "Full company name (e.g., 'Boris Pena Architects', NOT 'BPA' unless only abbreviation is mentioned). MUST extract office if explicitly mentioned even if text is primarily about employees.",
       "officialName": "Official company name", 
       "founded": 2020,
       "founder": "Founder's name",
@@ -145,7 +250,19 @@ Please respond in this exact JSON format:
         "headquarters": {
           "city": "City name",
           "country": "Country name"
-        }
+        },
+        "otherOffices": [
+          // Array of other office branches/locations
+          // IMPORTANT: If the text mentions "has offices in [cities]", "branches in [cities]", "offices in [locations]", extract these as otherOffices
+          // Each entry should have address (can be city name if specific address not provided) and coordinates (if available)
+          {
+            "address": "Full address or city name if address not provided",
+            "coordinates": {
+              "latitude": 0.0,
+              "longitude": 0.0
+            }
+          }
+        ]
       },
       "size": {
         "employeeCount": 100,
@@ -153,23 +270,48 @@ Please respond in this exact JSON format:
         "annualRevenue": 1000000
       },
       "specializations": ["specialization1", "specialization2"],
-      "status": "active"
+      "status": "active",
+      // Employee information (if provided):
+      "employees": [
+        {
+          "name": "Employee name",
+          "role": "Employee role/position",
+          "description": "Description or biography about the employee",
+          "expertise": ["expertise1", "expertise2"],
+          "location": {
+            "city": "City where employee is located/working (e.g., 'Barcelona', 'Miami', 'Cancun')",
+            "country": "Country where employee is located/working (e.g., 'Spain', 'United States', 'Mexico')"
+          }
+        }
+      ],
+      // Employee distribution by role (if provided):
+      "employeeDistribution": {
+        "architects": 50,
+        "engineers": 30,
+        "designers": 15,
+        "administrative": 5
+      }
       
       // For projects:
-      "projectName": "Project name",
+      // CRITICAL: If text describes a project (competition, design, building, facility) with location and/or size, extract as PROJECT
+      // Project name can be derived from location + type (e.g., "Hospital in Los Cabos", "Hospital Los Cabos")
+      "projectName": "Project name (derive from location + type if not explicitly stated, e.g., 'Hospital Los Cabos' or 'Los Cabos Hospital')",
       "location": {
-        "city": "City name",
-        "country": "Country name"
+        "city": "City name (e.g., 'Los Cabos')",
+        "country": "Country name (e.g., 'Mexico')"
       },
       "details": {
-        "projectType": "residential|commercial|mixed-use|cultural|healthcare|educational",
+        "projectType": "residential|commercial|mixed-use|cultural|healthcare|educational|competition",
         "description": "Project description"
       },
-      "status": "concept|planning|construction|completed",
+      "status": "concept|planning|construction|completed|competition",
       "financial": {
         "budget": 1000000,
         "currency": "USD"
-      }
+      },
+      // If size information is provided (e.g., "30,400 m² SITE", "29,400 m² GBA"), include it:
+      "siteArea": 30400, // in square meters (remove commas and extract number)
+      "gba": 29400, // Gross Building Area in square meters
       
       // For regulations:
       "name": "Regulation name",
@@ -318,6 +460,11 @@ IMPORTANT: Your categorization decision is final and authoritative. Trust your a
 
       const parsed = JSON.parse(jsonMatch[0]);
       
+      // Extract employee information if available
+      const extractedData = parsed.extraction.extractedData || {};
+      const employees = extractedData.employees || parsed.extraction.employees;
+      const employeeDistribution = extractedData.employeeDistribution || parsed.extraction.employeeDistribution;
+      
       return {
         categorization: {
           category: parsed.categorization.category,
@@ -325,10 +472,12 @@ IMPORTANT: Your categorization decision is final and authoritative. Trust your a
           reasoning: parsed.categorization.reasoning
         },
         extraction: {
-          extractedData: parsed.extraction.extractedData,
+          extractedData: extractedData,
           confidence: parsed.extraction.confidence,
           missingFields: parsed.extraction.missingFields || [],
-          reasoning: parsed.extraction.reasoning
+          reasoning: parsed.extraction.reasoning,
+          employees: employees,
+          employeeDistribution: employeeDistribution
         },
         overallConfidence: parsed.overallConfidence
       };

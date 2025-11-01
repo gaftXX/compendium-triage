@@ -211,7 +211,7 @@ export class OfficeScraperService {
 
               if (searchResult.found && searchResult.entity) {
                 // Merge with existing office
-                console.log(`🔄 Merging scraped office with existing: ${searchResult.entity.name}`);
+                console.log(`Merging scraped office with existing: ${searchResult.entity.name}`);
                 const mergeResult = await entityUpdateService.mergeOfficeData(
                   searchResult.entity as Office,
                   officeData
@@ -247,7 +247,7 @@ export class OfficeScraperService {
           
           session.savedOffices = savedOffices;
           session.stats = stats;
-          console.log(`📊 Scraping Results:`, {
+          console.log(`Scraping Results:`, {
             totalFound: stats.totalFound,
             successfullySaved: stats.successfullySaved,
             duplicatesMerged: stats.duplicatesMerged,

@@ -43,13 +43,13 @@ export class WebSearchService {
    */
   async searchWeb(request: WebSearchRequest): Promise<WebSearchResponse> {
     try {
-      console.log('🔍 Web Search Service searching for:', request.query);
+      console.log('Web Search Service searching for:', request.query);
       
       // Check cache first
       const cacheKey = this.getCacheKey(request);
       const cachedResult = this.getCachedResult(cacheKey);
       if (cachedResult) {
-        console.log('📋 Using cached search result');
+        console.log('Using cached search result');
         return cachedResult;
       }
 
@@ -64,11 +64,11 @@ export class WebSearchService {
       // Cache the result
       this.cacheResult(cacheKey, searchResults);
       
-      console.log(`✅ Web search completed in ${searchTime}ms, found ${searchResults.results.length} results`);
+      console.log(`Web search completed in ${searchTime}ms, found ${searchResults.results.length} results`);
       return searchResults;
       
     } catch (error) {
-      console.error('❌ Web Search error:', error);
+      console.error('Web Search error:', error);
       return {
         success: false,
         results: [],
@@ -113,19 +113,19 @@ export class WebSearchService {
     const googleApiKey = import.meta.env.VITE_GOOGLE_SEARCH_API_KEY;
     const googleSearchEngineId = import.meta.env.VITE_GOOGLE_SEARCH_ENGINE_ID;
     
-    console.log('🔍 Web Search API Debug:');
+    console.log('Web Search API Debug:');
     console.log('Google API Key available:', !!googleApiKey);
     console.log('Google Search Engine ID available:', !!googleSearchEngineId);
     console.log('API Key preview:', googleApiKey ? `${googleApiKey.substring(0, 10)}...` : 'Not found');
     console.log('Search Engine ID:', googleSearchEngineId);
     
     if (googleApiKey && googleSearchEngineId) {
-      console.log('✅ Using Google Custom Search API');
+      console.log('Using Google Custom Search API');
       return await this.performGoogleSearch(request, googleApiKey, googleSearchEngineId);
     }
 
     // If no real API is configured, return error
-    console.log('❌ No search API configured');
+    console.log('No search API configured');
     return {
       success: false,
       results: [],
@@ -212,7 +212,7 @@ export class WebSearchService {
    */
   clearCache(): void {
     this.searchCache.clear();
-    console.log('🗑️ Web search cache cleared');
+    console.log('Web search cache cleared');
   }
 
   /**

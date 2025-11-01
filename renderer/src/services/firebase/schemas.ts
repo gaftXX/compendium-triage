@@ -148,7 +148,10 @@ export const officesSchema: CollectionSchema<Office> = {
         country: '',
         coordinates: { latitude: 0, longitude: 0 }
       },
-      otherOffices: []
+      otherOffices: [] as Array<{
+        address: string;
+        coordinates: { latitude: number; longitude: number };
+      }>
     },
     size: {
       employeeCount: 0,
@@ -164,11 +167,12 @@ export const officesSchema: CollectionSchema<Office> = {
       competitors: 0,
       suppliers: 0
     },
+    infoEntries: 1,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now()
   }),
     requiredFields: ['id', 'name', 'officialName', 'status', 'location', 'size'],
-    optionalFields: ['founder', 'website', 'specializations', 'notableWorks', 'connectionCounts'],
+    optionalFields: ['founder', 'website', 'specializations', 'notableWorks', 'connectionCounts', 'infoEntries'],
   validationRules: {
     id: { required: true, type: 'string', pattern: /^[A-Z]{2}[A-Z]{2}\d{3}$/ },
     name: { required: true, type: 'string', minLength: 1 },
@@ -397,13 +401,13 @@ export const clientsSchema: CollectionSchema<Client> = {
 
 export const workforceSchema: CollectionSchema<Workforce> = {
   name: 'workforce',
-  type: 'dormant',
+  type: 'active',
   tier: 3,
   category: 'enrichment',
   template: (): Partial<Workforce> => ({
     id: '',
     officeId: '',
-    recordType: 'office-aggregate',
+    employees: [],
     aggregate: {
       totalEmployees: 0,
       distribution: {
@@ -422,11 +426,12 @@ export const workforceSchema: CollectionSchema<Workforce> = {
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now()
   }),
-  requiredFields: ['id', 'recordType'],
-  optionalFields: ['officeId', 'aggregate', 'talentSources', 'partnerships', 'keyPersonnel', 'skillsMatrix'],
+  requiredFields: ['id', 'officeId', 'employees'],
+  optionalFields: ['aggregate', 'talentSources', 'partnerships', 'keyPersonnel', 'skillsMatrix'],
   validationRules: {
     id: { required: true, type: 'string', minLength: 1 },
-    recordType: { required: true, enum: ['office-aggregate', 'individual', 'team'] }
+    officeId: { required: true, type: 'string', minLength: 1 },
+    employees: { required: true, type: 'array' }
   }
 };
 

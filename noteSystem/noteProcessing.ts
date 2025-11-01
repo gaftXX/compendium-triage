@@ -1,6 +1,6 @@
 // Note Processing - AI Entity Creation System
 
-import { Office, Project, Regulation } from '../renderer/src/types/firestore';
+import { Office, Project, Regulation, Workforce, Client, Technology, Financial, SupplyChain, LandData, CityData, ProjectData, CompanyStructure, DivisionPercentages, NewsArticle, PoliticalContext } from '../renderer/src/types/firestore';
 
 export interface ProcessingResult {
   success: boolean;
@@ -8,8 +8,16 @@ export interface ProcessingResult {
     offices: Office[];
     projects: Project[];
     regulations: Regulation[];
+    workforce: Workforce[];
     mergedOffices?: Office[];
   };
+  workforceUpdates?: {
+    officeId: string;
+    officeName: string;
+    employeesAdded: number;
+    employeesUpdated: number;
+    totalEmployees: number;
+  }[];
   summary: string;
   totalCreated: number;
   webSearchResults?: {
@@ -36,78 +44,108 @@ export class NoteProcessing {
    */
   public async processAndCreateEntities(inputText: string): Promise<ProcessingResult> {
     try {
-      console.log('🔍 Note Processing: Starting text processing');
-      console.log('📝 Input text length:', inputText.length);
-      console.log('📝 Input text preview:', inputText.substring(0, 100) + '...');
+      console.log('Note Processing: Starting text processing');
+      console.log('Input text length:', inputText.length);
+      console.log('Input text preview:', inputText.substring(0, 100) + '...');
 
       // Step 0: Translation to English
-      console.log('🌐 Step 0: Translating to English if needed...');
+      console.log('Step 0: Translating to English if needed...');
       const { TranslationService } = await import('./translationService');
       const translationService = TranslationService.getInstance();
       const translationResult = await translationService.translateToEnglish(inputText);
       
       let processedText = inputText;
       if (translationResult.success && translationResult.translatedText !== inputText) {
-        console.log('✅ Text translated to English');
-        console.log('📝 Original text:', inputText.substring(0, 100) + '...');
-        console.log('📝 Translated text:', translationResult.translatedText.substring(0, 100) + '...');
+        console.log('Text translated to English');
+        console.log('Original text:', inputText.substring(0, 100) + '...');
+        console.log('Translated text:', translationResult.translatedText.substring(0, 100) + '...');
         processedText = translationResult.translatedText;
       } else {
-        console.log('✅ Text is already in English or translation not needed');
+        console.log('Text is already in English or translation not needed');
       }
 
       // Step 1: AI Analysis
-      console.log('🤖 Step 1: Starting AI analysis...');
+      console.log('Step 1: Starting AI analysis...');
       const aiResult = await this.analyzeWithAI(processedText);
       
-      console.log('🤖 AI Analysis Result:', {
+      console.log('AI Analysis Result:', {
         success: aiResult.success,
         officesFound: aiResult.entities.offices.length,
         projectsFound: aiResult.entities.projects.length,
-        regulationsFound: aiResult.entities.regulations.length
+        regulationsFound: aiResult.entities.regulations.length,
+        employeesFound: aiResult.employees?.length || 0,
+        clientsFound: aiResult.clients?.length || 0,
+        technologyFound: aiResult.technology?.length || 0,
+        financialsFound: aiResult.financials?.length || 0,
+        supplyChainFound: aiResult.supplyChain?.length || 0,
+        landDataFound: aiResult.landData?.length || 0,
+        cityDataFound: aiResult.cityData?.length || 0,
+        projectDataFound: aiResult.projectData?.length || 0,
+        companyStructureFound: aiResult.companyStructure?.length || 0,
+        divisionPercentagesFound: aiResult.divisionPercentages?.length || 0,
+        newsArticlesFound: aiResult.newsArticles?.length || 0,
+        politicalContextFound: aiResult.politicalContext?.length || 0
       });
 
       if (!aiResult.success) {
-        console.log('❌ AI analysis failed');
+        console.log('AI analysis failed');
         return {
           success: false,
-          entitiesCreated: { offices: [], projects: [], regulations: [], mergedOffices: [] },
+          entitiesCreated: { offices: [], projects: [], regulations: [], workforce: [], mergedOffices: [] },
           summary: 'Failed to analyze text with AI',
           totalCreated: 0
         };
       }
 
       // Step 1.5: Web search for missing location data
-      console.log('🌐 Step 1.5: Web search for missing location data...');
+      console.log('Step 1.5: Web search for missing location data...');
       const webSearchResults = await this.enrichWithWebSearch(aiResult.entities, processedText);
 
     // Step 2: Save user input to Firebase first
-    console.log('📝 Step 2: Saving user input to Firebase...');
+    console.log('Step 2: Saving user input to Firebase...');
     await this.saveUserInput(inputText, translationResult);
 
     // Step 3: Create entities in Firebase (only with valid location data)
-    console.log('🔥 Step 3: Creating entities in Firebase...');
-    const createdEntities = await this.createEntitiesInFirebase(aiResult.entities);
+    console.log('Step 3: Creating entities in Firebase...');
+      const createdEntities = await this.createEntitiesInFirebase(
+        aiResult.entities,
+        aiResult.employees,
+        aiResult.employeeDistribution,
+        aiResult.clients,
+        aiResult.technology,
+        aiResult.financials,
+        aiResult.supplyChain,
+        aiResult.landData,
+        aiResult.cityData,
+        aiResult.projectData,
+        aiResult.companyStructure,
+        aiResult.divisionPercentages,
+        aiResult.newsArticles,
+        aiResult.politicalContext,
+        inputText
+      );
 
-      console.log('✅ Firebase Creation Result:', {
+      console.log('Firebase Creation Result:', {
         officesCreated: createdEntities.offices.length,
         projectsCreated: createdEntities.projects.length,
-        regulationsCreated: createdEntities.regulations.length
+        regulationsCreated: createdEntities.regulations.length,
+        workforceCreated: createdEntities.workforce.length
       });
 
       // Update user input with processing results
-      await this.updateUserInputProcessing(inputText, createdEntities, this.generateSummary(createdEntities));
+      await this.updateUserInputProcessing(inputText, createdEntities, this.generateSummary(createdEntities, createdEntities.workforceUpdates));
 
       return {
         success: true,
         entitiesCreated: createdEntities,
-        summary: this.generateSummary(createdEntities),
-        totalCreated: createdEntities.offices.length + createdEntities.projects.length + createdEntities.regulations.length + (createdEntities.mergedOffices?.length || 0),
+        workforceUpdates: createdEntities.workforceUpdates.length > 0 ? createdEntities.workforceUpdates : undefined,
+        summary: this.generateSummary(createdEntities, createdEntities.workforceUpdates),
+        totalCreated: createdEntities.offices.length + createdEntities.projects.length + createdEntities.regulations.length + createdEntities.workforce.length + (createdEntities.mergedOffices?.length || 0),
         webSearchResults: webSearchResults
       };
 
     } catch (error) {
-      console.error('💥 V2 processing error:', error);
+      console.error('V2 processing error:', error);
       return {
         success: false,
         entitiesCreated: { offices: [], projects: [], regulations: [], mergedOffices: [] },
@@ -122,31 +160,31 @@ export class NoteProcessing {
    */
   public async processAndCreateEntitiesWithoutWebSearch(inputText: string): Promise<ProcessingResult> {
     try {
-      console.log('🔍 Note Processing: Starting text processing (without web search)');
-      console.log('📝 Input text length:', inputText.length);
-      console.log('📝 Input text preview:', inputText.substring(0, 100) + '...');
+      console.log('Note Processing: Starting text processing (without web search)');
+      console.log('Input text length:', inputText.length);
+      console.log('Input text preview:', inputText.substring(0, 100) + '...');
 
       // Step 0: Translation to English
-      console.log('🌐 Step 0: Translating to English if needed...');
+      console.log('Step 0: Translating to English if needed...');
       const { TranslationService } = await import('./translationService');
       const translationService = TranslationService.getInstance();
       const translationResult = await translationService.translateToEnglish(inputText);
       
       let processedText = inputText;
       if (translationResult.success && translationResult.translatedText !== inputText) {
-        console.log('✅ Text translated to English');
-        console.log('📝 Original text:', inputText.substring(0, 100) + '...');
-        console.log('📝 Translated text:', translationResult.translatedText.substring(0, 100) + '...');
+        console.log('Text translated to English');
+        console.log('Original text:', inputText.substring(0, 100) + '...');
+        console.log('Translated text:', translationResult.translatedText.substring(0, 100) + '...');
         processedText = translationResult.translatedText;
       } else {
-        console.log('✅ Text is already in English or translation not needed');
+        console.log('Text is already in English or translation not needed');
       }
 
       // Step 1: AI Analysis
-      console.log('🤖 Step 1: Starting AI analysis...');
+      console.log('Step 1: Starting AI analysis...');
       const aiResult = await this.analyzeWithAI(processedText);
       
-      console.log('🤖 AI Analysis Result:', {
+      console.log('AI Analysis Result:', {
         success: aiResult.success,
         officesFound: aiResult.entities.offices.length,
         projectsFound: aiResult.entities.projects.length,
@@ -154,44 +192,66 @@ export class NoteProcessing {
       });
 
       if (!aiResult.success) {
-        console.log('❌ AI analysis failed');
+        console.log('AI analysis failed');
         return {
           success: false,
-          entitiesCreated: { offices: [], projects: [], regulations: [], mergedOffices: [] },
+          entitiesCreated: { offices: [], projects: [], regulations: [], workforce: [], mergedOffices: [] },
           summary: 'Failed to analyze text with AI',
           totalCreated: 0
         };
       }
 
       // SKIP Step 1.5: Web search (this is the key difference)
-      console.log('⏭️ Skipping web search for location prompt flow...');
+      console.log('Skipping web search for location prompt flow...');
 
       // Step 2: Save user input to Firebase first
-      console.log('📝 Step 2: Saving user input to Firebase...');
+      console.log('Step 2: Saving user input to Firebase...');
       await this.saveUserInput(inputText, translationResult);
 
       // Step 3: Create entities in Firebase (only with valid location data)
-      console.log('🔥 Step 3: Creating entities in Firebase...');
-      const createdEntities = await this.createEntitiesInFirebase(aiResult.entities);
+      console.log('Step 3: Creating entities in Firebase...');
+      const createdEntities = await this.createEntitiesInFirebase(
+        aiResult.entities,
+        aiResult.employees,
+        aiResult.employeeDistribution,
+        aiResult.clients,
+        aiResult.technology,
+        aiResult.financials,
+        aiResult.supplyChain,
+        aiResult.landData,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        inputText
+      );
 
-      console.log('✅ Firebase Creation Result:', {
+      console.log('Firebase Creation Result:', {
         officesCreated: createdEntities.offices.length,
         projectsCreated: createdEntities.projects.length,
-        regulationsCreated: createdEntities.regulations.length
+        regulationsCreated: createdEntities.regulations.length,
+        workforceCreated: createdEntities.workforce.length
       });
 
       // Update user input with processing results
-      await this.updateUserInputProcessing(inputText, createdEntities, this.generateSummary(createdEntities));
+      await this.updateUserInputProcessing(inputText, createdEntities, this.generateSummary(createdEntities, createdEntities.workforceUpdates));
 
       return {
         success: true,
         entitiesCreated: createdEntities,
-        summary: this.generateSummary(createdEntities),
-        totalCreated: createdEntities.offices.length + createdEntities.projects.length + createdEntities.regulations.length + (createdEntities.mergedOffices?.length || 0)
+        workforceUpdates: createdEntities.workforceUpdates.length > 0 ? createdEntities.workforceUpdates : undefined,
+        summary: this.generateSummary(createdEntities, createdEntities.workforceUpdates),
+        totalCreated: createdEntities.offices.length + createdEntities.projects.length + createdEntities.regulations.length + createdEntities.workforce.length + (createdEntities.mergedOffices?.length || 0)
       };
 
     } catch (error) {
-      console.error('💥 Processing error (without web search):', error);
+      console.error('Processing error (without web search):', error);
       return {
         success: false,
         entitiesCreated: { offices: [], projects: [], regulations: [], mergedOffices: [] },
@@ -211,9 +271,25 @@ export class NoteProcessing {
       projects: Partial<Project>[];
       regulations: Partial<Regulation>[];
     };
+    employees?: Array<{
+      name: string;
+      role?: string;
+      description?: string;
+      expertise?: string[];
+      location?: {
+        city?: string;
+        country?: string;
+      };
+    }>;
+    employeeDistribution?: {
+      architects?: number;
+      engineers?: number;
+      designers?: number;
+      administrative?: number;
+    };
   }> {
-    console.log('🔍 Starting AI text analysis...');
-    console.log('📊 Text analysis details:', {
+    console.log('Starting AI text analysis...');
+    console.log('Text analysis details:', {
       textLength: text.length,
       wordCount: text.split(' ').length,
       hasGensler: text.toLowerCase().includes('gensler'),
@@ -224,16 +300,16 @@ export class NoteProcessing {
     });
 
     // Use real Claude AI for analysis
-    console.log('🤖 Attempting to use Claude AI for analysis...');
+    console.log('Attempting to use Claude AI for analysis...');
     
     try {
       const { ClaudeAIService } = await import('../renderer/src/services/claudeAIService');
       const claudeAI = ClaudeAIService.getInstance();
       
-      console.log('✅ Claude AI service available, using real AI analysis');
+      console.log('Claude AI service available, using real AI analysis');
       const aiResult = await claudeAI.analyzeText(text);
       
-      console.log('🤖 Claude AI analysis result:', {
+      console.log('Claude AI analysis result:', {
         category: aiResult.categorization.category,
         confidence: aiResult.categorization.confidence,
         reasoning: aiResult.categorization.reasoning
@@ -256,30 +332,93 @@ export class NoteProcessing {
       
       return {
         success: true,
-        entities
+        entities,
+        employees: aiResult.extraction.employees,
+        employeeDistribution: aiResult.extraction.employeeDistribution,
+        // Tier 3 entities
+        clients: aiResult.extraction.clients || [],
+        technology: aiResult.extraction.technology || [],
+        financials: aiResult.extraction.financials || [],
+        supplyChain: aiResult.extraction.supplyChain || [],
+        landData: aiResult.extraction.landData || [],
+        cityData: aiResult.extraction.cityData || [],
+        projectData: aiResult.extraction.projectData || [],
+        companyStructure: aiResult.extraction.companyStructure || [],
+        divisionPercentages: aiResult.extraction.divisionPercentages || [],
+        newsArticles: aiResult.extraction.newsArticles || [],
+        politicalContext: aiResult.extraction.politicalContext || []
       };
       
     } catch (error) {
-      console.log('⚠️ Claude AI not available:', error);
+      console.log('Claude AI not available:', error);
     }
 
     // Claude AI is required - cannot process without it
-    console.log('❌ Claude AI not available - cannot process without AI analysis');
+    console.log('Claude AI not available - cannot process without AI analysis');
     throw new Error('Claude AI service is required for note processing. Please ensure the API key is configured.');
   }
 
   /**
    * Create or update entities in Firebase using EntityUpdateService for smart merging
    */
-  private async createEntitiesInFirebase(entities: {
+  private async createEntitiesInFirebase(
+    entities: {
     offices: Partial<Office>[];
     projects: Partial<Project>[];
     regulations: Partial<Regulation>[];
-  }): Promise<{
+    },
+    employees?: Array<{
+      name: string;
+      role?: string;
+      description?: string;
+      expertise?: string[];
+      location?: {
+        city?: string;
+        country?: string;
+      };
+    }>,
+    employeeDistribution?: {
+      architects?: number;
+      engineers?: number;
+      designers?: number;
+      administrative?: number;
+    },
+    clients?: Partial<Client>[],
+    technology?: Partial<Technology>[],
+    financials?: Partial<Financial>[],
+    supplyChain?: Partial<SupplyChain>[],
+    landData?: Partial<LandData>[],
+    cityData?: Partial<CityData>[],
+    projectData?: Partial<ProjectData>[],
+    companyStructure?: Partial<CompanyStructure>[],
+    divisionPercentages?: Partial<DivisionPercentages>[],
+    newsArticles?: Partial<NewsArticle>[],
+    politicalContext?: Partial<PoliticalContext>[],
+    userInputText?: string
+  ): Promise<{
     offices: Office[];
     projects: Project[];
     regulations: Regulation[];
+    workforce: Workforce[];
     mergedOffices: Office[];
+    clients: Client[];
+    technology: Technology[];
+    financials: Financial[];
+    supplyChain: SupplyChain[];
+    landData: LandData[];
+    cityData: CityData[];
+    projectData: ProjectData[];
+    companyStructure: CompanyStructure[];
+    divisionPercentages: DivisionPercentages[];
+    newsArticles: NewsArticle[];
+    politicalContext: PoliticalContext[];
+    workforceUpdates: {
+      officeId: string;
+      officeName: string;
+      employeesAdded: number;
+      employeesUpdated: number;
+      totalEmployees: number;
+    }[];
   }> {
     const { FirestoreNoteService } = await import('./firestoreNoteService');
     const firestoreService = FirestoreNoteService.getInstance();
@@ -288,46 +427,93 @@ export class NoteProcessing {
       offices: [] as Office[],
       projects: [] as Project[],
       regulations: [] as Regulation[],
-      mergedOffices: [] as Office[]
+      workforce: [] as Workforce[],
+      mergedOffices: [] as Office[],
+      clients: [] as Client[],
+      technology: [] as Technology[],
+      financials: [] as Financial[],
+      supplyChain: [] as SupplyChain[],
+      landData: [] as LandData[],
+      cityData: [] as CityData[],
+      projectData: [] as ProjectData[],
+      companyStructure: [] as CompanyStructure[],
+      divisionPercentages: [] as DivisionPercentages[],
+      newsArticles: [] as NewsArticle[],
+      politicalContext: [] as PoliticalContext[]
     };
 
     // Create or update offices using EntityUpdateService
-    console.log(`🏢 Processing ${entities.offices.length} office(s)...`);
+    console.log(`Processing ${entities.offices.length} office(s)...`);
     const { EntityUpdateService } = await import('./entityUpdateService');
     const entityUpdateService = EntityUpdateService.getInstance();
     
     for (const officeData of entities.offices) {
       try {
-        console.log('🏢 Processing office:', (officeData as Partial<Office>).name);
+        console.log('Processing office:', (officeData as Partial<Office>).name);
         
         // Validate required fields before processing
         if (!officeData.name || officeData.name.trim() === '') {
-          console.log('⚠️ Skipping office - no valid name provided');
+          console.log('Skipping office - no valid name provided');
           continue;
         }
 
-        // Search for existing office
-        const searchResult = await entityUpdateService.searchExistingOffice(officeData.name);
+        // Search for existing office - try multiple name variations
+        let searchResult = await entityUpdateService.searchExistingOffice(officeData.name);
+        
+        // If not found and we have an officialName, try that too
+        if (!searchResult.found && officeData.officialName && officeData.officialName !== officeData.name) {
+          console.log(`Trying to find office by officialName: ${officeData.officialName}`);
+          searchResult = await entityUpdateService.searchExistingOffice(officeData.officialName);
+        }
+        
+        // If still not found, try extracting the main name parts (remove "Architects", "Architecture", "Architect" etc.)
+        if (!searchResult.found && officeData.name) {
+          const nameVariations = this.generateOfficeNameVariations(officeData.name);
+          for (const variation of nameVariations) {
+            if (variation !== officeData.name) {
+              console.log(`Trying office name variation: ${variation}`);
+              searchResult = await entityUpdateService.searchExistingOffice(variation);
+              if (searchResult.found) break;
+            }
+          }
+        }
         
         if (searchResult.found && searchResult.entity) {
           // Merge with existing office
-          console.log(`🔄 Merging with existing office: ${'name' in searchResult.entity ? searchResult.entity.name : 'Unknown'}`);
+          console.log(`Merging with existing office: ${'name' in searchResult.entity ? searchResult.entity.name : 'Unknown'}`);
           const mergeResult = await entityUpdateService.mergeOfficeData(
             searchResult.entity as Office, 
             officeData
           );
           
           if (mergeResult.success) {
-            console.log(`✅ Office merged successfully: ${mergeResult.mergedFields.join(', ')}`);
+            console.log(`Office merged successfully: ${mergeResult.mergedFields.join(', ')}`);
             createdEntities.mergedOffices.push(mergeResult.entity as Office);
           } else {
-            console.error(`❌ Failed to merge office: ${mergeResult.error}`);
+            console.error(`Failed to merge office: ${mergeResult.error}`);
           }
         } else {
           // Create new office
-          console.log(`🆕 Creating new office: ${officeData.name}`);
+          console.log(`Creating new office: ${officeData.name}`);
         
-        // Generate ID if missing or invalid
+        // CRITICAL: Headquarters location is REQUIRED when creating a new office
+        if (!officeData.location?.headquarters?.city || 
+            !officeData.location?.headquarters?.country ||
+            officeData.location.headquarters.city === 'Unknown' ||
+            officeData.location.headquarters.country === 'Unknown') {
+          console.log('Skipping office - headquarters location is required and must be valid');
+          console.log('Office data:', {
+            name: officeData.name,
+            hasLocation: !!officeData.location,
+            hasCity: !!officeData.location?.headquarters?.city,
+            hasCountry: !!officeData.location?.headquarters?.country,
+            city: officeData.location?.headquarters?.city,
+            country: officeData.location?.headquarters?.country
+          });
+          continue;
+        }
+        
+        // Generate ID if missing or invalid - requires headquarters location
         if (!officeData.id || officeData.id.includes('XX') || officeData.id.includes('NO_LOCATION_DATA')) {
           if (officeData.location?.headquarters?.city && officeData.location?.headquarters?.country) {
             // Use location-based ID if available
@@ -337,17 +523,26 @@ export class NoteProcessing {
               officeData.location.headquarters.city
             );
           } else {
-            // Use fallback ID based on office name
+            // Use fallback ID based on office name (shouldn't happen if validation above works)
             officeData.id = this.generateFallbackOfficeId(officeData.name);
           }
-          console.log('🔧 Generated office ID:', officeData.id);
+          console.log('Generated office ID:', officeData.id);
         }
         
-        // Build office data without size if it's invalid
+        // Build office data - ensure location is properly structured with required headquarters
         const completeOfficeData: any = {
           ...officeData,
           id: officeData.id,
-          location: officeData.location,
+          location: {
+            headquarters: {
+              city: officeData.location.headquarters.city,
+              country: officeData.location.headquarters.country,
+              ...(officeData.location.headquarters.coordinates && { coordinates: officeData.location.headquarters.coordinates }),
+              ...(officeData.location.headquarters.address && { address: officeData.location.headquarters.address }),
+              ...(officeData.location.headquarters.neighborhood && { neighborhood: officeData.location.headquarters.neighborhood })
+            },
+            otherOffices: officeData.location.otherOffices || []
+          },
           specializations: officeData.specializations || [],
           notableWorks: officeData.notableWorks || [],
           connectionCounts: officeData.connectionCounts || {
@@ -356,32 +551,37 @@ export class NoteProcessing {
             clients: 0,
             competitors: 0,
             suppliers: 0
-          }
+          },
+          infoEntries: 1
         };
         
-        // Only add size if both employeeCount and sizeCategory are valid
-        if (officeData.size?.employeeCount && 
-            typeof officeData.size.employeeCount === 'number' && 
-            officeData.size.employeeCount > 0 &&
-            officeData.size?.sizeCategory &&
+        // Don't set employeeCount from officeData - it will be calculated from workforce
+        // Only include sizeCategory and annualRevenue if provided
+        if (officeData.size?.sizeCategory && 
             ['boutique', 'medium', 'large', 'global'].includes(officeData.size.sizeCategory)) {
           completeOfficeData.size = {
-            employeeCount: officeData.size.employeeCount,
+            // Don't set employeeCount - it's calculated from workforce records
             sizeCategory: officeData.size.sizeCategory,
             annualRevenue: officeData.size.annualRevenue || undefined
           };
-          console.log('✅ Valid size data included');
+          console.log('Valid size data included (without employeeCount)');
+        } else if (officeData.size?.annualRevenue) {
+          // If only annualRevenue is provided, include it but don't set employeeCount
+          completeOfficeData.size = {
+            annualRevenue: officeData.size.annualRevenue
+          };
+          console.log('Annual revenue included (without employeeCount)');
         } else {
-          console.log('⚠️ Size data omitted (invalid or missing)');
+          console.log('Size data omitted (no valid sizeCategory or annualRevenue)');
         }
         
         const result = await firestoreService.saveOffice(completeOfficeData);
         if (result.success && result.data) {
-          console.log('✅ Office created successfully:', (result.data as Office).name);
+          console.log('Office created successfully:', (result.data as Office).name);
           createdEntities.offices.push(result.data as Office);
         } else {
-          console.error('❌ Failed to create office in Firebase:', result.error);
-          console.log('🔄 Creating local office entity as fallback...');
+          console.error('Failed to create office in Firebase:', result.error);
+          console.log('Creating local office entity as fallback...');
           
           // Use the location data as provided by AI analysis
           const location = (officeData as Partial<Office>).location;
@@ -411,29 +611,30 @@ export class NoteProcessing {
               competitors: 0,
               suppliers: 0
             },
+            infoEntries: 1,
             createdAt: new Date() as any,
             updatedAt: new Date() as any
           };
           
             createdEntities.offices.push(localOffice);
-            console.log('✅ Local office entity created:', localOffice.name, '(ID:', localOffice.id, ')');
+            console.log('Local office entity created:', localOffice.name, '(ID:', localOffice.id, ')');
           }
         }
       } catch (error) {
-        console.error('💥 Error creating office:', error);
+        console.error('Error creating office:', error);
       }
     }
 
     // Create or update projects using EntityUpdateService
-    console.log(`🏗️ Processing ${entities.projects.length} project(s)...`);
+    console.log(`Processing ${entities.projects.length} project(s)...`);
     
     for (const projectData of entities.projects) {
       try {
-        console.log('🏗️ Processing project:', (projectData as Partial<Project>).projectName);
+        console.log('Processing project:', (projectData as Partial<Project>).projectName);
         
         // Validate required fields before processing
         if (!projectData.projectName || projectData.projectName.trim() === '') {
-          console.log('⚠️ Skipping project - no valid project name provided');
+          console.log('Skipping project - no valid project name provided');
           continue;
         }
 
@@ -442,29 +643,29 @@ export class NoteProcessing {
         
         if (searchResult.found && searchResult.entity) {
           // Merge with existing project
-          console.log(`🔄 Merging with existing project: ${'projectName' in searchResult.entity ? searchResult.entity.projectName : 'name' in searchResult.entity ? searchResult.entity.name : 'Unknown'}`);
+          console.log(`Merging with existing project: ${'projectName' in searchResult.entity ? searchResult.entity.projectName : 'name' in searchResult.entity ? searchResult.entity.name : 'Unknown'}`);
           const mergeResult = await entityUpdateService.mergeProjectData(
             searchResult.entity as Project, 
             projectData
           );
           
           if (mergeResult.success) {
-            console.log(`✅ Project merged successfully: ${mergeResult.mergedFields.join(', ')}`);
+            console.log(`Project merged successfully: ${mergeResult.mergedFields.join(', ')}`);
             createdEntities.projects.push(mergeResult.entity as Project);
           } else {
-            console.error(`❌ Failed to merge project: ${mergeResult.error}`);
+            console.error(`Failed to merge project: ${mergeResult.error}`);
           }
         } else {
           // Create new project
-          console.log(`🆕 Creating new project: ${projectData.projectName}`);
+          console.log(`Creating new project: ${projectData.projectName}`);
           
           const result = await firestoreService.saveProject(projectData);
           if (result.success && result.data) {
-            console.log('✅ Project created successfully:', (result.data as Project).projectName);
+            console.log('Project created successfully:', (result.data as Project).projectName);
             createdEntities.projects.push(result.data as Project);
           } else {
-            console.error('❌ Failed to create project in Firebase:', result.error);
-            console.log('🔄 Creating local project entity as fallback...');
+            console.error('Failed to create project in Firebase:', result.error);
+            console.log('Creating local project entity as fallback...');
           
           // Create a local project entity
           const localProject: Project = {
@@ -496,24 +697,24 @@ export class NoteProcessing {
           };
           
             createdEntities.projects.push(localProject);
-            console.log('✅ Local project entity created:', localProject.projectName, '(ID:', localProject.id, ')');
+            console.log('Local project entity created:', localProject.projectName, '(ID:', localProject.id, ')');
           }
         }
       } catch (error) {
-        console.error('💥 Error creating project:', error);
+        console.error('Error creating project:', error);
       }
     }
 
     // Create or update regulations using EntityUpdateService
-    console.log(`📋 Processing ${entities.regulations.length} regulation(s)...`);
+    console.log(`Processing ${entities.regulations.length} regulation(s)...`);
     
     for (const regulationData of entities.regulations) {
       try {
-        console.log('📋 Processing regulation:', (regulationData as Partial<Regulation>).name);
+        console.log('Processing regulation:', (regulationData as Partial<Regulation>).name);
         
         // Validate required fields before processing
         if (!regulationData.name || regulationData.name.trim() === '') {
-          console.log('⚠️ Skipping regulation - no valid name provided');
+          console.log('Skipping regulation - no valid name provided');
           continue;
         }
 
@@ -522,29 +723,29 @@ export class NoteProcessing {
         
         if (searchResult.found && searchResult.entity) {
           // Merge with existing regulation
-          console.log(`🔄 Merging with existing regulation: ${'name' in searchResult.entity ? searchResult.entity.name : 'Unknown'}`);
+          console.log(`Merging with existing regulation: ${'name' in searchResult.entity ? searchResult.entity.name : 'Unknown'}`);
           const mergeResult = await entityUpdateService.mergeRegulationData(
             searchResult.entity as Regulation, 
             regulationData
           );
           
           if (mergeResult.success) {
-            console.log(`✅ Regulation merged successfully: ${mergeResult.mergedFields.join(', ')}`);
+            console.log(`Regulation merged successfully: ${mergeResult.mergedFields.join(', ')}`);
             createdEntities.regulations.push(mergeResult.entity as Regulation);
           } else {
-            console.error(`❌ Failed to merge regulation: ${mergeResult.error}`);
+            console.error(`Failed to merge regulation: ${mergeResult.error}`);
           }
         } else {
           // Create new regulation
-          console.log(`🆕 Creating new regulation: ${regulationData.name}`);
+          console.log(`Creating new regulation: ${regulationData.name}`);
           
           const result = await firestoreService.saveRegulation(regulationData);
           if (result.success && result.data) {
-            console.log('✅ Regulation created successfully:', (result.data as Regulation).name);
+            console.log('Regulation created successfully:', (result.data as Regulation).name);
             createdEntities.regulations.push(result.data as Regulation);
           } else {
-            console.error('❌ Failed to create regulation in Firebase:', result.error);
-            console.log('🔄 Creating local regulation entity as fallback...');
+            console.error('Failed to create regulation in Firebase:', result.error);
+            console.log('Creating local regulation entity as fallback...');
           
           // Create a local regulation entity
           const localRegulation: Regulation = {
@@ -604,19 +805,347 @@ export class NoteProcessing {
           };
           
             createdEntities.regulations.push(localRegulation);
-            console.log('✅ Local regulation entity created:', localRegulation.name, '(ID:', localRegulation.id, ')');
+            console.log('Local regulation entity created:', localRegulation.name, '(ID:', localRegulation.id, ')');
           }
         }
       } catch (error) {
-        console.error('💥 Error creating regulation:', error);
+        console.error('Error creating regulation:', error);
+      }
+    }
+
+    // Track workforce updates for summary
+    const workforceUpdates: {
+      officeId: string;
+      officeName: string;
+      employeesAdded: number;
+      employeesUpdated: number;
+      totalEmployees: number;
+    }[] = [];
+
+    // If we have employees but no office extracted, try to find office from text or employee context
+    if (employees && employees.length > 0 && entities.offices.length === 0 && userInputText) {
+      // Try to extract office name from user text if explicitly mentioned
+      // Pattern: "goes into [office name] office", "employees of [office name]", "part of [office name]", etc.
+      const officeNamePatterns = [
+        /(?:goes?\s+(?:into|in|to)|goes\s+in\s+to)\s+([^,\-\.]+?)\s+(?:office|firm|company)/i,
+        /employees?\s+of\s+([^,\-\.]+?)\s+(?:office|firm|company)/i,
+        /part\s+of\s+([^,\-\.]+?)\s+(?:office|firm|company)/i,
+        /works?\s+for\s+([^,\-\.]+?)\s+(?:office|firm|company)/i,
+        /([^,\-\.]+?)\s+office[\s,]/i  // "Boris Pena Architecture office"
+      ];
+      
+      let extractedOfficeName: string | null = null;
+      for (const pattern of officeNamePatterns) {
+        const match = userInputText.match(pattern);
+        if (match && match[1]) {
+          extractedOfficeName = match[1].trim();
+          console.log(`Extracting office name from user text using pattern: "${extractedOfficeName}"`);
+          break; // Use first match
+        }
+      }
+      
+      if (extractedOfficeName) {
+        // Try to find existing office with this name
+        const searchResult = await entityUpdateService.searchExistingOffice(extractedOfficeName);
+        
+        if (searchResult.found && searchResult.entity) {
+          console.log(`Found existing office: ${searchResult.entity.name}`);
+          entities.offices.push({ name: searchResult.entity.name, id: searchResult.entity.id } as Partial<Office>);
+        } else {
+          // Try name variations
+          const nameVariations = this.generateOfficeNameVariations(extractedOfficeName);
+          for (const variation of nameVariations) {
+            if (variation !== extractedOfficeName) {
+              const varSearchResult = await entityUpdateService.searchExistingOffice(variation);
+              if (varSearchResult.found && varSearchResult.entity) {
+                console.log(`Found existing office by variation: ${varSearchResult.entity.name}`);
+                entities.offices.push({ name: varSearchResult.entity.name, id: varSearchResult.entity.id } as Partial<Office>);
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Create/Update Workforce records if employee information is provided
+    if (employees && employees.length > 0 && entities.offices.length > 0) {
+      console.log(`Processing ${employees.length} employee(s) for workforce records...`);
+      
+      for (const office of [...createdEntities.offices, ...createdEntities.mergedOffices]) {
+        if (!office || !office.id) continue;
+        
+        try {
+          console.log(`Adding employees to workforce for office: ${office.name}`);
+          
+          // Add employees to the workforce record (creates or updates)
+          const workforceResult = await firestoreService.addEmployeesToWorkforce(office.id, employees);
+          
+          if (workforceResult.success && workforceResult.data) {
+            const workforce = workforceResult.data as Workforce;
+            createdEntities.workforce.push(workforce);
+            
+            // Extract counts from the result message
+            const message = workforceResult.message || '';
+            const addedMatch = message.match(/(\d+) added/);
+            const updatedMatch = message.match(/(\d+) updated/);
+            const employeesAdded = addedMatch ? parseInt(addedMatch[1]) : 0;
+            const employeesUpdated = updatedMatch ? parseInt(updatedMatch[1]) : employees.length;
+            
+            console.log(`Workforce updated for ${office.name}: ${employeesAdded} added, ${employeesUpdated} updated`);
+            
+            // Update aggregate data if employee distribution is provided
+            if (employeeDistribution && (
+              employeeDistribution.architects || 
+              employeeDistribution.engineers || 
+              employeeDistribution.designers || 
+              employeeDistribution.administrative
+            )) {
+              const aggregateResult = await firestoreService.updateWorkforceAggregate(office.id, {
+                totalEmployees: await firestoreService.countUniqueEmployees(office.id),
+                distribution: {
+                  architects: employeeDistribution.architects || 0,
+                  engineers: employeeDistribution.engineers || 0,
+                  designers: employeeDistribution.designers || 0,
+                  administrative: employeeDistribution.administrative || 0
+                },
+                retentionRate: 0,
+                growthRate: 0
+              });
+              
+              if (aggregateResult.success) {
+                console.log(`Aggregate data updated for ${office.name}`);
+              }
+            }
+            
+            // Update office employee count based on actual workforce records
+            console.log(`Updating employee count for office: ${office.name}`);
+            const updateCountResult = await firestoreService.updateOfficeEmployeeCount(office.id);
+            
+            if (updateCountResult.success) {
+              console.log(`Employee count updated for ${office.name}: ${updateCountResult.message}`);
+              
+              // Get the updated count
+              const totalEmployees = await firestoreService.countUniqueEmployees(office.id);
+              
+              // Track workforce update for summary
+              if (employeesAdded > 0 || employeesUpdated > 0) {
+                workforceUpdates.push({
+                  officeId: office.id,
+                  officeName: office.name,
+                  employeesAdded,
+                  employeesUpdated,
+                  totalEmployees
+                });
+              }
+            } else {
+              console.error(`Failed to update employee count for ${office.name}:`, updateCountResult.error);
+            }
+          } else {
+            console.error(`Failed to add employees to workforce for ${office.name}:`, workforceResult.error);
+          }
+        } catch (error) {
+          console.error(`Error processing workforce for ${office.name}:`, error);
+        }
+      }
+    }
+
+    // Create Tier 3 entities
+    if (clients && clients.length > 0) {
+      console.log(`Processing ${clients.length} client(s)...`);
+      for (const clientData of clients) {
+        if (clientData.clientName) {
+          try {
+            const result = await firestoreService.saveClient(clientData);
+            if (result.success && result.data) {
+              createdEntities.clients.push(result.data as Client);
+              console.log(`Client created: ${clientData.clientName}`);
+            }
+          } catch (error) {
+            console.error(`Error creating client ${clientData.clientName}:`, error);
+          }
+        }
+      }
+    }
+
+    if (technology && technology.length > 0) {
+      console.log(`Processing ${technology.length} technology record(s)...`);
+      for (const techData of technology) {
+        if (techData.technologyName && techData.officeId) {
+          try {
+            const result = await firestoreService.saveTechnology(techData);
+            if (result.success && result.data) {
+              createdEntities.technology.push(result.data as Technology);
+              console.log(`Technology created: ${techData.technologyName}`);
+            }
+          } catch (error) {
+            console.error(`Error creating technology ${techData.technologyName}:`, error);
+          }
+        }
+      }
+    }
+
+    if (financials && financials.length > 0) {
+      console.log(`Processing ${financials.length} financial record(s)...`);
+      for (const financialData of financials) {
+        if (financialData.amount && financialData.recordType && financialData.officeId) {
+          try {
+            const result = await firestoreService.saveFinancial(financialData);
+            if (result.success && result.data) {
+              createdEntities.financials.push(result.data as Financial);
+              console.log(`Financial record created: ${financialData.recordType}`);
+            }
+          } catch (error) {
+            console.error(`Error creating financial record:`, error);
+          }
+        }
+      }
+    }
+
+    if (supplyChain && supplyChain.length > 0) {
+      console.log(`Processing ${supplyChain.length} supply chain record(s)...`);
+      for (const supplyData of supplyChain) {
+        if (supplyData.supplierName) {
+          try {
+            const result = await firestoreService.saveSupplyChain(supplyData);
+            if (result.success && result.data) {
+              createdEntities.supplyChain.push(result.data as SupplyChain);
+              console.log(`Supply chain record created: ${supplyData.supplierName}`);
+            }
+          } catch (error) {
+            console.error(`Error creating supply chain record ${supplyData.supplierName}:`, error);
+          }
+        }
+      }
+    }
+
+    if (landData && landData.length > 0) {
+      console.log(`Processing ${landData.length} land data record(s)...`);
+      for (const landDataItem of landData) {
+        if (landDataItem.location) {
+          try {
+            const result = await firestoreService.saveLandData(landDataItem);
+            if (result.success && result.data) {
+              createdEntities.landData.push(result.data as LandData);
+              console.log(`Land data record created`);
+            }
+          } catch (error) {
+            console.error(`Error creating land data record:`, error);
+          }
+        }
+      }
+    }
+
+    if (cityData && cityData.length > 0) {
+      console.log(`Processing ${cityData.length} city data record(s)...`);
+      for (const cityDataItem of cityData) {
+        if (cityDataItem.cityId) {
+          try {
+            const result = await firestoreService.saveCityData(cityDataItem);
+            if (result.success && result.data) {
+              createdEntities.cityData.push(result.data as CityData);
+              console.log(`City data record created`);
+            }
+          } catch (error) {
+            console.error(`Error creating city data record:`, error);
+          }
+        }
+      }
+    }
+
+    if (projectData && projectData.length > 0) {
+      console.log(`Processing ${projectData.length} project data record(s)...`);
+      for (const projectDataItem of projectData) {
+        if (projectDataItem.projectId) {
+          try {
+            const result = await firestoreService.saveProjectData(projectDataItem);
+            if (result.success && result.data) {
+              createdEntities.projectData.push(result.data as ProjectData);
+              console.log(`Project data record created`);
+            }
+          } catch (error) {
+            console.error(`Error creating project data record:`, error);
+          }
+        }
+      }
+    }
+
+    if (companyStructure && companyStructure.length > 0) {
+      console.log(`Processing ${companyStructure.length} company structure record(s)...`);
+      for (const structureData of companyStructure) {
+        if (structureData.officeId) {
+          try {
+            const result = await firestoreService.saveCompanyStructure(structureData);
+            if (result.success && result.data) {
+              createdEntities.companyStructure.push(result.data as CompanyStructure);
+              console.log(`Company structure record created`);
+            }
+          } catch (error) {
+            console.error(`Error creating company structure record:`, error);
+          }
+        }
+      }
+    }
+
+    if (divisionPercentages && divisionPercentages.length > 0) {
+      console.log(`Processing ${divisionPercentages.length} division percentages record(s)...`);
+      for (const divisionData of divisionPercentages) {
+        if (divisionData.officeId && divisionData.divisionType) {
+          try {
+            const result = await firestoreService.saveDivisionPercentages(divisionData);
+            if (result.success && result.data) {
+              createdEntities.divisionPercentages.push(result.data as DivisionPercentages);
+              console.log(`Division percentages record created`);
+            }
+          } catch (error) {
+            console.error(`Error creating division percentages record:`, error);
+          }
+        }
+      }
+    }
+
+    if (newsArticles && newsArticles.length > 0) {
+      console.log(`Processing ${newsArticles.length} news article(s)...`);
+      for (const articleData of newsArticles) {
+        if (articleData.title || articleData.url) {
+          try {
+            const result = await firestoreService.saveNewsArticle(articleData);
+            if (result.success && result.data) {
+              createdEntities.newsArticles.push(result.data as NewsArticle);
+              console.log(`News article created: ${articleData.title || 'Untitled'}`);
+            }
+          } catch (error) {
+            console.error(`Error creating news article:`, error);
+          }
+        }
+      }
+    }
+
+    if (politicalContext && politicalContext.length > 0) {
+      console.log(`Processing ${politicalContext.length} political context record(s)...`);
+      for (const politicalData of politicalContext) {
+        if (politicalData.jurisdiction && politicalData.jurisdiction.country) {
+          try {
+            const result = await firestoreService.savePoliticalContext(politicalData);
+            if (result.success && result.data) {
+              createdEntities.politicalContext.push(result.data as PoliticalContext);
+              console.log(`Political context record created`);
+            }
+          } catch (error) {
+            console.error(`Error creating political context record:`, error);
+          }
+        }
       }
     }
 
     // Create relationships between entities
-    console.log('🔗 Creating relationships between entities...');
+    console.log('Creating relationships between entities...');
     await this.createEntityRelationships(createdEntities);
 
-    return createdEntities;
+    return {
+      ...createdEntities,
+      workforceUpdates
+    };
   }
 
   /**
@@ -676,7 +1205,7 @@ export class NoteProcessing {
         }
       }
 
-      console.log('✅ Entity relationships created successfully');
+      console.log('Entity relationships created successfully');
     } catch (error) {
       console.error('Error creating entity relationships:', error);
     }
@@ -752,14 +1281,69 @@ export class NoteProcessing {
   }
 
   /**
+   * Generate office name variations for better matching
+   */
+  private generateOfficeNameVariations(name: string): string[] {
+    const variations: string[] = [name];
+    const cleanName = name.trim();
+    
+    // Remove common suffixes and try variations
+    const suffixes = ['Architects', 'Architecture', 'Architect', 'Associates', 'LLC', 'Ltd', 'Inc', 'Studio', 'Design'];
+    const words = cleanName.split(/\s+/);
+    
+    // Try removing each suffix
+    for (const suffix of suffixes) {
+      if (cleanName.endsWith(suffix)) {
+        const withoutSuffix = cleanName.substring(0, cleanName.length - suffix.length).trim();
+        if (withoutSuffix.length > 0) {
+          variations.push(withoutSuffix);
+        }
+      }
+    }
+    
+    // Try abbreviations (first letters of each word)
+    if (words.length > 1) {
+      const abbreviation = words.map(w => w.charAt(0).toUpperCase()).join('');
+      variations.push(abbreviation);
+      
+      // Also try first word + abbreviation of rest
+      if (words.length > 2) {
+        const firstWord = words[0];
+        const restAbbr = words.slice(1).map(w => w.charAt(0).toUpperCase()).join('');
+        variations.push(`${firstWord} ${restAbbr}`);
+      }
+    }
+    
+    // Try common variations
+    if (cleanName.includes('Architecture')) {
+      variations.push(cleanName.replace(/Architecture/gi, 'Architects'));
+    }
+    if (cleanName.includes('Architects')) {
+      variations.push(cleanName.replace(/Architects/gi, 'Architecture'));
+    }
+    
+    return [...new Set(variations)]; // Remove duplicates
+  }
+
+  /**
    * Generate summary of created entities
    */
-  private generateSummary(createdEntities: {
+  private generateSummary(
+    createdEntities: {
     offices: Office[];
     projects: Project[];
     regulations: Regulation[];
+      workforce: Workforce[];
     mergedOffices?: Office[];
-  }): string {
+    },
+    workforceUpdates?: {
+      officeId: string;
+      officeName: string;
+      employeesAdded: number;
+      employeesUpdated: number;
+      totalEmployees: number;
+    }[]
+  ): string {
     const parts: string[] = [];
     
     if (createdEntities.offices.length > 0) {
@@ -788,6 +1372,27 @@ export class NoteProcessing {
     
     if (createdEntities.regulations.length > 0) {
       parts.push(`${createdEntities.regulations.length} regulation(s) created`);
+    }
+    
+    // Add detailed workforce update information
+    if (workforceUpdates && workforceUpdates.length > 0) {
+      for (const update of workforceUpdates) {
+        const updateMessages: string[] = [];
+        
+        if (update.employeesAdded > 0) {
+          updateMessages.push(`${update.employeesAdded} new employee(s) added`);
+        }
+        
+        if (update.employeesUpdated > 0) {
+          updateMessages.push(`${update.employeesUpdated} employee(s) updated`);
+        }
+        
+        if (updateMessages.length > 0) {
+          parts.push(`Updated ${update.officeName}: ${updateMessages.join(', ')}. Total employees: ${update.totalEmployees}`);
+        }
+      }
+    } else if (createdEntities.workforce.length > 0) {
+      parts.push(`${createdEntities.workforce.length} workforce record(s) created`);
     }
 
     if (parts.length === 0) {
@@ -837,9 +1442,9 @@ export class NoteProcessing {
       };
       
       await addDoc(collection(db, 'userInputs'), userInputData);
-      console.log('✅ User input saved to Firebase');
+      console.log('User input saved to Firebase');
     } catch (error) {
-      console.error('❌ Failed to save user input:', error);
+      console.error('Failed to save user input:', error);
     }
   }
 
@@ -848,7 +1453,7 @@ export class NoteProcessing {
    */
   private async updateUserInputProcessing(
     inputText: string, 
-    createdEntities: { offices: Office[]; projects: Project[]; regulations: Regulation[] },
+    createdEntities: { offices: Office[]; projects: Project[]; regulations: Regulation[]; workforce: Workforce[] },
     summary: string
   ): Promise<void> {
     try {
@@ -878,10 +1483,10 @@ export class NoteProcessing {
           },
           processingResult: summary
         });
-        console.log('✅ User input processing results updated');
+        console.log('User input processing results updated');
       }
     } catch (error) {
-      console.error('❌ Failed to update user input processing:', error);
+      console.error('Failed to update user input processing:', error);
     }
   }
 
@@ -900,11 +1505,11 @@ export class NoteProcessing {
     const { WebSearchAPI } = await import('./webSearchAPI');
     const webSearchAPI = WebSearchAPI.getInstance();
     
-    console.log('🔍 Checking offices for web search:', entities.offices.length);
+    console.log('Checking offices for web search:', entities.offices.length);
     
     for (const office of entities.offices) {
       if (!office.location?.headquarters?.country || !office.location?.headquarters?.city) {
-        console.log('🔍 Office details:', {
+        console.log('Office details:', {
           name: office.name,
           hasCountry: !!office.location?.headquarters?.country,
           hasCity: !!office.location?.headquarters?.city
@@ -912,25 +1517,25 @@ export class NoteProcessing {
         
         // Check if location info is already in the original text
         if (!office.name) {
-          console.log('⚠️ Office name is undefined, skipping location check');
+          console.log('Office name is undefined, skipping location check');
           continue;
         }
         const hasLocationInText = this.checkLocationInText(office.name, originalText);
         
         if (hasLocationInText) {
-          console.log('📍 Location info found in original text, skipping web search for:', office.name);
+          console.log('Location info found in original text, skipping web search for:', office.name);
           continue;
         }
         
         if (office.name) {
-          console.log('🔍 Searching web for office location:', office.name);
+          console.log('Searching web for office location:', office.name);
           const searchResult = await webSearchAPI.searchOfficeLocation(office.name);
           
-          console.log('🔍 Web search result:', searchResult);
+          console.log('Web search result:', searchResult);
           
           if (searchResult.success && searchResult.data?.extractedInfo) {
             const info = searchResult.data.extractedInfo;
-            console.log('✅ Web search found location data for:', office.name);
+            console.log('Web search found location data for:', office.name);
             
             // Update office with web search data
             if (info.country || info.city) {
@@ -948,14 +1553,14 @@ export class NoteProcessing {
               }
             }
           } else {
-            console.log('❌ Web search failed for:', office.name);
+            console.log('Web search failed for:', office.name);
           }
         }
       }
     }
     
-    console.log('🌐 Enriched office with web data:', entities.offices[0]);
-    console.log('✅ Web search enrichment completed');
+    console.log('Enriched office with web data:', entities.offices[0]);
+    console.log('Web search enrichment completed');
     
     return entities;
   }
@@ -1072,7 +1677,7 @@ export class NoteProcessing {
     // Look for location indicators near the office name
     for (const indicator of locationIndicators) {
       if (context.includes(indicator)) {
-        console.log(`📍 Found location indicator "${indicator}" near office "${officeName}"`);
+        console.log(`Found location indicator "${indicator}" near office "${officeName}"`);
         return true;
       }
     }

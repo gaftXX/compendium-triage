@@ -300,7 +300,7 @@ class BackgroundService {
             ...doc.data()
           })) as Office[];
           
-          console.log('🔄 Real-time offices update:', offices.length, 'offices');
+          console.log('Real-time offices update:', offices.length, 'offices');
           this.setCachedOffices(offices);
         },
         {
@@ -310,10 +310,10 @@ class BackgroundService {
         }
       );
       
-      console.log('✅ Real-time listener setup for offices');
+      console.log('Real-time listener setup for offices');
       return unsubscribe;
     } catch (error) {
-      console.error('❌ Failed to setup offices listener:', error);
+      console.error('Failed to setup offices listener:', error);
       return () => {};
     }
   }
@@ -328,7 +328,7 @@ class BackgroundService {
             ...doc.data()
           })) as Project[];
           
-          console.log('🔄 Real-time projects update:', projects.length, 'projects');
+          console.log('Real-time projects update:', projects.length, 'projects');
           this.setCachedProjects(projects);
         },
         {
@@ -338,10 +338,10 @@ class BackgroundService {
         }
       );
       
-      console.log('✅ Real-time listener setup for projects');
+      console.log('Real-time listener setup for projects');
       return unsubscribe;
     } catch (error) {
-      console.error('❌ Failed to setup projects listener:', error);
+      console.error('Failed to setup projects listener:', error);
       return () => {};
     }
   }
@@ -356,7 +356,7 @@ class BackgroundService {
             ...doc.data()
           })) as Regulation[];
           
-          console.log('🔄 Real-time regulations update:', regulations.length, 'regulations');
+          console.log('Real-time regulations update:', regulations.length, 'regulations');
           this.setCachedRegulations(regulations);
         },
         {
@@ -366,10 +366,10 @@ class BackgroundService {
         }
       );
       
-      console.log('✅ Real-time listener setup for regulations');
+      console.log('Real-time listener setup for regulations');
       return unsubscribe;
     } catch (error) {
-      console.error('❌ Failed to setup regulations listener:', error);
+      console.error('Failed to setup regulations listener:', error);
       return () => {};
     }
   }

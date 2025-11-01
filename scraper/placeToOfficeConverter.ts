@@ -28,7 +28,7 @@ export class PlaceToOfficeConverter {
    */
   public convertPlaceToOffice(place: PlaceResult): ConversionResult {
     try {
-      console.log('🔄 Converting place to office:', place.name);
+      console.log('Converting place to office:', place.name);
 
       // Extract location data
       const location = this.extractLocation(place);
@@ -94,14 +94,14 @@ export class PlaceToOfficeConverter {
         }
       };
 
-      console.log('✅ Successfully converted place to office:', completeOfficeData.name);
+      console.log('Successfully converted place to office:', completeOfficeData.name);
       return {
         success: true,
         office: completeOfficeData as Office
       };
 
     } catch (error) {
-      console.error('❌ Error converting place to office:', error);
+      console.error('Error converting place to office:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown conversion error'

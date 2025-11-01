@@ -144,37 +144,126 @@ export class GooglePlacesService {
       // Get detailed information for each office
       const detailedOffices = await this.getDetailedOfficeInfo(allOffices);
 
-      // Filter out non-architecture businesses
+      // STRICT FILTER: Only architecture offices - check types first, then name if needed
       const architectureOffices = detailedOffices.filter(office => {
         const name = office.name?.toLowerCase() || '';
         const types = office.types || [];
-        const businessStatus = office.business_status || '';
         
-        // Exclude construction companies, home builders, and contractors
-        const excludeKeywords = [
-          'construction', 'contractor', 'builder', 'home builder',
-          'general contractor', 'construction company', 'building contractor',
-          'renovation', 'remodeling', 'home improvement', 'construction services',
-          'excavation', 'concrete', 'roofing', 'plumbing', 'electrical',
-          'landscaping', 'paving', 'masonry', 'carpentry', 'painting',
-          'construccion', 'constructor', 'constructora', 'obra', 'reforma'
+        // PRIMARY: Check if it has 'architect' type from Google Places
+        const hasArchitectureType = types.some(type => 
+          type === 'architect' || 
+          type === 'architecture'
+        );
+        
+        // SECONDARY: If no architect type, check if name strongly indicates architecture office
+        // Only allow name-based inclusion if:
+        // 1. Name contains architecture keywords
+        // 2. Has 'establishment' type (not just random POI)
+        // 3. Doesn't have exclusion types
+        const architectureNameKeywords = [
+          'architect', 'arquitect', 'architecture', 'arquitectura',
+          'arquitectos', 'architects', 'estudio arquitectura',
+          'estudio de arquitectura', 'architectural', 'arquitectural',
+          'arquitecte', 'arquitecta', 'architectural firm', 'architect office'
         ];
         
-        // Check if name contains exclusion keywords
-        const hasExcludeKeyword = excludeKeywords.some(keyword => 
+        const hasArchitectureInName = architectureNameKeywords.some(keyword => 
           name.includes(keyword)
         );
         
-        // Check if types indicate construction/contractor business
+        const hasEstablishmentType = types.includes('establishment');
+        
+        // STRICT: Must have architect type OR (architecture in name AND establishment type)
+        if (!hasArchitectureType && (!hasArchitectureInName || !hasEstablishmentType)) {
+          console.log(`EXCLUDED: ${office.name} - No architect type and name/type don't indicate architecture office. Types:`, types);
+          return false;
+        }
+        
+        // Additional exclusions even if it has architect type
+        
+        // EXCLUDE: Travel agencies, tour operators, restaurants, cafes, bars - STRICT EXCLUSIONS
+        const excludeTypes = [
+          'travel_agency',
+          'tour_agency', 
+          'tourist_attraction',
+          'tour_operator',
+          'travel_bureau',
+          'travel_consultant',
+          'travel_service',
+          'restaurant',
+          'food',
+          'cafe',
+          'bar',
+          'bistro',
+          'bakery',
+          'meal_takeaway',
+          'meal_delivery',
+          'lodging',
+          'hotel'
+        ];
+        
+        const hasExcludedType = types.some(type => 
+          excludeTypes.some(excludeType => type.includes(excludeType))
+        );
+        
+        if (hasExcludedType) {
+          console.log(`EXCLUDED: ${office.name} - Has excluded type (travel/food/lodging):`, types);
+          return false;
+        }
+        
+        // EXCLUDE: Travel/tour/food keywords in name (even if it has architect type)
+        const excludeKeywords = [
+          'guiding', 'guide', 'tour', 'tours', 'travel', 'tourism', 'turistico',
+          'visita', 'visit', 'excursion', 'walking tour', 'city tour',
+          'restaurant', 'cafe', 'bar', 'bistro', 'food', 'dining', 'pedrera',
+          'casa milà', 'casa batlló', 'school', 'university', 'escola', 'museum'
+        ];
+        
+        const hasExcludedKeyword = excludeKeywords.some(keyword => 
+          name.includes(keyword)
+        );
+        
+        if (hasExcludedKeyword) {
+          console.log(`EXCLUDED: ${office.name} - Has excluded keyword in name (travel/food/landmark)`);
+          return false;
+        }
+        
+        // EXCLUDE: Construction/contractor businesses (but allow 'architect' type)
         const hasConstructionTypes = types.some(type => 
-          type.includes('contractor') || 
-          type.includes('construction') || 
+          (type.includes('contractor') && type !== 'architect') || 
+          (type.includes('construction') && type !== 'architect') ||
           type.includes('home_goods_store') ||
           type.includes('hardware_store')
         );
         
-        // Include only if it doesn't have exclusion keywords and doesn't have construction types
-        return !hasExcludeKeyword && !hasConstructionTypes;
+        if (hasConstructionTypes) {
+          console.log(`EXCLUDED: ${office.name} - Has construction/contractor type:`, types);
+          return false;
+        }
+        
+        // EXCLUDE: Landmarks, museums, schools, universities, tourist attractions
+        const hasLandmarkTypes = types.some(type => 
+          type === 'museum' ||
+          type === 'tourist_attraction' ||
+          type === 'church' ||
+          type === 'place_of_worship' ||
+          type === 'school' ||
+          type === 'university' ||
+          (type === 'point_of_interest' && !types.includes('establishment'))
+        );
+        
+        if (hasLandmarkTypes) {
+          console.log(`EXCLUDED: ${office.name} - Has landmark/school/tourist attraction type:`, types);
+          return false;
+        }
+        
+        // FINAL CHECK: Passed all filters
+        if (hasArchitectureType) {
+          console.log(`INCLUDED: ${office.name} - Has architect type. Types:`, types);
+        } else {
+          console.log(`INCLUDED: ${office.name} - Architecture keywords in name + establishment type. Types:`, types);
+        }
+        return true;
       });
 
       console.log(`Filtered results: ${detailedOffices.length} total -> ${architectureOffices.length} architecture offices`);

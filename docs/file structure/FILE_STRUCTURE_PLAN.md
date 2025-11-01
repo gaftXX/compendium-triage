@@ -730,14 +730,14 @@ import type { Office, Regulatory } from '@/shared/types';
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    USER TYPES IN CROSS UI                    │
-│                        (/cross/)                             │
+│                    USER TYPES IN CROSS UI                   │
+│                        (/cross/)                            │
 └────────────────────────────┬────────────────────────────────┘
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                   AI ORCHESTRATOR                            │
-│                  (/orchestrator/)                            │
+│                   AI ORCHESTRATOR                           │
+│                  (/orchestrator/)                           │
 │  • Interprets natural language                              │
 │  • Maps to actions                                          │
 │  • Executes database operations                             │
@@ -745,8 +745,8 @@ import type { Office, Regulatory } from '@/shared/types';
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                   GENERAL ENGINE                             │
-│            (/renderer/src/services/engine/)                  │
+│                   GENERAL ENGINE                            │
+│            (/renderer/src/services/engine/)                 │
 │  • Auto-registers all components                            │
 │  • Propagates effects across app                            │
 │  • Applies design system                                    │
@@ -754,8 +754,8 @@ import type { Office, Regulatory } from '@/shared/types';
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              SHARED UI COMPONENTS UPDATE                     │
-│                        (/ui/)                                │
+│              SHARED UI COMPONENTS UPDATE                    │
+│                        (/ui/)                               │
 │  • Buttons, Cards, Modals all update                        │
 │  • Same behaviors everywhere                                │
 │  • Consistent actions across app                            │

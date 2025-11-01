@@ -34,11 +34,11 @@ export class WebSearchService {
       // Check cache first
       const cacheKey = officeName.toLowerCase().trim();
       if (this.searchCache.has(cacheKey)) {
-        console.log('🔍 Using cached search result for:', officeName);
+        console.log('Using cached search result for:', officeName);
         return this.searchCache.get(cacheKey)!;
       }
 
-      console.log('🌐 Searching web for office location:', officeName);
+      console.log('Searching web for office location:', officeName);
       
       // Create search query
       const searchQuery = `${officeName} architecture firm headquarters location country city`;
@@ -49,10 +49,10 @@ export class WebSearchService {
       if (searchResult.success && searchResult.data) {
         // Cache the result
         this.searchCache.set(cacheKey, searchResult);
-        console.log('✅ Web search successful for:', officeName);
+        console.log('Web search successful for:', officeName);
         return searchResult;
       } else {
-        console.log('❌ Web search failed for:', officeName);
+        console.log('Web search failed for:', officeName);
         return {
           success: false,
           error: searchResult.error || 'Web search failed'
@@ -60,7 +60,7 @@ export class WebSearchService {
       }
       
     } catch (error) {
-      console.error('💥 Web search error:', error);
+      console.error('Web search error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown web search error'
@@ -80,7 +80,7 @@ export class WebSearchService {
       // - SerpAPI
       // - DuckDuckGo API
       
-      console.log('🔍 Mock web search for query:', query);
+      console.log('Mock web search for query:', query);
       
       // Simulate search delay
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -190,7 +190,7 @@ export class WebSearchService {
    */
   clearCache(): void {
     this.searchCache.clear();
-    console.log('🗑️ Web search cache cleared');
+    console.log('Web search cache cleared');
   }
 
   /**

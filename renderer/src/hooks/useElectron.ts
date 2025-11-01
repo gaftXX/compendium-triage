@@ -8,10 +8,10 @@ export function useElectron() {
   useEffect(() => {
     // Check if we're running in Electron
     const electronAvailable = typeof window !== 'undefined' && window.electronAPI;
-    console.log('🔧 Electron available:', electronAvailable);
-    console.log('🔧 window.electronAPI:', window.electronAPI);
-    console.log('🔧 window object:', typeof window !== 'undefined' ? Object.keys(window) : 'window undefined');
-    console.log('🔧 window.electronAPI type:', typeof window.electronAPI);
+    console.log('Electron available:', electronAvailable);
+    console.log('window.electronAPI:', window.electronAPI);
+    console.log('window object:', typeof window !== 'undefined' ? Object.keys(window) : 'window undefined');
+    console.log('window.electronAPI type:', typeof window.electronAPI);
     setIsElectron(electronAvailable);
 
     if (electronAvailable) {

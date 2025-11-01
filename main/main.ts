@@ -28,28 +28,60 @@ let mainWindow: BrowserWindow | null = null;
 let isAppQuitting = false;
 
 function createTray(): void {
-  // Create tray icon - use dedicated tray-icon.png file
-  const iconPathDev = path.join(process.cwd(), 'build/tray-icon.png');
-  const iconPathProd = path.join(__dirname, '../build/tray-icon.png');
-  const iconPath = fs.existsSync(iconPathDev) ? iconPathDev : iconPathProd;
+  // Determine if we're in development or production
+  const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'dev' || !app.isPackaged;
   
-  // Fallback to regular icon if tray icon doesn't exist
-  const fallbackPathDev = path.join(process.cwd(), 'build/icon.png');
-  const fallbackPathProd = path.join(__dirname, '../build/icon.png');
-  const fallbackPath = fs.existsSync(fallbackPathDev) ? fallbackPathDev : fallbackPathProd;
+  // Get the correct app path
+  const appPath = isDev ? process.cwd() : app.getAppPath();
+  const resourcesPath = isDev ? process.cwd() : process.resourcesPath || app.getAppPath();
   
-  const finalIconPath = fs.existsSync(iconPath) ? iconPath : fallbackPath;
+  // Try multiple possible paths for the tray icon
+  const possibleTrayIconPaths = [
+    path.join(appPath, 'build', 'tray-icon.png'),
+    path.join(resourcesPath, 'build', 'tray-icon.png'),
+    path.join(__dirname, '../build/tray-icon.png'),
+    path.join(process.cwd(), 'build/tray-icon.png')
+  ];
   
-  if (!fs.existsSync(finalIconPath)) {
-    console.error('Tray icon file not found:', finalIconPath);
+  // Fallback paths for regular icon
+  const possibleFallbackPaths = [
+    path.join(appPath, 'build', 'icon.png'),
+    path.join(resourcesPath, 'build', 'icon.png'),
+    path.join(__dirname, '../build/icon.png'),
+    path.join(process.cwd(), 'build/icon.png')
+  ];
+  
+  // Find the first existing tray icon path
+  let finalIconPath: string | null = null;
+  for (const iconPath of possibleTrayIconPaths) {
+    if (fs.existsSync(iconPath)) {
+      finalIconPath = iconPath;
+      console.log('Found tray icon at:', iconPath);
+      break;
+    }
+  }
+  
+  // If tray icon not found, try fallback
+  if (!finalIconPath) {
+    for (const fallbackPath of possibleFallbackPaths) {
+      if (fs.existsSync(fallbackPath)) {
+        finalIconPath = fallbackPath;
+        console.log('Using fallback icon at:', fallbackPath);
+        break;
+      }
+    }
+  }
+  
+  if (!finalIconPath) {
+    console.error('Tray icon file not found. Tried paths:', possibleTrayIconPaths.concat(possibleFallbackPaths));
     return;
   }
   
-  let trayIcon = nativeImage.createFromPath(finalIconPath);
+  let trayIcon = nativeImage.createFromPath(finalIconPath!);
   
   // Check if icon loaded correctly
   if (trayIcon.isEmpty()) {
-    console.error('Failed to load tray icon from:', finalIconPath);
+    console.error('Failed to load tray icon from:', finalIconPath!);
     return;
   }
   
@@ -68,7 +100,7 @@ function createTray(): void {
   try {
   tray = new Tray(trayIcon);
   tray.setToolTip('Compendium Triage');
-    console.log('Tray icon created successfully from:', finalIconPath);
+    console.log('Tray icon created successfully from:', finalIconPath!);
   } catch (error) {
     console.error('Failed to create tray icon:', error);
     return;
@@ -225,6 +257,19 @@ function setupMacMenu(): void {
         { role: 'unhide' },
         { type: 'separator' },
         { role: 'quit' }
+      ]
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'pasteAndMatchStyle' },
+        { role: 'selectAll' }
       ]
     },
     {

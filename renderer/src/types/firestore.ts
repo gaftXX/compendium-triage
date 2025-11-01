@@ -62,7 +62,10 @@ export interface Office extends BaseDocument {
   website?: string; // Office website URL
   location: {
     headquarters: Location;
-    otherOffices: Location[];
+    otherOffices: Array<{
+      address: string;
+      coordinates: GeoPoint;
+    }>;
   };
   size?: {
     employeeCount?: number;
@@ -212,8 +215,19 @@ export interface Client extends BaseDocument {
 
 // Workforce Collection
 export interface Workforce extends BaseDocument {
-  officeId?: string; // null if individual talent
-  recordType: 'office-aggregate' | 'individual' | 'team';
+  officeId: string; // Required: links to office
+  // Array of all employees for this office
+  employees: Array<{
+    name: string; // Employee's name
+    role?: string; // Employee's role/position
+    description?: string; // Description/biography about the employee
+    expertise?: string[]; // Areas of expertise
+    location?: {
+      city?: string; // City where employee is located/working
+      country?: string; // Country where employee is located/working
+    };
+  }>;
+  // Aggregate statistics
   aggregate?: {
     totalEmployees: number;
     distribution: {
@@ -1259,7 +1273,7 @@ export const COLLECTION_CONFIGS: Record<CollectionName, CollectionConfig> = {
   
   // Tier 3: Detailed Data - Enrichment
   clients: { name: 'clients', type: 'dormant', tier: 3, category: 'enrichment' },
-  workforce: { name: 'workforce', type: 'dormant', tier: 3, category: 'enrichment' },
+  workforce: { name: 'workforce', type: 'active', tier: 3, category: 'enrichment' },
   technology: { name: 'technology', type: 'dormant', tier: 3, category: 'enrichment' },
   financials: { name: 'financials', type: 'dormant', tier: 3, category: 'enrichment' },
   supplyChain: { name: 'supplyChain', type: 'dormant', tier: 3, category: 'enrichment' },
@@ -1301,7 +1315,8 @@ export const ACTIVE_COLLECTIONS: CollectionName[] = [
   'projects', 
   'regulations',
   'relationships',
-  'records'
+  'records',
+  'workforce'
 ];
 
 export const DORMANT_COLLECTIONS: CollectionName[] = Object.keys(COLLECTION_CONFIGS)

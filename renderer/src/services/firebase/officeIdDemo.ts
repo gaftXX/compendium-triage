@@ -19,7 +19,7 @@ import { COUNTRY_CODES } from './officeIdSystem';
  * Demo the complete Office ID system workflow
  */
 export async function demoOfficeIdSystem(): Promise<void> {
-  console.log('🏢 Office ID System Demo');
+  console.log('Office ID System Demo');
   console.log('========================\n');
 
   try {
@@ -29,7 +29,7 @@ export async function demoOfficeIdSystem(): Promise<void> {
     
     for (const id of testIds) {
       const validation = await validateOfficeIdService(id);
-      console.log(`   ${id}: ${validation.success ? '✅' : '❌'} ${validation.data.isValid ? 'Valid' : 'Invalid'}`);
+      console.log(`   ${id}: ${validation.success ? 'SUCCESS' : 'FAILED'} ${validation.data.isValid ? 'Valid' : 'Invalid'}`);
       if (!validation.data.isValid) {
         console.log(`      Errors: ${validation.data.errors.join(', ')}`);
       }
@@ -51,7 +51,7 @@ export async function demoOfficeIdSystem(): Promise<void> {
       if (result.success) {
         console.log(`   ${request.country} ${request.city}: ${result.data} (${result.generationInfo.attempts} attempts)`);
       } else {
-        console.log(`   ${request.country} ${request.city}: ❌ ${result.error}`);
+        console.log(`   ${request.country} ${request.city}: ${result.error}`);
       }
     }
     console.log('');
@@ -71,7 +71,7 @@ export async function demoOfficeIdSystem(): Promise<void> {
         console.log(`      Country: ${suggestions.countryInfo.name} (${suggestions.countryInfo.continent})`);
         console.log(`      City Codes: ${suggestions.cityCodeInfo.map(c => c.code).join(', ')}`);
       } else {
-        console.log(`   ${request.country} ${request.city}: ❌ ${suggestions.error}`);
+        console.log(`   ${request.country} ${request.city}: ${suggestions.error}`);
       }
     }
     console.log('');
@@ -83,9 +83,9 @@ export async function demoOfficeIdSystem(): Promise<void> {
     for (const id of testAvailabilityIds) {
       const availability = await checkOfficeIdAvailabilityService(id);
       if (availability.success) {
-        console.log(`   ${id}: ${availability.data ? '✅ Available' : '❌ Taken'}`);
+        console.log(`   ${id}: ${availability.data ? 'Available' : 'Taken'}`);
       } else {
-        console.log(`   ${id}: ❌ Error - ${availability.error}`);
+        console.log(`   ${id}: Error - ${availability.error}`);
       }
     }
     console.log('');
@@ -100,11 +100,11 @@ export async function demoOfficeIdSystem(): Promise<void> {
       console.log(`   Collision Rate: ${(stats.data.collisionRate * 100).toFixed(2)}%`);
       console.log(`   Usage by Country: ${Object.keys(stats.data.usageByCountry).length} countries`);
     } else {
-      console.log(`   ❌ Error getting statistics: ${stats.error}`);
+      console.log(`   Error getting statistics: ${stats.error}`);
     }
 
   } catch (error) {
-    console.error('❌ Demo failed:', error);
+    console.error('Demo failed:', error);
   }
 }
 
@@ -112,7 +112,7 @@ export async function demoOfficeIdSystem(): Promise<void> {
  * Demo country code system
  */
 export function demoCountryCodes(): void {
-  console.log('🌍 Country Codes Demo');
+  console.log('Country Codes Demo');
   console.log('=====================\n');
 
   const majorCountries = ['US', 'GB', 'DE', 'FR', 'JP', 'CN', 'AU', 'CA', 'AE', 'BR'];
@@ -134,7 +134,7 @@ export function demoCountryCodes(): void {
  * Demo city code generation
  */
 export function demoCityCodeGeneration(): void {
-  console.log('🏙️ City Code Generation Demo');
+  console.log('City Code Generation Demo');
   console.log('=============================\n');
 
   const testCities = [
@@ -162,7 +162,7 @@ export function demoCityCodeGeneration(): void {
         console.log(`      Alternatives: ${alternatives.slice(1).map(a => a.code).join(', ')}`);
       }
     } catch (error) {
-      console.log(`   ${city}: ❌ Error - ${error}`);
+      console.log(`   ${city}: Error - ${error}`);
     }
   });
 }
@@ -171,7 +171,7 @@ export function demoCityCodeGeneration(): void {
  * Demo office ID parsing
  */
 export function demoOfficeIdParsing(): void {
-  console.log('🔍 Office ID Parsing Demo');
+  console.log('Office ID Parsing Demo');
   console.log('==========================\n');
 
   const testOfficeIds = [
@@ -195,9 +195,9 @@ export function demoOfficeIdParsing(): void {
       console.log(`      Country: ${parsed.country} (${parsed.countryInfo?.name || 'Unknown'})`);
       console.log(`      City: ${parsed.city}`);
       console.log(`      Number: ${parsed.number}`);
-      console.log(`      Valid: ${parsed.validation.isValid ? '✅' : '❌'}`);
+      console.log(`      Valid: ${parsed.validation.isValid ? 'YES' : 'NO'}`);
     } catch (error) {
-      console.log(`   ${officeId}: ❌ Error - ${error}`);
+      console.log(`   ${officeId}: Error - ${error}`);
     }
   });
 }
@@ -206,7 +206,7 @@ export function demoOfficeIdParsing(): void {
  * Demo collision detection
  */
 export async function demoCollisionDetection(): Promise<void> {
-  console.log('🔍 Collision Detection Demo');
+  console.log('Collision Detection Demo');
   console.log('============================\n');
 
   const testIds = ['GBLO999', 'USNE001', 'AEDU500', 'FRPA123'];
@@ -216,12 +216,12 @@ export async function demoCollisionDetection(): Promise<void> {
     try {
       const availability = await checkOfficeIdAvailabilityService(id);
       if (availability.success) {
-        console.log(`   ${id}: ${availability.data ? '✅ Available' : '❌ Taken'}`);
+        console.log(`   ${id}: ${availability.data ? 'Available' : 'Taken'}`);
       } else {
-        console.log(`   ${id}: ❌ Error - ${availability.error}`);
+        console.log(`   ${id}: Error - ${availability.error}`);
       }
     } catch (error) {
-      console.log(`   ${id}: ❌ Error - ${error}`);
+      console.log(`   ${id}: Error - ${error}`);
     }
   }
 }
@@ -230,7 +230,7 @@ export async function demoCollisionDetection(): Promise<void> {
  * Demo batch operations
  */
 export async function demoBatchOperations(): Promise<void> {
-  console.log('📦 Batch Operations Demo');
+  console.log('Batch Operations Demo');
   console.log('========================\n');
 
   const batchRequests: OfficeIdGenerationOptions[] = [
@@ -252,14 +252,14 @@ export async function demoBatchOperations(): Promise<void> {
         if (result.success) {
           console.log(`      ${request.country} ${request.city}: ${result.data}`);
         } else {
-          console.log(`      ${request.country} ${request.city}: ❌ ${result.error}`);
+          console.log(`      ${request.country} ${request.city}: ${result.error}`);
         }
       });
     } else {
-      console.log(`   ❌ Batch generation failed: ${batchResult.error}`);
+      console.log(`   Batch generation failed: ${batchResult.error}`);
     }
   } catch (error) {
-    console.log(`   ❌ Batch generation error: ${error}`);
+    console.log(`   Batch generation error: ${error}`);
   }
 }
 
@@ -267,7 +267,7 @@ export async function demoBatchOperations(): Promise<void> {
  * Run complete demo
  */
 export async function runCompleteDemo(): Promise<void> {
-  console.log('🚀 Complete Office ID System Demo');
+  console.log('Complete Office ID System Demo');
   console.log('==================================\n');
 
   try {
@@ -289,9 +289,9 @@ export async function runCompleteDemo(): Promise<void> {
     
     await demoOfficeIdSystem();
     
-    console.log('\n✅ Demo completed successfully!');
+    console.log('\nDemo completed successfully!');
   } catch (error) {
-    console.error('❌ Demo failed:', error);
+    console.error('Demo failed:', error);
   }
 }
 
@@ -303,7 +303,7 @@ export async function runCompleteDemo(): Promise<void> {
  * Performance test for office ID generation
  */
 export async function performanceTest(): Promise<void> {
-  console.log('⚡ Performance Test');
+  console.log('Performance Test');
   console.log('==================\n');
 
   const testCount = 100;
@@ -338,7 +338,7 @@ export async function performanceTest(): Promise<void> {
  * Demo error handling
  */
 export async function demoErrorHandling(): Promise<void> {
-  console.log('⚠️ Error Handling Demo');
+  console.log('Error Handling Demo');
   console.log('======================\n');
 
   const errorTests = [
@@ -353,12 +353,12 @@ export async function demoErrorHandling(): Promise<void> {
     try {
       const result = await errorTest.test();
       if (result.success) {
-        console.log(`   ✅ Unexpected success: ${JSON.stringify(result.data)}`);
+        console.log(`   Unexpected success: ${JSON.stringify(result.data)}`);
       } else {
-        console.log(`   ❌ Expected error: ${result.error}`);
+        console.log(`   Expected error: ${result.error}`);
       }
     } catch (error) {
-      console.log(`   ❌ Exception: ${error}`);
+      console.log(`   Exception: ${error}`);
     }
   }
 }

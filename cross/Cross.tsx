@@ -194,10 +194,16 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
         // Then check for offices
         const createdOffices = result.entitiesCreated.offices || [];
         const mergedOffices = result.entitiesCreated.mergedOffices || [];
-        const allOffices = [...createdOffices, ...mergedOffices];
         
-        if (allOffices.length > 0) {
-          const office = allOffices[0];
+        if (mergedOffices.length > 0) {
+          // Check merged offices first
+          const office = mergedOffices[0];
+          const officeName = office.name || 'Unknown';
+          const officeId = office.id || 'Unknown';
+          setAiResponse(`office merged - ${officeName} ${officeId}`);
+        } else if (createdOffices.length > 0) {
+          // Then check created offices
+          const office = createdOffices[0];
           const officeName = office.name || 'Unknown';
           const officeId = office.id || 'Unknown';
           setAiResponse(`office added - ${officeName} ${officeId}`);
@@ -302,10 +308,16 @@ Example inputs and expected outputs:
         // Then check for offices
         const createdOffices = result.entitiesCreated.offices || [];
         const mergedOffices = result.entitiesCreated.mergedOffices || [];
-        const allOffices = [...createdOffices, ...mergedOffices];
         
-        if (allOffices.length > 0) {
-          const office = allOffices[0];
+        if (mergedOffices.length > 0) {
+          // Check merged offices first
+          const office = mergedOffices[0];
+          const officeName = office.name || 'Unknown';
+          const officeId = office.id || 'Unknown';
+          setAiResponse(`office merged - ${officeName} ${officeId}`);
+        } else if (createdOffices.length > 0) {
+          // Then check created offices
+          const office = createdOffices[0];
           const officeName = office.name || 'Unknown';
           const officeId = office.id || 'Unknown';
           setAiResponse(`office added - ${officeName} ${officeId}`);
@@ -345,7 +357,7 @@ Example inputs and expected outputs:
       if (isNoteMode) {
         if (command.toLowerCase() === 'cancel' || command.toLowerCase() === 'exit') {
           setIsNoteMode(false);
-          setAiResponse('❌ Note mode cancelled. You can now type regular commands.');
+          setAiResponse('Note mode cancelled. You can now type regular commands.');
           return;
         }
         await handleNoteCreation(command);
@@ -377,7 +389,7 @@ Example inputs and expected outputs:
         
         // Check if this is a navigation action
         if (response.action && response.action.type === 'navigate') {
-          console.log('🎯 Navigation action detected:', response.action);
+          console.log('Navigation action detected:', response.action);
           setAiResponse(response.message);
           
           // Handle navigation action using navigation service
@@ -414,6 +426,10 @@ Example inputs and expected outputs:
         }
         // Check if this is a scraper start command with session ID
         else if (response.sessionId && command.toLowerCase().trim() === 'start scraper') {
+          // Clear old scraper results when starting a new session
+          setScraperResults('');
+          setAiResponse('');
+          
           // Start the scraper session tracking (persistent)
           setScraperSessionId(response.sessionId);
           setScraperStartTime(Date.now());
@@ -426,16 +442,17 @@ Example inputs and expected outputs:
             setScraperRadius(lastPrompt.radius || 5000);
           }
           
-          // Show timer message and clear THINKING...
-          setAiResponse('');
-          setScraperResults(`SCRAPER STARTED (PERSISTENT)\n\nLOCATION: ${scraperLocation || 'Unknown'}\nRADIUS: ${(scraperRadius || 5000) / 1000}km\n\nELAPSED: 0s\n\nScraper will continue running even when navigating pages.`);
+          // Show timer message with current location/radius
+          const location = lastPrompt?.location || 'Unknown';
+          const radius = lastPrompt?.radius || 5000;
+          setScraperResults(`SCRAPER STARTED\n\nLOCATION: ${location}\nRADIUS: ${radius / 1000}km\n\nELAPSED: 0s`);
         } else {
           // Regular response
           setAiResponse(response.message);
           setPendingWebSearch(null); // Clear any pending search
         }
       } else {
-        console.log('🔍 Orchestra Error:', response.error);
+        console.log('Orchestra Error:', response.error);
         // Replace THINKING... with error message
         setAiResponse(`ERROR: ${response.error || 'Unknown error'}`);
         setPendingWebSearch(null); // Clear any pending search
@@ -519,7 +536,7 @@ Example inputs and expected outputs:
     };
   }, [scraperSessionId, scraperStartTime, scraperLocation, scraperRadius]);
 
-  // Persistent scraper polling effect
+  // Persistent scraper polling effect - ONLY show current session
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     
@@ -531,24 +548,7 @@ Example inputs and expected outputs:
         
         setActiveScrapers(activeSessions);
         
-        // Update results for completed sessions
-        const allSessions = officeScraperService.getPersistentSessions();
-        const completedSessions = allSessions.filter(s => s.status === 'completed');
-        
-        if (completedSessions.length > 0) {
-          let resultsText = 'SCRAPER RESULTS:\n';
-          completedSessions.forEach(session => {
-            if (session.stats) {
-              resultsText += `LOCATION: ${session.location}\n`;
-              resultsText += `FOUND: ${session.stats.totalFound}\n`;
-              resultsText += `SAVED: ${session.stats.successfullySaved}\n`;
-              resultsText += `MERGED: ${session.stats.duplicatesMerged}\n\n`;
-            }
-          });
-          setScraperResults(resultsText);
-        }
-        
-        // Handle current session if it exists
+        // ONLY handle current session if it exists - don't show past sessions
         if (scraperSessionId) {
           const session = officeScraperService.getSessionStatus(scraperSessionId);
           if (session) {
@@ -564,9 +564,17 @@ Example inputs and expected outputs:
                 `LOCATION: ${scraperLocation}\n` +
                 `RADIUS: ${scraperRadius / 1000}km`;
               
-              setScraperResults(resultText);
+              if (session.stats) {
+                const resultTextWithStats = resultText + 
+                  `\n\nSAVED: ${session.stats.successfullySaved}\n` +
+                  `MERGED: ${session.stats.duplicatesMerged}\n` +
+                  `FAILED: ${session.stats.failedToSave}`;
+                setScraperResults(resultTextWithStats);
+              } else {
+                setScraperResults(resultText);
+              }
               
-              // Clear current session state but keep persistent sessions
+              // Clear current session state
               setScraperSessionId(null);
               setScraperStartTime(null);
               setScraperTimer(0);
@@ -581,8 +589,33 @@ Example inputs and expected outputs:
               setScraperTimer(0);
               setScraperLocation('');
               setScraperRadius(0);
+            } else if (session.status === 'in_progress' || session.status === 'pending') {
+              // Show progress for active session
+              const elapsed = scraperStartTime ? Math.floor((Date.now() - scraperStartTime) / 1000) : 0;
+              const minutes = Math.floor(elapsed / 60);
+              const seconds = elapsed % 60;
+              const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+              
+              const progressText = `SCRAPER RUNNING\n\n` +
+                `LOCATION: ${scraperLocation}\n` +
+                `RADIUS: ${scraperRadius / 1000}km\n` +
+                `STATUS: ${session.status}\n` +
+                `ELAPSED: ${timeStr}`;
+              
+              setScraperResults(progressText);
             }
+          } else {
+            // Session not found - might have been cleared
+            setScraperResults('');
+            setScraperSessionId(null);
+            setScraperStartTime(null);
+            setScraperTimer(0);
+            setScraperLocation('');
+            setScraperRadius(0);
           }
+        } else {
+          // No current session - clear scraper results
+          setScraperResults('');
         }
       } catch (error) {
         console.error('Error polling scraper status:', error);
@@ -661,10 +694,9 @@ Example inputs and expected outputs:
           );
         })()}
 
-        {/* Claude API Status indicator at x=2, y=160 */}
-        {(() => {
+        {/* Claude API Status indicator at x=2, y=160 - only show when API is not working */}
+        {claudeApiStatus === 'error' && (() => {
           const position = positionCalculator.getPosition(160, 2);
-          const fillColor = claudeApiStatus === 'working' ? '#C8EDFC' : '#FF6B6B'; // Light blue when working, red when error
           
           return (
             <rect
@@ -673,7 +705,7 @@ Example inputs and expected outputs:
               y={position.screenY}
               width={position.width}
               height={position.height}
-              fill={fillColor}
+              fill="#FF6B6B"
               opacity={1}
             />
           );

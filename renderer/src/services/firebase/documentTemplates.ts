@@ -609,6 +609,9 @@ export class DocumentTemplateService {
           expectedCompletion: Timestamp.fromDate(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000))
         };
         
+      case 'infoEntries':
+        return 1;
+        
       default:
         return '';
     }

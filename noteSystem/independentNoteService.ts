@@ -54,7 +54,7 @@ export class IndependentNoteService {
 
   private async performInitialization(): Promise<void> {
     try {
-      console.log('🚀 Initializing Independent Note System...');
+      console.log('Initializing Independent Note System...');
       
       // Initialize Firebase independently
       await this.initializeFirebase();
@@ -66,9 +66,9 @@ export class IndependentNoteService {
       await this.verifyIndependence();
       
       this.isInitialized = true;
-      console.log('✅ Independent Note System initialized successfully');
+      console.log('Independent Note System initialized successfully');
     } catch (error) {
-      console.error('❌ Failed to initialize Independent Note System:', error);
+      console.error('Failed to initialize Independent Note System:', error);
       throw error;
     }
   }
@@ -78,14 +78,14 @@ export class IndependentNoteService {
    */
   private async initializeFirebase(): Promise<void> {
     try {
-      console.log('🔥 Initializing Firebase independently...');
+      console.log('Initializing Firebase independently...');
       
       const { initializeFirebase } = await import('../renderer/src/services/firebase');
       await initializeFirebase();
       
-      console.log('✅ Firebase initialized independently');
+      console.log('Firebase initialized independently');
     } catch (error) {
-      console.error('❌ Failed to initialize Firebase:', error);
+      console.error('Failed to initialize Firebase:', error);
       throw new Error(`Firebase initialization failed: ${(error as Error).message}`);
     }
   }
@@ -95,7 +95,7 @@ export class IndependentNoteService {
    */
   private async initializeServices(): Promise<void> {
     try {
-      console.log('🔧 Initializing note processing services...');
+      console.log('Initializing note processing services...');
       
       // Initialize all services to ensure they're ready
       NoteProcessing.getInstance();
@@ -105,9 +105,9 @@ export class IndependentNoteService {
       ClaudeAIService.getInstance();
       FirestoreNoteService.getInstance();
       
-      console.log('✅ All note processing services initialized');
+      console.log('All note processing services initialized');
     } catch (error) {
-      console.error('❌ Failed to initialize services:', error);
+      console.error('Failed to initialize services:', error);
       throw new Error(`Service initialization failed: ${(error as Error).message}`);
     }
   }
@@ -117,7 +117,7 @@ export class IndependentNoteService {
    */
   private async verifyIndependence(): Promise<void> {
     try {
-      console.log('🔍 Verifying system independence...');
+      console.log('Verifying system independence...');
       
       // Check that we don't have any orchestrator dependencies
       const hasOrchestratorDependency = await this.checkOrchestratorDependencies();
@@ -133,9 +133,9 @@ export class IndependentNoteService {
         throw new Error('Note system does not have direct Firestore access');
       }
       
-      console.log('✅ System independence verified');
+      console.log('System independence verified');
     } catch (error) {
-      console.error('❌ Independence verification failed:', error);
+      console.error('Independence verification failed:', error);
       throw error;
     }
   }
@@ -187,7 +187,7 @@ export class IndependentNoteService {
       await this.initialize();
     }
 
-    console.log('📝 Processing note with Independent Note System...');
+    console.log('Processing note with Independent Note System...');
     
     const noteProcessing = NoteProcessing.getInstance();
     return await noteProcessing.processAndCreateEntities(inputText);
@@ -201,7 +201,7 @@ export class IndependentNoteService {
       await this.initialize();
     }
 
-    console.log('📝 Processing note without web search...');
+    console.log('Processing note without web search...');
     
     const noteProcessing = NoteProcessing.getInstance();
     return await noteProcessing.processAndCreateEntitiesWithoutWebSearch(inputText);

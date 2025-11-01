@@ -28,7 +28,7 @@ export class TranslationService {
    */
   public async translateToEnglish(text: string): Promise<TranslationResult> {
     try {
-      console.log('🌐 Translation Service: Analyzing text language...');
+      console.log('Translation Service: Analyzing text language...');
       
       if (!this.apiKey) {
         throw new Error('No Anthropic API key found for translation');
@@ -38,7 +38,7 @@ export class TranslationService {
       const isEnglish = await this.detectEnglish(text);
       
       if (isEnglish) {
-        console.log('✅ Text is already in English, no translation needed');
+        console.log('Text is already in English, no translation needed');
         return {
           success: true,
           originalText: text,
@@ -48,10 +48,10 @@ export class TranslationService {
       }
 
       // Translate to English
-      console.log('🔄 Translating text to English...');
+      console.log('Translating text to English...');
       const translatedText = await this.performTranslation(text);
       
-      console.log('✅ Translation completed');
+      console.log('Translation completed');
       return {
         success: true,
         originalText: text,
@@ -60,7 +60,7 @@ export class TranslationService {
       };
 
     } catch (error) {
-      console.error('❌ Translation failed:', error);
+      console.error('Translation failed:', error);
       return {
         success: false,
         originalText: text,

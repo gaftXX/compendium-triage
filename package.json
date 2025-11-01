@@ -1,6 +1,6 @@
 {
   "name": "compendium-triage",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "AI Orchestrator Architecture App",
   "author": "Compendium Triage Team",
   "main": "dist/main/main.js",

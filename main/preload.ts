@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-console.log('🔧 Preload script loaded!');
+console.log('Preload script loaded!');
 
 // Expose protected methods to renderer
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   app: {
     getVersion: () => ipcRenderer.invoke('app:getVersion'),
     getPlatform: () => process.platform,
+    openExternal: (url: string) => ipcRenderer.invoke('app:openExternal', url),
   },
   
   // Office scraping
@@ -63,6 +64,7 @@ declare global {
       app: {
         getVersion: () => Promise<string>;
         getPlatform: () => string;
+        openExternal: (url: string) => Promise<void>;
       };
       officeScraping: {
         start: (location: string, radius?: number) => Promise<any>;

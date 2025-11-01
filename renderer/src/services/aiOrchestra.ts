@@ -98,10 +98,20 @@ export class Orchestra {
         }
       }
 
+      // Check for date/time queries first
+      const dateTimeQuery = this.recognizeDateTimeQuery(userInput);
+      if (dateTimeQuery) {
+        console.log('Date/time query recognized:', dateTimeQuery);
+        return {
+          success: true,
+          message: this.getCurrentDateTime(dateTimeQuery)
+        };
+      }
+
       // First, check for navigation actions
       const navigationAction = this.recognizeNavigationAction(userInput);
       if (navigationAction) {
-        console.log('🎯 Navigation action recognized:', navigationAction);
+        console.log('Navigation action recognized:', navigationAction);
         return {
           success: true,
           message: `Opening ${navigationAction.target}...`,
@@ -184,7 +194,7 @@ export class Orchestra {
       // Check if this is a database query first
       const databaseQuery = this.recognizeDatabaseQuery(userInput);
       if (databaseQuery) {
-        console.log('📊 Database query recognized:', databaseQuery);
+        console.log('Database query recognized:', databaseQuery);
         return await this.handleDatabaseQuery(databaseQuery);
       }
       
@@ -297,6 +307,119 @@ export class Orchestra {
         success: true,
         message: 'Web search completed but no results found. Please try a different query.'
       };
+    }
+  }
+
+  /**
+   * Recognize date/time queries
+   */
+  private recognizeDateTimeQuery(userInput: string): 'date' | 'time' | 'datetime' | null {
+    const normalizedInput = userInput.toLowerCase().trim();
+    
+    const dateQueries = [
+      'what date is today',
+      'what\'s today\'s date',
+      'today\'s date',
+      'current date',
+      'what is the date today',
+      'what is today',
+      'date today',
+      'today date',
+      'what date',
+      'date'
+    ];
+    
+    const timeQueries = [
+      'what time is it',
+      'what\'s the time',
+      'current time',
+      'what time',
+      'time now',
+      'time'
+    ];
+    
+    const dateTimeQueries = [
+      'what date and time',
+      'date and time',
+      'current date and time',
+      'now'
+    ];
+    
+    // Check for date queries
+    for (const query of dateQueries) {
+      if (normalizedInput === query || 
+          normalizedInput === `what ${query}` ||
+          normalizedInput === `${query} is it` ||
+          (normalizedInput.startsWith(query) && normalizedInput.length <= query.length + 5) ||
+          (normalizedInput.endsWith(query) && normalizedInput.length <= query.length + 5)) {
+        return 'date';
+      }
+    }
+    
+    // Check for time queries
+    for (const query of timeQueries) {
+      if (normalizedInput === query || 
+          normalizedInput === `what ${query}` ||
+          normalizedInput === `${query} is it` ||
+          (normalizedInput.startsWith(query) && normalizedInput.length <= query.length + 5) ||
+          (normalizedInput.endsWith(query) && normalizedInput.length <= query.length + 5)) {
+        return 'time';
+      }
+    }
+    
+    // Check for date and time queries
+    for (const query of dateTimeQueries) {
+      if (normalizedInput === query || 
+          normalizedInput === `what ${query}` ||
+          normalizedInput === `${query} is it` ||
+          normalizedInput.includes(query)) {
+        return 'datetime';
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * Get current date/time formatted string
+   */
+  private getCurrentDateTime(type: 'date' | 'time' | 'datetime'): string {
+    const now = new Date();
+    
+    if (type === 'date') {
+      const options: Intl.DateTimeFormatOptions = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      };
+      const dateString = now.toLocaleDateString('en-US', options);
+      return `Today is ${dateString}.`;
+    } else if (type === 'time') {
+      const options: Intl.DateTimeFormatOptions = {
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        hour12: true
+      };
+      const timeString = now.toLocaleTimeString('en-US', options);
+      return `The current time is ${timeString}.`;
+    } else {
+      const dateOptions: Intl.DateTimeFormatOptions = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      };
+      const timeOptions: Intl.DateTimeFormatOptions = {
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        hour12: true
+      };
+      const dateString = now.toLocaleDateString('en-US', dateOptions);
+      const timeString = now.toLocaleTimeString('en-US', timeOptions);
+      return `Today is ${dateString}, and the current time is ${timeString}.`;
     }
   }
 

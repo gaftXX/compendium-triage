@@ -32,7 +32,7 @@ function App() {
         
         // Initialize real-time listeners for background updates
         await backgroundService.initializeRealtimeListeners();
-        console.log('✅ Real-time listeners initialized');
+        console.log('Real-time listeners initialized');
       } catch (error) {
         console.error('Failed to initialize Firebase:', error);
         console.log('App will continue with mock data');

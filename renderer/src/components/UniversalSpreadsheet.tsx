@@ -98,13 +98,26 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
       return;
     }
     
-    // Limit to 6 offices maximum - if already 6 selected, do nothing
-    if (selectedOffices.length >= 6) {
+    // Count offices on each side
+    const leftCount = selectedOffices.filter(so => so.position === 'left').length;
+    const rightCount = selectedOffices.filter(so => so.position === 'right').length;
+    
+    // Limit to 3 offices per side - if both sides are full, do nothing
+    if (leftCount >= 3 && rightCount >= 3) {
       return;
     }
     
-    // Add new office - determine position based on selection count
-    const position = selectedOffices.length % 2 === 0 ? 'left' : 'right';
+    // Determine position: prefer the side with fewer offices, default to left if equal
+    let position: 'left' | 'right';
+    if (leftCount >= 3) {
+      position = 'right';
+    } else if (rightCount >= 3) {
+      position = 'left';
+    } else {
+      // Both sides have space - alternate starting with left
+      position = (leftCount + rightCount) % 2 === 0 ? 'left' : 'right';
+    }
+    
     setSelectedOffices(prev => [...prev, { office, position }]);
   };
 
@@ -149,10 +162,6 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
       lines.push(`ACTIVE PROJECTS: 0`);
     }
     
-    // Project Budgets/Fees - Note: Would need to aggregate from projects collection
-    // This field is not directly available in office object
-    lines.push(`PROJECT BUDGETS/FEES: N/A`);
-    
     // Client Count (connectionCounts.clients)
     if (office.connectionCounts) {
       lines.push(`CLIENT COUNT: ${office.connectionCounts.clients || 0}`);
@@ -168,14 +177,122 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
       lines.push(`LOCATION: N/A`);
     }
     
-    // Website (website)
+    // Website (website) - placeholder for clickable link
     if (office.website) {
-      lines.push(`WEBSITE: ${office.website}`);
+      lines.push(`WEBSITE: __LINK_START__${office.website}__LINK_END__`);
     } else {
       lines.push(`WEBSITE: N/A`);
     }
     
+    // Info Entries (infoEntries)
+    if (office.infoEntries !== undefined) {
+      lines.push(`INFO ENTRIES: ${office.infoEntries}`);
+    } else {
+      lines.push(`INFO ENTRIES: 0`);
+    }
+    
     return lines.join('\n');
+  };
+
+  const renderOfficeData = (office: Office): React.ReactNode => {
+    const text = formatOfficeData(office);
+    const lines = text.split('\n');
+    
+    return (
+      <>
+        {lines.map((line, index) => {
+          if (line.includes('__LINK_START__') && line.includes('__LINK_END__')) {
+            const parts = line.split('__LINK_START__');
+            const linkPart = parts[1];
+            const urlMatch = linkPart.match(/^(.*?)__LINK_END__/);
+            if (urlMatch) {
+              const url = urlMatch[1];
+              const prefix = parts[0];
+              
+              // Ensure URL has protocol for opening
+              let fullUrl = url;
+              if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                fullUrl = `https://${url}`;
+              }
+              
+              // Extract domain only for display (remove protocol and path)
+              const extractDomain = (urlString: string): string => {
+                // Remove protocol if present
+                let domain = urlString.replace(/^https?:\/\//i, '');
+                // Remove path if present (everything after first /)
+                const pathIndex = domain.indexOf('/');
+                if (pathIndex !== -1) {
+                  domain = domain.substring(0, pathIndex);
+                }
+                // Remove trailing slash
+                domain = domain.replace(/\/$/, '');
+                return domain;
+              };
+              
+              const displayUrl = extractDomain(url);
+              
+              const handleLinkClick = async (e: React.MouseEvent<HTMLSpanElement>) => {
+                // Don't open if user is selecting text (dragging to select)
+                if (window.getSelection()?.toString().length > 0) {
+                  return;
+                }
+                
+                e.stopPropagation();
+                console.log('Website link clicked:', fullUrl);
+                console.log('window.electronAPI:', window.electronAPI);
+                try {
+                  if (window.electronAPI && window.electronAPI.app && window.electronAPI.app.openExternal) {
+                    console.log('Using Electron API to open URL');
+                    const result = await window.electronAPI.app.openExternal(fullUrl);
+                    console.log('openExternal result:', result);
+                  } else {
+                    console.log('Electron API not available, using window.open fallback');
+                    const newWindow = window.open(fullUrl, '_blank');
+                    if (!newWindow) {
+                      console.error('window.open was blocked');
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error opening URL:', error);
+                  // Fallback to window.open if Electron API fails
+                  window.open(fullUrl, '_blank');
+                }
+              };
+
+              return (
+                <div key={index}>
+                  {prefix}
+                  <span
+                    onClick={handleLinkClick}
+                    onDoubleClick={(e) => {
+                      // Allow double-click to select text
+                      e.stopPropagation();
+                    }}
+                    style={{
+                      color: '#000000',
+                      cursor: 'pointer',
+                      pointerEvents: 'auto',
+                      userSelect: 'text',
+                      WebkitUserSelect: 'text',
+                      msUserSelect: 'text'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.textDecoration = 'underline';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.textDecoration = 'none';
+                    }}
+                  >
+                    {displayUrl}
+                  </span>
+                </div>
+              );
+            }
+          }
+          return <div key={index}>{line}</div>;
+        })}
+      </>
+    );
   };
   // Define column configurations for each data type
   const getColumns = (): ColumnConfig[] => {
@@ -336,14 +453,14 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
               position: 'absolute',
               // Place panel to the LEFT of the spreadsheet's left vertical line with a 5px gap
               // Spreadsheet container total width: 450px + 12px padding = 462px → half = 231px
-              // Panel width: 280px → position = 50% - 231px - 5px - 280px
-              left: dataType === 'offices' ? 'calc(50% - 231px - 5px - 280px)' : 'auto',
+              // Panel width: 200px → position = 50% - 231px - 5px - 200px
+              left: dataType === 'offices' ? 'calc(50% - 231px - 5px - 200px)' : 'auto',
               top: '50%',
               transform: 'translateY(-50%)',
               display: 'flex',
               flexDirection: 'column',
               gap: '3px',
-              maxWidth: '280px',
+              maxWidth: '200px',
               height: '528px',
               overflowY: 'auto',
               overflowX: 'hidden',
@@ -367,7 +484,7 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
                         whiteSpace: isSticky ? 'nowrap' : 'pre-wrap',
                         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
                         lineHeight: '1.4',
-                        width: '280px',
+                        width: '200px',
                         height: isSticky ? '11px' : '174px',
                         overflow: isSticky ? 'hidden' : 'hidden',
                         wordBreak: 'break-word',
@@ -382,9 +499,12 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
                           <div style={{
                             height: 'calc(174px - 14px)',
                             overflowY: 'auto',
-                            overflowX: 'hidden'
+                            overflowX: 'hidden',
+                            userSelect: 'text',
+                            WebkitUserSelect: 'text',
+                            msUserSelect: 'text'
                           }}>
-                            {formatOfficeData(selectedOffice.office)}
+                            {renderOfficeData(selectedOffice.office)}
                           </div>
                           <div style={{
                             position: 'absolute',
@@ -568,7 +688,7 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
               display: 'flex',
               flexDirection: 'column',
               gap: '3px',
-              maxWidth: '280px',
+              maxWidth: '200px',
               height: '528px',
               overflowY: 'auto',
               overflowX: 'hidden',
@@ -592,7 +712,7 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
                         whiteSpace: isSticky ? 'nowrap' : 'pre-wrap',
                         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
                         lineHeight: '1.4',
-                        width: '280px',
+                        width: '200px',
                         height: isSticky ? '11px' : '174px',
                         overflow: isSticky ? 'hidden' : 'hidden',
                         wordBreak: 'break-word',
@@ -607,9 +727,12 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
                           <div style={{
                             height: 'calc(174px - 14px)',
                             overflowY: 'auto',
-                            overflowX: 'hidden'
+                            overflowX: 'hidden',
+                            userSelect: 'text',
+                            WebkitUserSelect: 'text',
+                            msUserSelect: 'text'
                           }}>
-                            {formatOfficeData(selectedOffice.office)}
+                            {renderOfficeData(selectedOffice.office)}
                           </div>
                           <div style={{
                             position: 'absolute',

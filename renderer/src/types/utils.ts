@@ -356,7 +356,7 @@ export function getDormantCollectionStats(): CollectionStats[] {
 
 export function logOperation(operation: FirestoreOperation, result: OperationResult): void {
   const timestamp = new Date().toISOString();
-  const status = result.success ? '✅' : '❌';
+  const status = result.success ? 'SUCCESS' : 'FAILED';
   
   console.log(`[${timestamp}] ${status} ${operation.type.toUpperCase()} ${operation.collection}`, {
     operation,

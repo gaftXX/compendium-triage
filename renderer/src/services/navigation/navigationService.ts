@@ -48,12 +48,12 @@ class NavigationService {
       console.log('📞 Calling navigation callback for:', view);
       this.callbacks.onNavigate(view, params);
     } else {
-      console.warn('⚠️ No navigation callbacks registered!');
+      console.warn('No navigation callbacks registered!');
     }
     
     this.currentState.currentView = view;
     this.currentState.showCross = view === 'cross';
-    console.log('📊 Updated navigation state:', this.currentState);
+    console.log('Updated navigation state:', this.currentState);
   }
 
   /**

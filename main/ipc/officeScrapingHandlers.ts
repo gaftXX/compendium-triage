@@ -7,7 +7,7 @@ export const officeScrapingHandlers = {
   // Start a new office scraping session
   startScraping: async (event: Electron.IpcMainInvokeEvent, location: string, radius?: number) => {
     try {
-      console.log('🏢 Starting office scraping session:', { location, radius });
+      console.log('Starting office scraping session:', { location, radius });
       
       // For now, return a placeholder response
       // The actual scraping will be handled by the renderer process
@@ -17,7 +17,7 @@ export const officeScrapingHandlers = {
         sessionId: `temp_${Date.now()}`
       };
     } catch (error) {
-      console.error('❌ Error starting office scraping:', error);
+      console.error('Error starting office scraping:', error);
       return {
         success: false,
         message: `Failed to start office scraping: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -42,7 +42,7 @@ export const officeScrapingHandlers = {
         }
       };
     } catch (error) {
-      console.error('❌ Error getting session status:', error);
+      console.error('Error getting session status:', error);
       return {
         success: false,
         message: `Failed to get session status: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -58,7 +58,7 @@ export const officeScrapingHandlers = {
         results: 'Office scraping results will be available in the renderer process.'
       };
     } catch (error) {
-      console.error('❌ Error getting session results:', error);
+      console.error('Error getting session results:', error);
       return {
         success: false,
         message: `Failed to get session results: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -74,7 +74,7 @@ export const officeScrapingHandlers = {
         sessions: []
       };
     } catch (error) {
-      console.error('❌ Error getting all sessions:', error);
+      console.error('Error getting all sessions:', error);
       return {
         success: false,
         message: `Failed to get sessions: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -91,7 +91,7 @@ export const officeScrapingHandlers = {
         message: 'Google Places API key set successfully'
       };
     } catch (error) {
-      console.error('❌ Error setting API key:', error);
+      console.error('Error setting API key:', error);
       return {
         success: false,
         message: `Failed to set API key: ${error instanceof Error ? error.message : 'Unknown error'}`

@@ -17,8 +17,8 @@ export const OfficesPage: React.FC = () => {
   const [isFullWidth, setIsFullWidth] = useState(true);
   const { isElectron, resizeToMaxWidth, resizeToDefault } = useElectron();
   
-  console.log('🔧 OfficesPage - isElectron:', isElectron);
-  console.log('🔧 OfficesPage - window.electronAPI:', typeof window !== 'undefined' ? window.electronAPI : 'window undefined');
+  console.log('OfficesPage - isElectron:', isElectron);
+  console.log('OfficesPage - window.electronAPI:', typeof window !== 'undefined' ? window.electronAPI : 'window undefined');
 
   const handleClose = () => {
     navigationService.navigateToCross();
