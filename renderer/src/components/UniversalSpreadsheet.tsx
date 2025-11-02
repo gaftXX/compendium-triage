@@ -121,6 +121,17 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
     setSelectedOffices(prev => [...prev, { office, position }]);
   };
 
+  const handleOfficeDoubleClick = (office: Office, event: React.MouseEvent) => {
+    if (dataType !== 'offices') return;
+    
+    event.stopPropagation();
+    
+    // Navigate to records with office ID
+    import('../services/navigation/navigationService').then(({ navigationService }) => {
+      navigationService.navigateToRecordsWithOffice(office.id);
+    });
+  };
+
   // (removed unused resize toggle handler)
 
   const formatOfficeData = (office: Office): string => {
@@ -578,6 +589,7 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
                           onMouseEnter={() => setHoveredRowIndex(index)}
                           onMouseLeave={() => setHoveredRowIndex(null)}
                           onClick={isClickable ? (e) => handleOfficeClick(item as Office, e) : undefined}
+                          onDoubleClick={isClickable ? (e) => handleOfficeDoubleClick(item as Office, e) : undefined}
                           style={{
                             backgroundColor: isRowSelected ? '#C8EDFC' : (isHoveredIdCell ? '#C8EDFC' : '#000000'),
                             color: isRowSelected ? '#000000' : (isHoveredIdCell ? '#000000' : '#C8EDFC'),

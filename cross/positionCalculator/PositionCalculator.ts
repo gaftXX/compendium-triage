@@ -168,79 +168,7 @@ export class PositionCalculator {
   }
 
   /**
-   * ENFORCEMENT: Validate animation color follows color engine rules
-   * Throws error if animation uses invalid colors
-   */
-  validateAnimationColor(color: string, animationType: string): void {
-    // ENFORCED: Only light blue (#C8EDFC) allowed for animations
-    if (color !== this.ANIMATION_COLOR) {
-      throw new Error(`Animation color enforcement violation: ${animationType} animation attempted to use color '${color}'. Only light blue (#C8EDFC) is allowed for animations.`);
-    }
-  }
-
-  /**
-   * ENFORCEMENT: Validate animation frame follows color engine rules
-   * Throws error if animation frame uses invalid colors
-   */
-  validateAnimationFrame(frame: { matrixRow: number; matrixCol: number; color: string; opacity: number; timestamp: number }, animationType: string): void {
-    // ENFORCED: Only light blue (#C8EDFC) allowed for animations
-    if (frame.color !== this.ANIMATION_COLOR) {
-      throw new Error(`Animation frame enforcement violation: ${animationType} animation frame at [${frame.matrixRow},${frame.matrixCol}] attempted to use color '${frame.color}'. Only light blue (#C8EDFC) is allowed for animations.`);
-    }
-    
-    // ENFORCED: No white rectangles allowed (additional safety check)
-    const normalizedColor = frame.color?.toUpperCase?.() ?? frame.color;
-    if (normalizedColor === '#FFFFFF' || normalizedColor === 'WHITE') {
-      throw new Error(`Animation frame enforcement violation: ${animationType} animation frame at [${frame.matrixRow},${frame.matrixCol}] attempted to use white color. White rectangles are not allowed in animations.`);
-    }
-  }
-
-  /**
-   * ENFORCEMENT: Validate entire animation follows color engine rules
-   * Throws error if any frame uses invalid colors
-   */
-  validateAnimation(frames: Array<{ matrixRow: number; matrixCol: number; color: string; opacity: number; timestamp: number }>, animationType: string): void {
-    frames.forEach((frame, index) => {
-      try {
-        this.validateAnimationFrame(frame, animationType);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new Error(`Animation validation failed at frame ${index}: ${errorMessage}`);
-      }
-    });
-  }
-
-  /**
-   * ENFORCEMENT: Create animation frame with enforced color
-   * Returns animation frame with guaranteed light blue color
-   */
-  createEnforcedAnimationFrame(matrixRow: number, matrixCol: number, opacity: number, timestamp: number): { matrixRow: number; matrixCol: number; color: string; opacity: number; timestamp: number } {
-    return {
-      matrixRow,
-      matrixCol,
-      color: this.ANIMATION_COLOR, // ENFORCED: Light blue only
-      opacity,
-      timestamp
-    };
-  }
-
-  /**
-   * ENFORCEMENT: Get enforced animation color
-   * Returns the only allowed animation color
-   */
-  getEnforcedAnimationColor(): string {
-    return this.ANIMATION_COLOR;
-  }
-
-  /**
-   * ENFORCEMENT: Check if color is allowed for animations
-   */
-  isAllowedAnimationColor(color: string): boolean {
-    return color === this.ANIMATION_COLOR;
-  }
-
-  /**
-   * ENFORCEMENT: Get all color engine rules
+   * Get color engine rules (kept for reference)
    */
   getColorEngineRules() {
     return {
@@ -256,32 +184,5 @@ export class PositionCalculator {
         'Edge rectangles use #444444'
       ]
     };
-  }
-
-  /**
-   * ENFORCEMENT: Static method to validate any animation
-   * Use this in any animation class to enforce color rules
-   */
-  static validateAnimationEnforcement(frames: Array<{ matrixRow: number; matrixCol: number; color: string; opacity: number; timestamp: number }>, animationType: string): void {
-    const calculator = new PositionCalculator();
-    calculator.validateAnimation(frames, animationType);
-  }
-
-  /**
-   * ENFORCEMENT: Static method to create enforced animation frame
-   * Use this in any animation class to create compliant frames
-   */
-  static createEnforcedFrame(matrixRow: number, matrixCol: number, opacity: number, timestamp: number): { matrixRow: number; matrixCol: number; color: string; opacity: number; timestamp: number } {
-    const calculator = new PositionCalculator();
-    return calculator.createEnforcedAnimationFrame(matrixRow, matrixCol, opacity, timestamp);
-  }
-
-  /**
-   * ENFORCEMENT: Static method to get enforced animation color
-   * Use this in any animation class to get the only allowed color
-   */
-  static getEnforcedAnimationColor(): string {
-    const calculator = new PositionCalculator();
-    return calculator.getEnforcedAnimationColor();
   }
 }

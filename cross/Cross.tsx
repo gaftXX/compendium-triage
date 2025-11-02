@@ -15,19 +15,20 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
   // State management using PageEngine
   const [isShiftSActive, setIsShiftSActive] = useState(false);
   const [aiResponse, setAiResponse] = useState('');
-  const [pendingWebSearch, setPendingWebSearch] = useState<string | null>(null);
-  const [isNoteMode, setIsNoteMode] = useState(false); // New state for note mode
-  const [isLocationPrompt, setIsLocationPrompt] = useState(false); // State for location prompt
-  const [pendingOfficeData, setPendingOfficeData] = useState<any>(null); // Store office data while waiting for location
+  const [isNoteMode, setIsNoteMode] = useState(false);
+  const [locationPrompt, setLocationPrompt] = useState<{
+    active: boolean;
+    officeData: any;
+  } | null>(null);
   
   // Scraper session tracking
-  const [scraperSessionId, setScraperSessionId] = useState<string | null>(null);
-  const [scraperStartTime, setScraperStartTime] = useState<number | null>(null);
-  const [scraperTimer, setScraperTimer] = useState<number>(0);
-  const [scraperLocation, setScraperLocation] = useState<string>('');
-  const [scraperRadius, setScraperRadius] = useState<number>(0);
-  const [activeScrapers, setActiveScrapers] = useState<any[]>([]);
-  const [scraperResults, setScraperResults] = useState<string>('');
+  const [scraper, setScraper] = useState<{
+    sessionId: string | null;
+    startTime: number | null;
+    location: string;
+    radius: number;
+    results: string;
+  } | null>(null);
   const [claudeApiStatus, setClaudeApiStatus] = useState<'working' | 'error'>('error');
   
   // Memoized instances to prevent recreation on every render
@@ -47,23 +48,19 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
       await claudeAI.chat('test');
       setClaudeApiStatus('working');
     } catch (error) {
-      console.log('Claude API status check failed:', error);
       setClaudeApiStatus('error');
     }
   };
 
   // Get API keys from environment
-  const claudeApiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-  const googlePlacesApiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
+  const claudeApiKey = (import.meta as any).env.VITE_ANTHROPIC_API_KEY;
+  const googlePlacesApiKey = (import.meta as any).env.VITE_GOOGLE_PLACES_API_KEY;
 
   // Hotkeys are owned by PageEngine
   // Grid: 31 columns, dynamic rows to fill window height with 4px cells
   // Rectangle dimensions: 40px width (x), 4px height (y)
-  // Global text rule: All text is 10px, ALL CAPS, and normal weight
   const rectWidth = 40;
   const rectHeight = 4;
-  const globalTextSize = 10;
-  const globalTextWeight = 'normal';
   const columns = 31;
   const rows = Math.floor(window.innerHeight / rectHeight);
   const gridHeight = rows * rectHeight;
@@ -109,6 +106,39 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
     return rects;
   }, [rows, columns, rectWidth, rectHeight, verticalOffset]);
 
+  // Format entity response message
+  const formatEntityResponse = (result: any): string => {
+    // Check for projects first
+    const createdProjects = result.entitiesCreated?.projects || [];
+    if (createdProjects.length > 0) {
+      const project = createdProjects[0];
+      const projectName = project.projectName || 'Unknown';
+      const location = project.location;
+      const locationStr = location 
+        ? `${location.city || 'Unknown City'}, ${location.country || 'Unknown Country'}`
+        : 'Unknown Location';
+      return `new project added - ${projectName}, ${locationStr}`;
+    }
+    
+    // Then check for offices
+    const createdOffices = result.entitiesCreated?.offices || [];
+    const mergedOffices = result.entitiesCreated?.mergedOffices || [];
+    
+    if (mergedOffices.length > 0) {
+      const office = mergedOffices[0];
+      const officeName = office.name || 'Unknown';
+      const officeId = office.id || 'Unknown';
+      return `office merged - ${officeName} ${officeId}`;
+    } else if (createdOffices.length > 0) {
+      const office = createdOffices[0];
+      const officeName = office.name || 'Unknown';
+      const officeId = office.id || 'Unknown';
+      return `office added - ${officeName} ${officeId}`;
+    } else {
+      return `NOTE CREATED SUCCESSFULLY!`;
+    }
+  };
+
   // Handle note creation
   const handleNoteCreation = async (noteContent: string) => {
     try {
@@ -128,18 +158,17 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
 
         // Import necessary services
         const { firestoreOperations } = await import('../renderer/src/services/firebase/firestoreOperations');
-        const { RecordData } = await import('../renderer/src/types/firestore');
         const { Timestamp } = await import('firebase/firestore');
 
         // Create record directly (ID will be auto-generated as {number}-{DDMMYYYY})
         const now = Timestamp.now();
-        const recordData: Omit<RecordData, 'id'> = {
+        const recordData = {
           text: recordText,
           createdAt: now,
           updatedAt: now
         };
 
-        const result = await firestoreOperations.create<RecordData>('records', recordData);
+        const result = await firestoreOperations.create('records', recordData);
 
         if (result.success) {
           setAiResponse(`Record created successfully: "${recordText}"`);
@@ -167,8 +196,10 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
         
         if (!hasLocation) {
           // Store the office data and prompt for location
-          setPendingOfficeData(officeData);
-          setIsLocationPrompt(true);
+          setLocationPrompt({
+            active: true,
+            officeData: officeData
+          });
           setAiResponse(`Office identified: ${officeData.name || 'Unknown'}\n\nPlease provide the office location:`);
           return;
         }
@@ -178,38 +209,7 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
       const result = await noteService.processNoteWithoutWebSearch(noteContent);
       
       if (result.success) {
-        // Check for projects first
-        const createdProjects = result.entitiesCreated.projects || [];
-        if (createdProjects.length > 0) {
-          const project = createdProjects[0];
-          const projectName = project.projectName || 'Unknown';
-          const location = project.location;
-          const locationStr = location 
-            ? `${location.city || 'Unknown City'}, ${location.country || 'Unknown Country'}`
-            : 'Unknown Location';
-          setAiResponse(`new project added - ${projectName}, ${locationStr}`);
-          return;
-        }
-        
-        // Then check for offices
-        const createdOffices = result.entitiesCreated.offices || [];
-        const mergedOffices = result.entitiesCreated.mergedOffices || [];
-        
-        if (mergedOffices.length > 0) {
-          // Check merged offices first
-          const office = mergedOffices[0];
-          const officeName = office.name || 'Unknown';
-          const officeId = office.id || 'Unknown';
-          setAiResponse(`office merged - ${officeName} ${officeId}`);
-        } else if (createdOffices.length > 0) {
-          // Then check created offices
-          const office = createdOffices[0];
-          const officeName = office.name || 'Unknown';
-          const officeId = office.id || 'Unknown';
-          setAiResponse(`office added - ${officeName} ${officeId}`);
-        } else {
-          setAiResponse(`NOTE CREATED SUCCESSFULLY!`);
-        }
+        setAiResponse(formatEntityResponse(result));
       } else {
         setAiResponse(`ERROR: ${result.summary || 'Failed to process note'}`);
       }
@@ -228,8 +228,7 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
       }
 
       if (locationInput.toLowerCase() === 'cancel') {
-        setIsLocationPrompt(false);
-        setPendingOfficeData(null);
+        setLocationPrompt(null);
         setAiResponse('Note creation cancelled.');
         return;
       }
@@ -242,7 +241,7 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
       setAiResponse('THINKING...');
 
       // Ask Claude to extract city and country from the input
-      const locationPrompt = `Extract the city and country from this location input: "${locationInput}"
+      const locationPromptText = `Extract the city and country from this location input: "${locationInput}"
 
 Return a JSON object with this exact format:
 {
@@ -259,7 +258,7 @@ Example inputs and expected outputs:
 - "New York" -> {"city": "New York", "country": "United States"}
 - "Tokyo" -> {"city": "Tokyo", "country": "Japan"}`;
 
-      const locationResponse = await claudeAI.analyzeText(locationPrompt);
+      const locationResponse = await claudeAI.analyzeText(locationPromptText);
       
       if (!locationResponse.extraction.extractedData) {
         setAiResponse('ERROR: Could not parse location. Please try again with format: city, country');
@@ -272,7 +271,7 @@ Example inputs and expected outputs:
 
       // Update the pending office data with location
       const updatedOfficeData = {
-        ...pendingOfficeData,
+        ...locationPrompt?.officeData,
         location: {
           headquarters: {
             city: city,
@@ -283,47 +282,15 @@ Example inputs and expected outputs:
       };
 
       // Create a new note content with location information
-      const noteWithLocation = `${pendingOfficeData.name || 'Office'} located in ${city}, ${country}. ${JSON.stringify(updatedOfficeData)}`;
+      const noteWithLocation = `${locationPrompt?.officeData?.name || 'Office'} located in ${city}, ${country}. ${JSON.stringify(updatedOfficeData)}`;
       
       const result = await noteService.processNoteWithoutWebSearch(noteWithLocation);
       
       // Reset states
-      setIsLocationPrompt(false);
-      setPendingOfficeData(null);
+      setLocationPrompt(null);
       
       if (result.success) {
-        // Check for projects first
-        const createdProjects = result.entitiesCreated.projects || [];
-        if (createdProjects.length > 0) {
-          const project = createdProjects[0];
-          const projectName = project.projectName || 'Unknown';
-          const location = project.location;
-          const locationStr = location 
-            ? `${location.city || 'Unknown City'}, ${location.country || 'Unknown Country'}`
-            : 'Unknown Location';
-          setAiResponse(`new project added - ${projectName}, ${locationStr}`);
-          return;
-        }
-        
-        // Then check for offices
-        const createdOffices = result.entitiesCreated.offices || [];
-        const mergedOffices = result.entitiesCreated.mergedOffices || [];
-        
-        if (mergedOffices.length > 0) {
-          // Check merged offices first
-          const office = mergedOffices[0];
-          const officeName = office.name || 'Unknown';
-          const officeId = office.id || 'Unknown';
-          setAiResponse(`office merged - ${officeName} ${officeId}`);
-        } else if (createdOffices.length > 0) {
-          // Then check created offices
-          const office = createdOffices[0];
-          const officeName = office.name || 'Unknown';
-          const officeId = office.id || 'Unknown';
-          setAiResponse(`office added - ${officeName} ${officeId}`);
-        } else {
-          setAiResponse(`NOTE CREATED SUCCESSFULLY!`);
-        }
+        setAiResponse(formatEntityResponse(result));
       } else {
         setAiResponse(`ERROR: ${result.summary || 'Failed to process office with location'}`);
       }
@@ -335,13 +302,23 @@ Example inputs and expected outputs:
 
   // Handle command from TextBoxComponent
   const handleCommand = async (command: string) => {
-    console.log('Processing command:', command);
-    
-    // Immediately replace any existing text with THINKING...
-    setAiResponse('THINKING...');
-    
     try {
-      // Check for note mode commands
+      // Early return by mode: Check isNoteMode first
+      if (isNoteMode) {
+        setAiResponse('THINKING...');
+        await handleNoteCreation(command);
+        setIsNoteMode(false);
+        return;
+      }
+
+      // Early return by mode: Check isLocationPrompt second
+      if (locationPrompt?.active) {
+        setAiResponse('THINKING...');
+        await handleLocationInput(command);
+        return;
+      }
+
+      // Then handle commands: Check for mode toggle commands
       if (command.toLowerCase() === 'add note') {
         setIsNoteMode(true);
         setAiResponse('Enter your note content and press Enter to analyze and save.');
@@ -354,23 +331,9 @@ Example inputs and expected outputs:
         return;
       }
 
-      if (isNoteMode) {
-        if (command.toLowerCase() === 'cancel' || command.toLowerCase() === 'exit') {
-          setIsNoteMode(false);
-          setAiResponse('Note mode cancelled. You can now type regular commands.');
-          return;
-        }
-        await handleNoteCreation(command);
-        setIsNoteMode(false);
-        return;
-      }
-
-      // Handle location prompt
-      if (isLocationPrompt) {
-        await handleLocationInput(command);
-        return;
-      }
-
+      // Handle regular commands with orchestra
+      setAiResponse('THINKING...');
+      
       // Set the API keys before processing
       orchestra.setApiKey(claudeApiKey);
       
@@ -382,14 +345,10 @@ Example inputs and expected outputs:
       }
       
       const response = await orchestra.processInput(command);
-      console.log('Orchestra Response received:', response);
       
       if (response.success) {
-        console.log('Setting response:', response.message);
-        
         // Check if this is a navigation action
         if (response.action && response.action.type === 'navigate') {
-          console.log('Navigation action detected:', response.action);
           setAiResponse(response.message);
           
           // Handle navigation action using navigation service
@@ -411,13 +370,11 @@ Example inputs and expected outputs:
               navigationService.navigateToRecords();
               break;
             default:
-              console.log('Unknown navigation target:', target);
               setAiResponse(`Unknown navigation target: ${target}`);
           }
         }
         // Check if this is a web search request
         else if (response.needsWebSearch && response.searchQuery) {
-          setPendingWebSearch(response.searchQuery);
           setAiResponse(`I need to search the web for current information about: ${response.searchQuery}\n\nType "yes" to search the web, or "no" to skip.`);
         }
         // Check if this is an office scraping request
@@ -426,41 +383,30 @@ Example inputs and expected outputs:
         }
         // Check if this is a scraper start command with session ID
         else if (response.sessionId && command.toLowerCase().trim() === 'start scraper') {
-          // Clear old scraper results when starting a new session
-          setScraperResults('');
           setAiResponse('');
-          
-          // Start the scraper session tracking (persistent)
-          setScraperSessionId(response.sessionId);
-          setScraperStartTime(Date.now());
-          setScraperTimer(0);
           
           // Get location and radius from the last scrape prompt
           const lastPrompt = orchestra.getLastScrapePrompt();
-          if (lastPrompt) {
-            setScraperLocation(lastPrompt.location || '');
-            setScraperRadius(lastPrompt.radius || 5000);
-          }
-          
-          // Show timer message with current location/radius
           const location = lastPrompt?.location || 'Unknown';
           const radius = lastPrompt?.radius || 5000;
-          setScraperResults(`SCRAPER STARTED\n\nLOCATION: ${location}\nRADIUS: ${radius / 1000}km\n\nELAPSED: 0s`);
+          
+          // Start the scraper session tracking (persistent)
+          setScraper({
+            sessionId: response.sessionId,
+            startTime: Date.now(),
+            location: location,
+            radius: radius,
+            results: `SCRAPER STARTED\n\nLOCATION: ${location}\nRADIUS: ${radius / 1000}km\n\nELAPSED: 0s`
+          });
         } else {
           // Regular response
           setAiResponse(response.message);
-          setPendingWebSearch(null); // Clear any pending search
         }
       } else {
-        console.log('Orchestra Error:', response.error);
-        // Replace THINKING... with error message
         setAiResponse(`ERROR: ${response.error || 'Unknown error'}`);
-        setPendingWebSearch(null); // Clear any pending search
       }
     } catch (error) {
-      // Replace THINKING... with error message
       setAiResponse(`ERROR: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setPendingWebSearch(null); // Clear any pending search
     }
   };
 
@@ -476,14 +422,10 @@ Example inputs and expected outputs:
       keyCombination: 'Shift+S',
       description: 'Toggle Shift+S mode for special functionality',
       onActivate: () => {
-        console.log('onActivate called - setting state to true');
         setIsShiftSActive(true);
-        console.log('Shift+S Mode ACTIVATED');
       },
       onDeactivate: () => {
-        console.log('onDeactivate called - setting state to false');
         setIsShiftSActive(false);
-        console.log('Shift+S Mode DEACTIVATED');
       }
     });
 
@@ -491,12 +433,6 @@ Example inputs and expected outputs:
     return () => {
       pageEngine.destroy();
     };
-  }, []);
-
-  // Log API key status once on mount
-  useEffect(() => {
-    console.log('Cross component - Claude API key available:', !!claudeApiKey);
-    console.log('Cross component - Google Places API key available:', !!googlePlacesApiKey);
   }, []);
 
   // Check Claude API status on mount and periodically
@@ -510,31 +446,6 @@ Example inputs and expected outputs:
     return () => clearInterval(interval);
   }, [claudeApiKey]);
 
-  // Timer effect for scraper
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    
-    if (scraperSessionId && scraperStartTime) {
-      interval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - scraperStartTime) / 1000);
-        setScraperTimer(elapsed);
-        
-        // Update display with current timer
-        const minutes = Math.floor(elapsed / 60);
-        const seconds = elapsed % 60;
-        const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
-        
-        // Update scraper results with current timer
-        setScraperResults(`SCRAPER RUNNING\n\nLOCATION: ${scraperLocation}\nRADIUS: ${scraperRadius / 1000}km\n\nELAPSED: ${timeStr}`);
-      }, 1000);
-    }
-    
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [scraperSessionId, scraperStartTime, scraperLocation, scraperRadius]);
 
   // Persistent scraper polling effect - ONLY show current session
   useEffect(() => {
@@ -544,16 +455,13 @@ Example inputs and expected outputs:
       try {
         const { OfficeScraperService } = await import('../scraper/officeScraperService.ts');
         const officeScraperService = OfficeScraperService.getInstance();
-        const activeSessions = officeScraperService.getActivePersistentSessions();
-        
-        setActiveScrapers(activeSessions);
         
         // ONLY handle current session if it exists - don't show past sessions
-        if (scraperSessionId) {
-          const session = officeScraperService.getSessionStatus(scraperSessionId);
+        if (scraper?.sessionId) {
+          const session = officeScraperService.getSessionStatus(scraper.sessionId);
           if (session) {
             if (session.status === 'completed' && session.results) {
-              const duration = scraperStartTime ? Math.floor((Date.now() - scraperStartTime) / 1000) : 0;
+              const duration = scraper.startTime ? Math.floor((Date.now() - scraper.startTime) / 1000) : 0;
               const minutes = Math.floor(duration / 60);
               const seconds = duration % 60;
               const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
@@ -561,61 +469,57 @@ Example inputs and expected outputs:
               const resultText = `SCRAPER COMPLETED\n\n` +
                 `OFFICES FOUND: ${session.results.totalFound}\n` +
                 `DURATION: ${timeStr}\n` +
-                `LOCATION: ${scraperLocation}\n` +
-                `RADIUS: ${scraperRadius / 1000}km`;
+                `LOCATION: ${scraper.location}\n` +
+                `RADIUS: ${scraper.radius / 1000}km`;
               
               if (session.stats) {
                 const resultTextWithStats = resultText + 
                   `\n\nSAVED: ${session.stats.successfullySaved}\n` +
                   `MERGED: ${session.stats.duplicatesMerged}\n` +
                   `FAILED: ${session.stats.failedToSave}`;
-                setScraperResults(resultTextWithStats);
+                setScraper({
+                  ...scraper,
+                  results: resultTextWithStats
+                });
               } else {
-                setScraperResults(resultText);
+                setScraper({
+                  ...scraper,
+                  results: resultText
+                });
               }
               
               // Clear current session state
-              setScraperSessionId(null);
-              setScraperStartTime(null);
-              setScraperTimer(0);
-              setScraperLocation('');
-              setScraperRadius(0);
+              setScraper(null);
             } else if (session.status === 'failed') {
-              setScraperResults(`SCRAPER FAILED\n\nERROR: ${session.results?.error || 'Unknown error'}`);
+              setScraper({
+                ...scraper,
+                results: `SCRAPER FAILED\n\nERROR: ${session.results?.error || 'Unknown error'}`
+              });
               
               // Clear current session state
-              setScraperSessionId(null);
-              setScraperStartTime(null);
-              setScraperTimer(0);
-              setScraperLocation('');
-              setScraperRadius(0);
+              setScraper(null);
             } else if (session.status === 'in_progress' || session.status === 'pending') {
               // Show progress for active session
-              const elapsed = scraperStartTime ? Math.floor((Date.now() - scraperStartTime) / 1000) : 0;
+              const elapsed = scraper.startTime ? Math.floor((Date.now() - scraper.startTime) / 1000) : 0;
               const minutes = Math.floor(elapsed / 60);
               const seconds = elapsed % 60;
               const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
               
               const progressText = `SCRAPER RUNNING\n\n` +
-                `LOCATION: ${scraperLocation}\n` +
-                `RADIUS: ${scraperRadius / 1000}km\n` +
+                `LOCATION: ${scraper.location}\n` +
+                `RADIUS: ${scraper.radius / 1000}km\n` +
                 `STATUS: ${session.status}\n` +
                 `ELAPSED: ${timeStr}`;
               
-              setScraperResults(progressText);
+              setScraper({
+                ...scraper,
+                results: progressText
+              });
             }
           } else {
             // Session not found - might have been cleared
-            setScraperResults('');
-            setScraperSessionId(null);
-            setScraperStartTime(null);
-            setScraperTimer(0);
-            setScraperLocation('');
-            setScraperRadius(0);
+            setScraper(null);
           }
-        } else {
-          // No current session - clear scraper results
-          setScraperResults('');
         }
       } catch (error) {
         console.error('Error polling scraper status:', error);
@@ -633,7 +537,7 @@ Example inputs and expected outputs:
         clearInterval(interval);
       }
     };
-  }, [scraperSessionId, scraperStartTime, scraperLocation, scraperRadius]);
+  }, [scraper?.sessionId, scraper?.startTime, scraper?.location, scraper?.radius]);
 
   return (
     <div 
@@ -733,7 +637,7 @@ Example inputs and expected outputs:
         <DisplayBoxComponent
           startRow={25}         // Moved up further (row 1 is bottom, so row 25 is much higher up)
           startCol={22}         // Right side (31 - 10 + 1 = 22)
-          text={aiResponse || scraperResults}
+          text={aiResponse || scraper?.results || ''}
           backgroundColor="transparent"
           textColor="#C8EDFC"
           textAlign="left"

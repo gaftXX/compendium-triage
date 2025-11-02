@@ -14,6 +14,7 @@ import { useElectron } from './hooks/useElectron';
 interface AppState {
   currentView: ViewType;
   showCross: boolean;
+  params?: any;
 }
 
 function App() {
@@ -44,11 +45,12 @@ function App() {
   // Register navigation service callbacks
   useEffect(() => {
     navigationService.registerCallbacks({
-      onNavigate: async (view: ViewType) => {
+      onNavigate: async (view: ViewType, params?: any) => {
         setAppState(prev => ({
           ...prev,
           currentView: view,
-          showCross: view === 'cross'
+          showCross: view === 'cross',
+          params: params
         }));
         
         // ENFORCE WINDOW SIZE RULE
@@ -78,7 +80,7 @@ function App() {
       case 'map':
         return <BarcelonaMapPage />;
       case 'records-list':
-        return <RecordsPage />;
+        return <RecordsPage params={appState.params} />;
       case 'cross':
       default:
         return <Cross />;

@@ -99,6 +99,14 @@ class NavigationService {
   }
 
   /**
+   * Navigate to Records List with specific office
+   */
+  navigateToRecordsWithOffice(officeId: string) {
+    this.currentState.selectedOffice = officeId;
+    this.navigateTo('records-list', { officeId });
+  }
+
+  /**
    * Navigate to specific office detail
    */
   navigateToOfficeDetail(officeId: string) {

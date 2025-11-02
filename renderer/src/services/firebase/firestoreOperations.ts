@@ -282,13 +282,16 @@ export class FirestoreOperationsService implements FirestoreService {
         }
       }
 
+      // Filter out undefined values before saving (Firestore doesn't allow undefined)
+      const cleanDocumentData = this.removeUndefinedValues(documentData);
+
       // Create document
-      const docRef = doc(this.db, collectionName, documentData.id);
-      await setDoc(docRef, documentData);
+      const docRef = doc(this.db, collectionName, cleanDocumentData.id);
+      await setDoc(docRef, cleanDocumentData);
 
       return {
         success: true,
-        data: documentData as DocumentType,
+        data: cleanDocumentData as DocumentType,
         message: `Document created successfully in ${collectionName}`
       };
 
@@ -1058,6 +1061,31 @@ export class FirestoreOperationsService implements FirestoreService {
       createdAt: data.createdAt || now,
       updatedAt: now
     };
+  }
+
+  /**
+   * Remove undefined values from object
+   */
+  private removeUndefinedValues(obj: any): any {
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
+    
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.removeUndefinedValues(item));
+    }
+    
+    if (typeof obj === 'object') {
+      const cleaned: any = {};
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key) && obj[key] !== undefined) {
+          cleaned[key] = this.removeUndefinedValues(obj[key]);
+        }
+      }
+      return cleaned;
+    }
+    
+    return obj;
   }
 
   /**
