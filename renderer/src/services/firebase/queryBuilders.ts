@@ -76,11 +76,6 @@ export interface RelationshipQueryOptions {
   sourceEntity?: { type: string; id: string };
   targetEntity?: { type: string; id: string };
   relationshipType?: string;
-  strength?: { min: number; max: number };
-  sentiment?: 'positive' | 'neutral' | 'negative';
-  startDateRange?: { start: Date; end: Date };
-  endDateRange?: { start: Date; end: Date };
-  tags?: string[];
   orderBy?: { field: keyof Relationship; direction: 'asc' | 'desc' }[];
   limit?: number;
   startAfter?: DocumentData;
@@ -396,48 +391,8 @@ export class QueryBuilderService {
       constraints.push(where('relationshipType', '==', options.relationshipType));
     }
 
-    // Strength range filter
-    if (options.strength) {
-      if (options.strength.min) {
-        constraints.push(where('strength', '>=', options.strength.min));
-      }
-      if (options.strength.max) {
-        constraints.push(where('strength', '<=', options.strength.max));
-      }
-    }
-
-    // Sentiment filter
-    if (options.sentiment) {
-      constraints.push(where('sentiment', '==', options.sentiment));
-    }
-
-    // Start date range filter
-    if (options.startDateRange) {
-      if (options.startDateRange.start) {
-        constraints.push(where('startDate', '>=', options.startDateRange.start));
-      }
-      if (options.startDateRange.end) {
-        constraints.push(where('startDate', '<=', options.startDateRange.end));
-      }
-    }
-
-    // End date range filter
-    if (options.endDateRange) {
-      if (options.endDateRange.start) {
-        constraints.push(where('endDate', '>=', options.endDateRange.start));
-      }
-      if (options.endDateRange.end) {
-        constraints.push(where('endDate', '<=', options.endDateRange.end));
-      }
-    }
-
-    // Tags filter (array contains)
-    if (options.tags && options.tags.length > 0) {
-      constraints.push(where('tags', 'array-contains-any', options.tags));
-    }
-
     // Ordering
-    const orderByOptions = options.orderBy || [{ field: 'startDate', direction: 'desc' as const }];
+    const orderByOptions = options.orderBy || [];
     orderByOptions.forEach(order => {
       constraints.push(orderBy(order.field, order.direction));
     });
@@ -606,18 +561,6 @@ export class QueryBuilderService {
   public getRelationshipsByEntity(entityType: string, entityId: string, limitCount: number = 50): QueryOptions {
     return this.buildRelationshipQuery({
       sourceEntity: { type: entityType, id: entityId },
-      orderBy: [{ field: 'startDate', direction: 'desc' }],
-      limit: limitCount
-    });
-  }
-
-  /**
-   * Get strong relationships (strength > 7)
-   */
-  public getStrongRelationships(limitCount: number = 50): QueryOptions {
-    return this.buildRelationshipQuery({
-      strength: { min: 7 },
-      orderBy: [{ field: 'strength', direction: 'desc' }],
       limit: limitCount
     });
   }
@@ -694,8 +637,4 @@ export function getMandatoryRegulations(limitCount: number = 50): QueryOptions {
 
 export function getRelationshipsByEntity(entityType: string, entityId: string, limitCount: number = 50): QueryOptions {
   return queryBuilder.getRelationshipsByEntity(entityType, entityId, limitCount);
-}
-
-export function getStrongRelationships(limitCount: number = 50): QueryOptions {
-  return queryBuilder.getStrongRelationships(limitCount);
 }

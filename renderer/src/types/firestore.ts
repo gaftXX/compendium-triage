@@ -124,17 +124,6 @@ export interface Relationship extends BaseDocument {
   };
   relationshipType: 'collaborator' | 'competitor' | 'client-of' | 'supplier-to' | 
                    'influenced-by' | 'acquired' | 'merged' | 'partner' | 'subcontractor';
-  strength: number; // 1-10 scale
-  sentiment: 'positive' | 'neutral' | 'negative';
-  startDate: Timestamp;
-  endDate?: Timestamp;
-  details: {
-    context: string;
-    outcomes: string[];
-    notes: string;
-  };
-  evidence: string[]; // Project IDs, document refs
-  tags: string[];
 }
 
 // ArchHistory Collection - Timeline Events and M&A Tracking
@@ -1213,7 +1202,9 @@ export type CollectionName =
   | 'financialMetrics'
   | 'externalForcesImpact'
   // Records Collection
-  | 'records';
+  | 'records'
+  // BT View Workspaces
+  | 'bt-workspaces';
 
 export type DocumentType = 
   | City
@@ -1247,7 +1238,8 @@ export type DocumentType =
   | CompetitiveAnalysis
   | FinancialMetrics
   | ExternalForcesImpact
-  | RecordData;
+  | RecordData
+  | BTWorkspace;
 
 // ============================================================================
 // UTILITY TYPES
@@ -1304,6 +1296,8 @@ export const COLLECTION_CONFIGS: Record<CollectionName, CollectionConfig> = {
   
   // Records Collection
   records: { name: 'records', type: 'active', tier: 1 },
+  // BT View Workspaces
+  'bt-workspaces': { name: 'bt-workspaces', type: 'active', tier: 1 },
 };
 
 // ============================================================================
@@ -1316,7 +1310,8 @@ export const ACTIVE_COLLECTIONS: CollectionName[] = [
   'regulations',
   'relationships',
   'records',
-  'workforce'
+  'workforce',
+  'bt-workspaces'
 ];
 
 export const DORMANT_COLLECTIONS: CollectionName[] = Object.keys(COLLECTION_CONFIGS)
@@ -1328,6 +1323,25 @@ export const DORMANT_COLLECTIONS: CollectionName[] = Object.keys(COLLECTION_CONF
 
 export interface RecordData extends BaseDocument {
   text: string;
+  officeId?: string;
 }
 
 export type RecordType = RecordData;
+
+// ============================================================================
+// BT VIEW WORKSPACES - Saved workspace layouts
+// ============================================================================
+
+export interface BTWorkspace extends BaseDocument {
+  officeId: string;
+  windows: Array<{
+    id: string;
+    type: 'basic-office-data' | 'projects-list' | 'employees-list' | 'office-notes' | 'company-structure' | 'office-financials';
+    gridPosition: {
+      row: number;
+      col: number;
+      width: number;
+      height: number;
+    };
+  }>;
+}

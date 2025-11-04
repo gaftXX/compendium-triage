@@ -121,7 +121,7 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
     setSelectedOffices(prev => [...prev, { office, position }]);
   };
 
-  const handleOfficeDoubleClick = (office: Office, event: React.MouseEvent) => {
+  const handleAddNote = (office: Office, event: React.MouseEvent) => {
     if (dataType !== 'offices') return;
     
     event.stopPropagation();
@@ -129,6 +129,17 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
     // Navigate to records with office ID
     import('../services/navigation/navigationService').then(({ navigationService }) => {
       navigationService.navigateToRecordsWithOffice(office.id);
+    });
+  };
+
+  const handleOfficeDoubleClick = (office: Office, event: React.MouseEvent) => {
+    if (dataType !== 'offices') return;
+    
+    event.stopPropagation();
+    
+    // Navigate to BT view with office ID
+    import('../services/navigation/navigationService').then(({ navigationService }) => {
+      navigationService.navigateToBTView(office.id);
     });
   };
 
@@ -173,12 +184,6 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
       lines.push(`ACTIVE PROJECTS: 0`);
     }
     
-    // Client Count (connectionCounts.clients)
-    if (office.connectionCounts) {
-      lines.push(`CLIENT COUNT: ${office.connectionCounts.clients || 0}`);
-    } else {
-      lines.push(`CLIENT COUNT: 0`);
-    }
     
     // Geographic Location (location.headquarters.city, location.headquarters.country)
     if (office.location?.headquarters) {
@@ -353,9 +358,11 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
         return [
           { key: 'rowNumber', label: '#', width: 20, render: (_value, _item, index) => (index ?? 0) + 1 },
           { key: 'projectName', label: 'PROJECT NAME', width: 300 },
-          { key: 'location', label: 'LOCATION', width: 180, render: (value) => 
-            value?.country ? `${value.country.toUpperCase()}` : 'N/A'
-          },
+          { key: 'location', label: 'LOCATION', width: 180, render: (value, item) => {
+            const locationText = value?.country ? `${value.country.toUpperCase()}` : 'N/A';
+            const officeId = item?.officeId || '';
+            return officeId ? `${locationText} ${officeId}` : locationText;
+          }},
           { key: 'details', label: 'TYPE', width: 150, render: (value) => 
             value?.projectType || 'N/A'
           }
@@ -526,9 +533,28 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
                             fontWeight: 'normal',
                             textTransform: 'uppercase',
                             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
-                            backgroundColor: '#C8EDFC'
+                            backgroundColor: '#C8EDFC',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '0 4px'
                           }}>
-                            {selectedOffice.office.id || 'N/A'}
+                            <span>{selectedOffice.office.id || 'N/A'}</span>
+                            <span
+                              onClick={(e) => handleAddNote(selectedOffice.office, e)}
+                              style={{
+                                cursor: 'pointer',
+                                opacity: 0.7
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.opacity = '1';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.opacity = '0.7';
+                              }}
+                            >
+                              ADD NOTE
+                            </span>
                           </div>
                         </>
                       )}
@@ -755,9 +781,28 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
                             fontWeight: 'normal',
                             textTransform: 'uppercase',
                             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
-                            backgroundColor: '#C8EDFC'
+                            backgroundColor: '#C8EDFC',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '0 4px'
                           }}>
-                            {selectedOffice.office.id || 'N/A'}
+                            <span>{selectedOffice.office.id || 'N/A'}</span>
+                            <span
+                              onClick={(e) => handleAddNote(selectedOffice.office, e)}
+                              style={{
+                                cursor: 'pointer',
+                                opacity: 0.7
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.opacity = '1';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.opacity = '0.7';
+                              }}
+                            >
+                              ADD NOTE
+                            </span>
                           </div>
                         </>
                       )}

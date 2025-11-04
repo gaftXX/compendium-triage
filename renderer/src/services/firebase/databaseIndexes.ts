@@ -198,6 +198,22 @@ const officesIndexes: CompositeIndex[] = [
 // Projects Collection Indexes
 const projectsIndexes: CompositeIndex[] = [
   {
+    name: 'projects-office-name',
+    collectionGroup: 'projects',
+    queryScope: 'COLLECTION',
+    fields: [
+      { fieldPath: 'officeId', order: 'ASCENDING' },
+      { fieldPath: 'projectName', order: 'ASCENDING' }
+    ],
+    description: 'Query projects by office ordered by name',
+    queryPatterns: [
+      'where("officeId", "==", "GBLO482").orderBy("projectName", "asc")',
+      'where("officeId", "==", "USNE567").orderBy("projectName", "asc")'
+    ],
+    performanceImpact: 'HIGH',
+    storageCost: 'HIGH'
+  },
+  {
     name: 'projects-office-status',
     collectionGroup: 'projects',
     queryScope: 'COLLECTION',
@@ -297,8 +313,7 @@ const relationshipsIndexes: CompositeIndex[] = [
     fields: [
       { fieldPath: 'sourceEntity.type', order: 'ASCENDING' },
       { fieldPath: 'sourceEntity.id', order: 'ASCENDING' },
-      { fieldPath: 'relationshipType', order: 'ASCENDING' },
-      { fieldPath: 'startDate', order: 'DESCENDING' }
+      { fieldPath: 'relationshipType', order: 'ASCENDING' }
     ],
     description: 'Query relationships by source entity',
     queryPatterns: [
@@ -315,8 +330,7 @@ const relationshipsIndexes: CompositeIndex[] = [
     fields: [
       { fieldPath: 'targetEntity.type', order: 'ASCENDING' },
       { fieldPath: 'targetEntity.id', order: 'ASCENDING' },
-      { fieldPath: 'relationshipType', order: 'ASCENDING' },
-      { fieldPath: 'startDate', order: 'DESCENDING' }
+      { fieldPath: 'relationshipType', order: 'ASCENDING' }
     ],
     description: 'Query relationships by target entity',
     queryPatterns: [
@@ -514,6 +528,46 @@ const regulationsIndexes: CompositeIndex[] = [
   }
 ];
 
+// Records Collection Indexes
+const recordsIndexes: CompositeIndex[] = [
+  {
+    name: 'records-office-created',
+    collectionGroup: 'records',
+    queryScope: 'COLLECTION',
+    fields: [
+      { fieldPath: 'officeId', order: 'ASCENDING' },
+      { fieldPath: 'createdAt', order: 'DESCENDING' }
+    ],
+    description: 'Query records by office ordered by creation date',
+    queryPatterns: [
+      'where("officeId", "==", "GBLO482").orderBy("createdAt", "desc")',
+      'where("officeId", "==", "USNE567").orderBy("createdAt", "desc")'
+    ],
+    performanceImpact: 'HIGH',
+    storageCost: 'HIGH'
+  }
+];
+
+// Financials Collection Indexes
+const financialsIndexes: CompositeIndex[] = [
+  {
+    name: 'financials-office-date',
+    collectionGroup: 'financials',
+    queryScope: 'COLLECTION',
+    fields: [
+      { fieldPath: 'officeId', order: 'ASCENDING' },
+      { fieldPath: 'date', order: 'DESCENDING' }
+    ],
+    description: 'Query financials by office ordered by date',
+    queryPatterns: [
+      'where("officeId", "==", "GBLO482").orderBy("date", "desc")',
+      'where("officeId", "==", "USNE567").orderBy("date", "desc")'
+    ],
+    performanceImpact: 'HIGH',
+    storageCost: 'HIGH'
+  }
+];
+
 // ============================================================================
 // SINGLE FIELD INDEXES
 // ============================================================================
@@ -640,7 +694,9 @@ export const databaseIndexes: IndexConfiguration = {
     ...relationshipsIndexes,
     ...archHistoryIndexes,
     ...networkGraphIndexes,
-    ...regulationsIndexes
+    ...regulationsIndexes,
+    ...recordsIndexes,
+    ...financialsIndexes
   ],
   singleFieldIndexes,
   collectionGroups: [
@@ -650,11 +706,12 @@ export const databaseIndexes: IndexConfiguration = {
     'relationships',
     'archHistory',
     'networkGraph',
-    'regulations'
+    'regulations',
+    'records'
   ],
   totalIndexes: citiesIndexes.length + officesIndexes.length + projectsIndexes.length + 
                 relationshipsIndexes.length + archHistoryIndexes.length + 
-                networkGraphIndexes.length + regulationsIndexes.length + singleFieldIndexes.length,
+                networkGraphIndexes.length + regulationsIndexes.length + recordsIndexes.length + singleFieldIndexes.length,
   estimatedStorage: '~500MB - 2GB (depending on data volume)',
   performanceOptimization: [
     'Composite indexes for complex queries',

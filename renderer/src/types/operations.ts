@@ -161,15 +161,6 @@ export interface CreateRelationshipOperation {
     id: string;
   };
   relationshipType: string;
-  strength: number;
-  sentiment?: 'positive' | 'neutral' | 'negative';
-  details?: {
-    context: string;
-    outcomes: string[];
-    notes: string;
-  };
-  evidence?: string[];
-  tags?: string[];
 }
 
 export interface LinkEntitiesOperation {

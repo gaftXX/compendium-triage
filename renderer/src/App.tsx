@@ -5,6 +5,7 @@ import { OfficesPage } from './pages/offices';
 import { ProjectsPage } from './pages/projects';
 import { BarcelonaMapPage } from './pages/map';
 import { RecordsPage } from './pages/records';
+import { BTViewPage } from './pages/bt-view';
 import { initializeFirebase } from './services/firebase';
 import { navigationService, ViewType } from './services/navigation/navigationService';
 import { OrchestratorProvider } from './context/OrchestratorContext';
@@ -81,6 +82,8 @@ function App() {
         return <BarcelonaMapPage />;
       case 'records-list':
         return <RecordsPage params={appState.params} />;
+      case 'bt-view':
+        return <BTViewPage params={appState.params} />;
       case 'cross':
       default:
         return <Cross />;

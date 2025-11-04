@@ -5,7 +5,7 @@
  * to programmatically navigate between different views in the app.
  */
 
-export type ViewType = 'cross' | 'offices-list' | 'office-detail' | 'projects-list' | 'project-detail' | 'regulations-list' | 'regulatory-detail' | 'map' | 'records-list';
+export type ViewType = 'cross' | 'offices-list' | 'office-detail' | 'projects-list' | 'project-detail' | 'regulations-list' | 'regulatory-detail' | 'map' | 'records-list' | 'bt-view';
 
 export interface NavigationState {
   currentView: ViewType;
@@ -128,6 +128,14 @@ class NavigationService {
   navigateToRegulatoryDetail(regulationId: string) {
     this.currentState.selectedRegulation = regulationId;
     this.navigateTo('regulatory-detail', { regulationId });
+  }
+
+  /**
+   * Navigate to BT View with specific office
+   */
+  navigateToBTView(officeId: string) {
+    this.currentState.selectedOffice = officeId;
+    this.navigateTo('bt-view', { officeId });
   }
 
   /**

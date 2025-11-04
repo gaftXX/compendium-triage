@@ -175,13 +175,11 @@ const relationshipsSecurityRules: SecurityRule[] = [
     collection: 'relationships',
     rule: `// Validate relationship data structure
     function validateRelationshipData(data) {
-      return data.keys().hasAll(['id', 'sourceEntity', 'targetEntity', 'relationshipType', 'strength']) &&
+      return data.keys().hasAll(['id', 'sourceEntity', 'targetEntity', 'relationshipType']) &&
              data.id is string &&
              data.sourceEntity is map &&
              data.targetEntity is map &&
-             data.relationshipType is string &&
-             data.strength is number &&
-             data.strength >= 1 && data.strength <= 10;
+             data.relationshipType is string;
     }`,
     description: 'Relationship data validation function',
     accessLevel: 'custom',

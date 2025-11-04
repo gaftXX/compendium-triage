@@ -226,12 +226,6 @@ export const RELATIONSHIP_VALIDATION_RULES: ValidationRule<Relationship>[] = [
     validator: (value: string) => ['collaborator', 'competitor', 'client-of', 'supplier-to', 'influenced-by', 'acquired', 'merged', 'partner', 'subcontractor'].includes(value),
     message: 'Invalid relationship type',
     required: true
-  },
-  {
-    field: 'strength',
-    validator: (value: number) => typeof value === 'number' && value >= 1 && value <= 10,
-    message: 'Strength must be between 1 and 10',
-    required: true
   }
 ];
 

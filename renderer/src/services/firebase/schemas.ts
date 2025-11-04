@@ -253,30 +253,16 @@ export const relationshipsSchema: CollectionSchema<Relationship> = {
       id: ''
     },
     relationshipType: 'collaborator',
-    strength: 5,
-    sentiment: 'neutral',
-    startDate: Timestamp.now(),
-    endDate: undefined,
-    details: {
-      context: '',
-      outcomes: [],
-      notes: ''
-    },
-    evidence: [],
-    tags: [],
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now()
   }),
-  requiredFields: ['id', 'sourceEntity', 'targetEntity', 'relationshipType', 'strength', 'sentiment', 'startDate'],
-  optionalFields: ['endDate', 'details', 'evidence', 'tags'],
+  requiredFields: ['id', 'sourceEntity', 'targetEntity', 'relationshipType'],
+  optionalFields: [],
   validationRules: {
     id: { required: true, type: 'string', minLength: 1 },
     sourceEntity: { required: true, type: 'object' },
     targetEntity: { required: true, type: 'object' },
-    relationshipType: { required: true, enum: ['collaborator', 'competitor', 'client-of', 'supplier-to', 'influenced-by', 'acquired', 'merged', 'partner', 'subcontractor'] },
-    strength: { required: true, type: 'number', min: 1, max: 10 },
-    sentiment: { required: true, enum: ['positive', 'neutral', 'negative'] },
-    startDate: { required: true, type: 'object' }
+    relationshipType: { required: true, enum: ['collaborator', 'competitor', 'client-of', 'supplier-to', 'influenced-by', 'acquired', 'merged', 'partner', 'subcontractor'] }
   }
 };
 

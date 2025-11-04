@@ -1,0 +1,2 @@
+export { BTViewPage } from './BTViewPage';
+
