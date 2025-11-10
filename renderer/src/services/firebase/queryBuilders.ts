@@ -76,6 +76,8 @@ export interface RelationshipQueryOptions {
   sourceEntity?: { type: string; id: string };
   targetEntity?: { type: string; id: string };
   relationshipType?: string;
+  minStrength?: number;
+  maxStrength?: number;
   orderBy?: { field: keyof Relationship; direction: 'asc' | 'desc' }[];
   limit?: number;
   startAfter?: DocumentData;
@@ -391,6 +393,14 @@ export class QueryBuilderService {
       constraints.push(where('relationshipType', '==', options.relationshipType));
     }
 
+    // Strength range filter
+    if (options.minStrength !== undefined) {
+      constraints.push(where('strength', '>=', options.minStrength));
+    }
+    if (options.maxStrength !== undefined) {
+      constraints.push(where('strength', '<=', options.maxStrength));
+    }
+
     // Ordering
     const orderByOptions = options.orderBy || [];
     orderByOptions.forEach(order => {
@@ -564,6 +574,17 @@ export class QueryBuilderService {
       limit: limitCount
     });
   }
+
+  /**
+   * Get strong relationships (strength > 7)
+   */
+  public getStrongRelationships(limitCount: number = 50): QueryOptions {
+    return this.buildRelationshipQuery({
+      minStrength: 8,
+      orderBy: [{ field: 'strength' as keyof Relationship, direction: 'desc' }],
+      limit: limitCount
+    });
+  }
 }
 
 // ============================================================================
@@ -637,4 +658,8 @@ export function getMandatoryRegulations(limitCount: number = 50): QueryOptions {
 
 export function getRelationshipsByEntity(entityType: string, entityId: string, limitCount: number = 50): QueryOptions {
   return queryBuilder.getRelationshipsByEntity(entityType, entityId, limitCount);
+}
+
+export function getStrongRelationships(limitCount: number = 50): QueryOptions {
+  return queryBuilder.getStrongRelationships(limitCount);
 }

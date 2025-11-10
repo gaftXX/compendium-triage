@@ -1201,8 +1201,8 @@ export type CollectionName =
   | 'competitiveAnalysis'
   | 'financialMetrics'
   | 'externalForcesImpact'
-  // Records Collection
-  | 'records'
+  // Meditations Collection
+  | 'meditations'
   // BT View Workspaces
   | 'bt-workspaces';
 
@@ -1238,7 +1238,7 @@ export type DocumentType =
   | CompetitiveAnalysis
   | FinancialMetrics
   | ExternalForcesImpact
-  | RecordData
+  | MeditationData
   | BTWorkspace;
 
 // ============================================================================
@@ -1294,8 +1294,8 @@ export const COLLECTION_CONFIGS: Record<CollectionName, CollectionConfig> = {
   financialMetrics: { name: 'financialMetrics', type: 'dormant', tier: 4, category: 'market-intelligence' },
   externalForcesImpact: { name: 'externalForcesImpact', type: 'dormant', tier: 4, category: 'market-intelligence' },
   
-  // Records Collection
-  records: { name: 'records', type: 'active', tier: 1 },
+  // Meditations Collection
+  meditations: { name: 'meditations', type: 'active', tier: 1 },
   // BT View Workspaces
   'bt-workspaces': { name: 'bt-workspaces', type: 'active', tier: 1 },
 };
@@ -1309,7 +1309,7 @@ export const ACTIVE_COLLECTIONS: CollectionName[] = [
   'projects', 
   'regulations',
   'relationships',
-  'records',
+  'meditations',
   'workforce',
   'bt-workspaces'
 ];
@@ -1318,15 +1318,16 @@ export const DORMANT_COLLECTIONS: CollectionName[] = Object.keys(COLLECTION_CONF
   .filter(name => !ACTIVE_COLLECTIONS.includes(name as CollectionName)) as CollectionName[];
 
 // ============================================================================
-// RECORDS COLLECTION - Simple text records
+// MEDITATIONS COLLECTION - Simple text meditations
 // ============================================================================
 
-export interface RecordData extends BaseDocument {
+export interface MeditationData extends BaseDocument {
+  title?: string;
   text: string;
   officeId?: string;
 }
 
-export type RecordType = RecordData;
+export type MeditationType = MeditationData;
 
 // ============================================================================
 // BT VIEW WORKSPACES - Saved workspace layouts

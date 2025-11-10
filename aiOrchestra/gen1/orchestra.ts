@@ -1,13 +1,13 @@
 // Orchestra - Claude AI Integration with Web Search and Action Recognition
 // Sends user input to Claude AI and returns response, also recognizes navigation actions
 
-import { ClaudeAIService } from './claudeAIService';
-import { WebSearchService } from './webSearchService';
-import { SearchResultAnalyzer } from './searchResultAnalyzer';
-import { FirestoreQueryService } from './firebase/firestoreQueryService';
-import { OfficeScraperService, ScrapePrompt } from '../../../scraper/officeScraperService.ts';
-import { firestoreOperations } from './firebase/firestoreOperations';
-import { MeditationData } from '../../types/firestore';
+import { ClaudeAIService } from '../services/claudeAIService';
+import { WebSearchService } from '../../renderer/src/services/webSearchService';
+import { SearchResultAnalyzer } from '../../renderer/src/services/searchResultAnalyzer';
+import { FirestoreQueryService } from '../../renderer/src/services/firebase/firestoreQueryService';
+import { OfficeScraperService, ScrapePrompt } from '../../scraper/officeScraperService.ts';
+import { firestoreOperations } from '../../renderer/src/services/firebase/firestoreOperations';
+import { MeditationData } from '../../renderer/src/types/firestore';
 import { Timestamp } from 'firebase/firestore';
 
 export interface AIResponse {

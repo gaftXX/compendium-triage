@@ -1,6 +1,6 @@
 // Claude AI Service - Real AI-powered text analysis using Claude API
 
-import { Office, Project, Regulation, Client, Technology, Financial, SupplyChain, LandData, CityData, ProjectData, CompanyStructure, DivisionPercentages, NewsArticle, PoliticalContext } from '../types/firestore';
+import { Office, Project, Regulation, Client, Technology, Financial, SupplyChain, LandData, CityData, ProjectData, CompanyStructure, DivisionPercentages, NewsArticle, PoliticalContext } from '../../renderer/src/types/firestore';
 
 export interface ClaudeCategorizationResult {
   category: 'office' | 'project' | 'regulation' | 'client' | 'technology' | 'financial' | 'supplyChain' | 'landData' | 'cityData' | 'projectData' | 'companyStructure' | 'divisionPercentages' | 'newsArticle' | 'politicalContext' | 'unknown';
@@ -91,15 +91,9 @@ export class ClaudeAIService {
 
   private constructor() {
     // Get API key from environment or use fallback
-    try {
-      // Try import.meta.env first (Vite)
-      (import.meta as any)?.env; // Access to ensure Vite env tree-shakes safely
-      // Note: API key is now passed directly to chat() method, not loaded here
-      console.log('ClaudeAIService initialized (API key will be provided at runtime)');
-    } catch (error) {
-      console.warn('Could not access environment variables:', error);
-      this.apiKey = '';
-    }
+    // Note: API key is now passed directly to chat() method, not loaded here
+    console.log('ClaudeAIService initialized (API key will be provided at runtime)');
+    this.apiKey = '';
   }
 
   public static getInstance(): ClaudeAIService {
@@ -493,7 +487,7 @@ IMPORTANT: Your categorization decision is final and authoritative. Trust your a
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
+          model: 'claude-3-5-haiku-20241022', // Claude 3.5 Haiku
           max_tokens: 4000,
           messages: [
             {

@@ -77,8 +77,13 @@ class BackgroundService {
    */
   private setupGlobalEscapeHandler(): void {
     const keyboardHandler = (event: KeyboardEvent) => {
-      // ESC: Navigate back to Cross
+      // ESC: Navigate back to Cross (but skip if on BT view - it handles its own ESC)
       if (event.key === 'Escape') {
+        const currentView = navigationService.getCurrentView();
+        if (currentView === 'bt-view') {
+          // BT view handles ESC itself to go to offices page first
+          return;
+        }
         console.log('🔙 ESC pressed - Navigating back to Cross');
         navigationService.navigateToCross();
       }

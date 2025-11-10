@@ -2,10 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { PageEngine } from './engine/PageEngine';
 import { TextBoxComponent } from './multiRectangleComponents/TextBoxComponent';
 import { DisplayBoxComponent } from './multiRectangleComponents/DisplayBoxComponent';
-import { Orchestra } from '../renderer/src/services/aiOrchestra';
+import { OrchestraGen2, ActionPlan } from '../aiOrchestra';
 import { navigationService } from '../renderer/src/services/navigation/navigationService';
 import { PositionCalculator } from './positionCalculator/PositionCalculator';
 import { IndependentNoteService } from '../noteSystem/independentNoteService.ts';
+import { ensureAiOrchestraPulseAnimation } from './animations/aiOrchestraPulse';
 
 interface CrossProps {
   className?: string;
@@ -21,6 +22,10 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
     officeData: any;
   } | null>(null);
   
+  // Gen 2 Orchestra - Action Plans
+  const [actionPlans, setActionPlans] = useState<ActionPlan[]>([]);
+  const [showActionApproval, setShowActionApproval] = useState(false);
+  
   // Scraper session tracking
   const [scraper, setScraper] = useState<{
     sessionId: string | null;
@@ -30,12 +35,17 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
     results: string;
   } | null>(null);
   const [claudeApiStatus, setClaudeApiStatus] = useState<'working' | 'error'>('error');
+  const [isThinking, setIsThinking] = useState(false);
   
   // Memoized instances to prevent recreation on every render
   const pageEngine = useMemo(() => PageEngine.getInstance(), []);
-  const orchestra = useMemo(() => Orchestra.getInstance(), []);
+  const orchestraGen2 = useMemo(() => OrchestraGen2.getInstance(), []);
   const positionCalculator = useMemo(() => new PositionCalculator(), []);
   const noteService = useMemo(() => IndependentNoteService.getInstance(), []);
+
+  useEffect(() => {
+    ensureAiOrchestraPulseAnimation();
+  }, []);
 
   // Check Claude API status
   const checkClaudeApiStatus = async () => {
@@ -106,6 +116,21 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
     return rects;
   }, [rows, columns, rectWidth, rectHeight, verticalOffset]);
 
+  const centerPulseCell = useMemo(() => {
+    const matrixRow = Math.max(1, Math.round(rows / 2));
+    const matrixCol = Math.max(1, Math.round(columns / 2));
+
+    const x = (matrixCol - 1) * rectWidth;
+    const y = verticalOffset + (rows - matrixRow) * rectHeight;
+
+    return {
+      x,
+      y,
+      width: rectWidth,
+      height: rectHeight
+    };
+  }, [rows, columns, rectWidth, rectHeight, verticalOffset]);
+
   // Format entity response message
   const formatEntityResponse = (result: any): string => {
     // Check for projects first
@@ -141,18 +166,19 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
 
   // Handle note creation
   const handleNoteCreation = async (noteContent: string) => {
+    setIsThinking(true);
     try {
       if (!noteContent || noteContent.trim() === '') {
         setAiResponse('ERROR: Please provide note content.\n\nExample: New office in Tokyo with 50 employees');
         return;
       }
 
-      // Check if note starts with "/" - if so, create record directly without AI analysis
+      // Check if note starts with "/" - if so, create meditation directly without AI analysis
       const trimmedContent = noteContent.trim();
       if (trimmedContent.startsWith('/')) {
-        const recordText = trimmedContent.substring(1).trim();
-        if (!recordText) {
-          setAiResponse('ERROR: Please provide text after "/" to create a record.');
+        const meditationText = trimmedContent.substring(1).trim();
+        if (!meditationText) {
+          setAiResponse('ERROR: Please provide text after "/" to create a meditation.');
           return;
         }
 
@@ -160,20 +186,20 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
         const { firestoreOperations } = await import('../renderer/src/services/firebase/firestoreOperations');
         const { Timestamp } = await import('firebase/firestore');
 
-        // Create record directly (ID will be auto-generated as {number}-{DDMMYYYY})
+        // Create meditation directly (ID will be auto-generated as {number}-{DDMMYYYY})
         const now = Timestamp.now();
-        const recordData = {
-          text: recordText,
+        const meditationData = {
+          text: meditationText,
           createdAt: now,
           updatedAt: now
         };
 
-        const result = await firestoreOperations.create('records', recordData);
+        const result = await firestoreOperations.create('meditations', meditationData);
 
         if (result.success) {
-          setAiResponse(`Record created successfully: "${recordText}"`);
+          setAiResponse(`Meditation created successfully: "${meditationText}"`);
         } else {
-          setAiResponse(`ERROR: Failed to create record: ${result.error}`);
+          setAiResponse(`ERROR: Failed to create meditation: ${result.error}`);
         }
         return;
       }
@@ -216,11 +242,14 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
     } catch (error) {
       console.error('Note creation error:', error);
       setAiResponse(`ERROR: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
+    } finally {
+      setIsThinking(false);
     }
   };
 
   // Handle location input
   const handleLocationInput = async (locationInput: string) => {
+    setIsThinking(true);
     try {
       if (!locationInput || locationInput.trim() === '') {
         setAiResponse('ERROR: Please provide office location.');
@@ -237,8 +266,6 @@ export const Cross: React.FC<CrossProps> = ({ className }) => {
       const { ClaudeAIService } = await import('../renderer/src/services/claudeAIService');
       const claudeAI = ClaudeAIService.getInstance();
       claudeAI.setApiKey(claudeApiKey);
-
-      setAiResponse('THINKING...');
 
       // Ask Claude to extract city and country from the input
       const locationPromptText = `Extract the city and country from this location input: "${locationInput}"
@@ -297,116 +324,145 @@ Example inputs and expected outputs:
     } catch (error) {
       console.error('Location input error:', error);
       setAiResponse(`ERROR: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
+    } finally {
+      setIsThinking(false);
     }
+  };
+
+
+  // Handle action approval/rejection (Gen 2)
+  const handleApproveAction = async (actionId: string) => {
+    const updatedActions = await orchestraGen2.approveAction(actionId, actionPlans);
+    setActionPlans(updatedActions);
+  };
+
+  const handleRejectAction = async (actionId: string) => {
+    const updatedActions = await orchestraGen2.rejectAction(actionId, actionPlans);
+    setActionPlans(updatedActions);
+  };
+
+  const handleApproveAll = async () => {
+    setAiResponse('EXECUTING ACTIONS...');
+    const approvedActions = await orchestraGen2.approveAllActions(actionPlans);
+    const executedActions = await orchestraGen2.executeActions(approvedActions);
+    setActionPlans(executedActions);
+    
+    // Build result message
+    const successfulActions = executedActions.filter(a => a.status === 'completed');
+    const failedActions = executedActions.filter(a => a.status === 'failed');
+    
+    let message = '';
+    if (successfulActions.length > 0) {
+      message += `Completed ${successfulActions.length} action(s):\n`;
+      message += successfulActions.map(a => `✓ ${a.result?.message}`).join('\n');
+    }
+    if (failedActions.length > 0) {
+      message += `\n\nFailed ${failedActions.length} action(s):\n`;
+      message += failedActions.map(a => `✗ ${a.toolName}: ${a.result?.error}`).join('\n');
+    }
+    
+    setAiResponse(message);
+    setShowActionApproval(false);
+  };
+
+  const handleExecuteApproved = async () => {
+    setAiResponse('EXECUTING ACTIONS...');
+    const executedActions = await orchestraGen2.executeActions(actionPlans);
+    setActionPlans(executedActions);
+    
+    // Build result message
+    const successfulActions = executedActions.filter(a => a.status === 'completed');
+    const failedActions = executedActions.filter(a => a.status === 'failed');
+    
+    let message = '';
+    if (successfulActions.length > 0) {
+      message += `Completed ${successfulActions.length} action(s):\n`;
+      message += successfulActions.map(a => `✓ ${a.result?.message}`).join('\n');
+    }
+    if (failedActions.length > 0) {
+      message += `\n\nFailed ${failedActions.length} action(s):\n`;
+      message += failedActions.map(a => `✗ ${a.toolName}: ${a.result?.error}`).join('\n');
+    }
+    
+    setAiResponse(message);
+    setShowActionApproval(false);
+  };
+
+  const handleCancelActions = () => {
+    setActionPlans([]);
+    setShowActionApproval(false);
+    setAiResponse('Actions cancelled');
   };
 
   // Handle command from TextBoxComponent
   const handleCommand = async (command: string) => {
+    const trimmedCommand = command.trim();
+    const lowerCommand = trimmedCommand.toLowerCase();
+
     try {
       // Early return by mode: Check isNoteMode first
       if (isNoteMode) {
-        setAiResponse('THINKING...');
-        await handleNoteCreation(command);
+        setAiResponse('');
+        await handleNoteCreation(trimmedCommand);
         setIsNoteMode(false);
         return;
       }
 
       // Early return by mode: Check isLocationPrompt second
       if (locationPrompt?.active) {
-        setAiResponse('THINKING...');
-        await handleLocationInput(command);
+        setAiResponse('');
+        await handleLocationInput(trimmedCommand);
         return;
       }
 
       // Then handle commands: Check for mode toggle commands
-      if (command.toLowerCase() === 'add note') {
+      if (lowerCommand === 'add note') {
         setIsNoteMode(true);
+        setIsThinking(false);
         setAiResponse('Enter your note content and press Enter to analyze and save.');
         return;
       }
 
       // Check for reset command to clear AI response
-      if (command.toLowerCase() === 'reset' || command.toLowerCase() === 'clear') {
+      if (lowerCommand === 'reset' || lowerCommand === 'clear') {
+        setIsThinking(false);
         setAiResponse('');
         return;
       }
 
-      // Handle regular commands with orchestra
-      setAiResponse('THINKING...');
-      
-      // Set the API keys before processing
-      orchestra.setApiKey(claudeApiKey);
-      
-      // Initialize Google Places API key for office scraping
-      if (googlePlacesApiKey) {
-        const { OfficeScraperService } = await import('../scraper/officeScraperService.ts');
-        const officeScraperService = OfficeScraperService.getInstance();
-        officeScraperService.setGooglePlacesApiKey(googlePlacesApiKey);
+      // Gen 2 Orchestra - AI with full app control
+      setAiResponse('');
+      setIsThinking(true);
+
+      // Set API key for Gen 2 Orchestra
+      orchestraGen2.setApiKey(claudeApiKey);
+
+      // Process input with Gen 2 Orchestra
+      const response = await orchestraGen2.processInput(trimmedCommand);
+
+      if (response.type === 'error') {
+        setAiResponse(`ERROR: ${response.error || response.message}`);
+        return;
       }
-      
-      const response = await orchestra.processInput(command);
-      
-      if (response.success) {
-        // Check if this is a navigation action
-        if (response.action && response.action.type === 'navigate') {
-          setAiResponse(response.message);
-          
-          // Handle navigation action using navigation service
-          const target = response.action.target;
-          switch (target) {
-            case 'offices-list':
-              navigationService.navigateToOffices();
-              break;
-            case 'projects-list':
-              navigationService.navigateToProjects();
-              break;
-            case 'regulatory-list':
-              navigationService.navigateToRegulatory();
-              break;
-            case 'map':
-              navigationService.navigateToMap();
-              break;
-            case 'records-list':
-              navigationService.navigateToRecords();
-              break;
-            default:
-              setAiResponse(`Unknown navigation target: ${target}`);
-          }
-        }
-        // Check if this is a web search request
-        else if (response.needsWebSearch && response.searchQuery) {
-          setAiResponse(`I need to search the web for current information about: ${response.searchQuery}\n\nType "yes" to search the web, or "no" to skip.`);
-        }
-        // Check if this is an office scraping request
-        else if (response.needsOfficeScrape && response.scrapePrompt) {
-          setAiResponse(response.message);
-        }
-        // Check if this is a scraper start command with session ID
-        else if (response.sessionId && command.toLowerCase().trim() === 'start scraper') {
-          setAiResponse('');
-          
-          // Get location and radius from the last scrape prompt
-          const lastPrompt = orchestra.getLastScrapePrompt();
-          const location = lastPrompt?.location || 'Unknown';
-          const radius = lastPrompt?.radius || 5000;
-          
-          // Start the scraper session tracking (persistent)
-          setScraper({
-            sessionId: response.sessionId,
-            startTime: Date.now(),
-            location: location,
-            radius: radius,
-            results: `SCRAPER STARTED\n\nLOCATION: ${location}\nRADIUS: ${radius / 1000}km\n\nELAPSED: 0s`
-          });
-        } else {
-          // Regular response
-          setAiResponse(response.message);
-        }
-      } else {
-        setAiResponse(`ERROR: ${response.error || 'Unknown error'}`);
+
+      if (response.type === 'actions' && response.actions) {
+        // Show actions for approval
+        setActionPlans(response.actions);
+        setShowActionApproval(true);
+        setAiResponse(response.message);
+        return;
       }
+
+      if (response.type === 'text') {
+        setAiResponse(response.textResponse || response.message);
+        return;
+      }
+
+      setAiResponse(response.message);
     } catch (error) {
       setAiResponse(`ERROR: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsThinking(false);
     }
   };
 
@@ -581,6 +637,18 @@ Example inputs and expected outputs:
             />
           );
         })}
+
+        {isShiftSActive && isThinking && !showActionApproval && (
+          <rect
+            key="ai-orchestra-pulse"
+            x={centerPulseCell.x}
+            y={centerPulseCell.y}
+            width={centerPulseCell.width}
+            height={centerPulseCell.height}
+            fill="#C8EDFC"
+            className="ai-orchestra-pulse-cell"
+          />
+        )}
         
         {/* Blue rectangle at [10, 2] when Shift+S is active */}
         {isShiftSActive && (() => {
@@ -633,7 +701,7 @@ Example inputs and expected outputs:
       )}
 
       {/* DisplayWindow: Prompt results and scraper results */}
-      {isShiftSActive && (
+      {isShiftSActive && !showActionApproval && (
         <DisplayBoxComponent
           startRow={25}         // Moved up further (row 1 is bottom, so row 25 is much higher up)
           startCol={22}         // Right side (31 - 10 + 1 = 22)
@@ -647,6 +715,123 @@ Example inputs and expected outputs:
           style={{ zIndex: 10 }}
         />
       )}
+
+      {/* Action Approval UI - Simple text like Gen 1 */}
+      {isShiftSActive && showActionApproval && actionPlans.length > 0 && (() => {
+        const position = positionCalculator.getPosition(35, 22); // Moved higher up (from 25 to 35)
+        
+        // Build simple text display
+        let displayText = 'Actions to Perform:\n\n';
+        
+        actionPlans.forEach((action, index) => {
+          displayText += `${index + 1}. ${action.toolName}`;
+          if (action.requiresApproval) displayText += ' [REQUIRES APPROVAL]';
+          if (action.destructive) displayText += ' [DESTRUCTIVE]';
+          displayText += '\n';
+          displayText += `   ${action.toolDescription}\n`;
+          displayText += `   Status: ${action.status.toUpperCase()}\n`;
+          
+          if (action.requiresApproval && action.status === 'pending') {
+            displayText += `   `;
+          }
+          displayText += '\n';
+        });
+        
+        displayText += '\n';
+        
+        return (
+          <div
+            style={{
+              position: 'absolute',
+              left: position.screenX,
+              top: position.screenY,
+              width: 400,
+              maxHeight: 700,
+              backgroundColor: 'transparent',
+              padding: '0px',
+              zIndex: 20,
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
+              fontSize: '11px',
+              color: '#C8EDFC',
+              whiteSpace: 'pre-wrap',
+              overflowY: 'auto',
+              lineHeight: '1.4'
+            }}
+          >
+            <div style={{ marginBottom: '16px' }}>
+              {displayText}
+            </div>
+            
+            {/* Clickable text actions */}
+            <div style={{ marginTop: '8px' }}>
+              <span
+                onClick={handleApproveAll}
+                style={{
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  marginRight: '16px'
+                }}
+              >
+                Approve All & Execute
+              </span>
+              <span
+                onClick={handleExecuteApproved}
+                style={{
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  marginRight: '16px'
+                }}
+              >
+                Execute Approved
+              </span>
+              <span
+                onClick={handleCancelActions}
+                style={{
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  color: '#FF6B6B'
+                }}
+              >
+                Cancel
+              </span>
+            </div>
+            
+            {/* Individual action approvals */}
+            {actionPlans.some(a => a.requiresApproval && a.status === 'pending') && (
+              <div style={{ marginTop: '16px' }}>
+                {actionPlans.map((action, index) => (
+                  action.requiresApproval && action.status === 'pending' && (
+                    <div key={action.id} style={{ marginBottom: '4px' }}>
+                      <span style={{ marginRight: '8px' }}>Action {index + 1}:</span>
+                      <span
+                        onClick={() => handleApproveAction(action.id)}
+                        style={{
+                          textDecoration: 'underline',
+                          cursor: 'pointer',
+                          marginRight: '12px',
+                          color: '#4CAF50'
+                        }}
+                      >
+                        Approve
+                      </span>
+                      <span
+                        onClick={() => handleRejectAction(action.id)}
+                        style={{
+                          textDecoration: 'underline',
+                          cursor: 'pointer',
+                          color: '#FF6B6B'
+                        }}
+                      >
+                        Reject
+                      </span>
+                    </div>
+                  )
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       
     </div>

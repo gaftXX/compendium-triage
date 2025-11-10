@@ -132,35 +132,31 @@ export const ProjectsListWindow: React.FC<ProjectsListWindowProps> = ({ officeId
           NO PROJECTS FOUND
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           {projects.map(project => (
-            <div key={project.id} style={{ marginBottom: '8px' }}>
-              <div style={{ marginBottom: '5px' }}>
+            <div 
+              key={project.id} 
+              style={{ 
+                marginBottom: '0px',
+                padding: '5px',
+                border: '1px solid rgba(200, 237, 252, 0.25)',
+                backgroundColor: 'transparent',
+                overflow: 'hidden'
+              }}
+            >
+              <div style={{ 
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                marginBottom: '2px'
+              }}>
                 {project.projectName}
               </div>
-              <div style={{ fontSize: '10px' }}>
-                STATUS: {project.status}
-              </div>
-              {project.details?.projectType && (
-                <div>TYPE: {project.details.projectType}</div>
-              )}
-              {project.details?.size && (
-                <div>SIZE: {project.details.size.toLocaleString()} SQ M</div>
-              )}
-              {project.financial?.budget && (
-                <div>BUDGET: ${project.financial.budget.toLocaleString()} {project.financial.currency || ''}</div>
-              )}
               {project.location && (
-                <div>LOCATION: {project.location.city}, {project.location.country}</div>
-              )}
-              {project.details?.description && (
-                <div style={{ marginTop: '5px' }}>
-                  {project.details.description}
+                <div style={{ fontSize: '9px', opacity: 0.6 }}>
+                  {project.location.city}, {project.location.country}
                 </div>
               )}
-              <div style={{ marginTop: '5px', fontSize: '10px' }}>
-                ID: {project.id}
-              </div>
             </div>
           ))}
         </div>

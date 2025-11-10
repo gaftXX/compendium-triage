@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Timestamp } from 'firebase/firestore';
 import { firestoreOperations } from '../../services/firebase/firestoreOperations';
-import { BTWorkspace, Office, Financial, Workforce, Project, CompanyStructure, Relationship, RecordData } from '../../types/firestore';
+import { BTWorkspace, Office, Financial, Workforce, Project, CompanyStructure, Relationship, MeditationData } from '../../types/firestore';
 import { ClaudeAIService } from '../../services/claudeAIService';
-import { useElectron } from '../../hooks/useElectron';
+import { navigationService } from '../../services/navigation/navigationService';
+import { ContextProvider } from '../../../../aiOrchestra/gen2/contextProvider';
 import { BasicOfficeDataWindow } from './windows/BasicOfficeDataWindow';
 import { ProjectsListWindow } from './windows/ProjectsListWindow';
+import { ProjectsTimelineWindow } from './windows/ProjectsTimelineWindow';
 import { EmployeesListWindow } from './windows/EmployeesListWindow';
 import { OfficeNotesWindow } from './windows/OfficeNotesWindow';
 import { CompanyStructureWindow } from './windows/CompanyStructureWindow';
@@ -15,7 +17,7 @@ interface BTViewPageProps {
   params?: any;
 }
 
-type WindowType = 'basic-office-data' | 'projects-list' | 'employees-list' | 'office-notes' | 'company-structure' | 'office-financials';
+type WindowType = 'basic-office-data' | 'projects-list' | 'projects-timeline' | 'employees-list' | 'office-notes' | 'company-structure' | 'office-financials';
 
 interface Window {
   id: string;
@@ -35,6 +37,7 @@ const CELL_SIZE = 340;
 const WINDOW_OPTIONS: Array<{ type: WindowType; label: string }> = [
   { type: 'basic-office-data', label: 'Basic Office Data' },
   { type: 'projects-list', label: 'Projects List' },
+  { type: 'projects-timeline', label: 'Projects Timeline' },
   { type: 'employees-list', label: 'Employees List' },
   { type: 'office-notes', label: 'Office Notes' },
   { type: 'company-structure', label: 'Company Structure' },
@@ -58,11 +61,12 @@ export const BTViewPage: React.FC<BTViewPageProps> = ({ params }) => {
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [isProcessingNote, setIsProcessingNote] = useState(false);
-  const [showRecordInput, setShowRecordInput] = useState(false);
-  const [recordText, setRecordText] = useState('');
-  const [isCreatingRecord, setIsCreatingRecord] = useState(false);
-  const { isElectron } = useElectron();
+  const [showMeditationInput, setShowMeditationInput] = useState(false);
+  const [meditationText, setMeditationText] = useState('');
+  const [meditationTitle, setMeditationTitle] = useState('');
+  const [isCreatingMeditation, setIsCreatingMeditation] = useState(false);
   const claudeService = ClaudeAIService.getInstance();
+  const contextProvider = ContextProvider.getInstance();
 
   // Helper functions: gridPosition.col is now the MIDDLE column (base point)
   // Calculate leftmost column from middle column and width
@@ -175,6 +179,38 @@ export const BTViewPage: React.FC<BTViewPageProps> = ({ params }) => {
       saveWorkspace();
     };
   }, [saveWorkspace]);
+
+  // Update context provider when page loads
+  useEffect(() => {
+    contextProvider.setCurrentPage('bt-view');
+    
+    return () => {
+      // Clear context when leaving page
+      contextProvider.updateContext({
+        currentPage: 'unknown',
+        openWindows: []
+      });
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update context provider when windows change
+  useEffect(() => {
+    const windowLabels = windows.map(w => {
+      const option = WINDOW_OPTIONS.find(opt => opt.type === w.type);
+      return option ? option.label : w.type;
+    });
+    
+    contextProvider.updateContext({
+      openWindows: windowLabels
+    });
+  }, [windows]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update selected entity when office changes
+  useEffect(() => {
+    if (office && officeId) {
+      contextProvider.setSelectedEntity('office', officeId, office.name);
+    }
+  }, [office, officeId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAddWindow = useCallback((windowType: WindowType) => {
     setWindows(prev => {
@@ -404,34 +440,37 @@ export const BTViewPage: React.FC<BTViewPageProps> = ({ params }) => {
     }
   }, [noteText, selectedWindowId, officeId, windows, claudeService, isProcessingNote]);
 
-  const handleRecordSubmit = useCallback(async () => {
-    if (!recordText.trim() || !officeId || isCreatingRecord) return;
+  const handleMeditationSubmit = useCallback(async () => {
+    if (!meditationText.trim() || !officeId || isCreatingMeditation) return;
 
-    setIsCreatingRecord(true);
+    setIsCreatingMeditation(true);
 
     try {
-      const recordData: Omit<RecordData, 'id' | 'createdAt' | 'updatedAt'> = {
-        text: recordText.trim(),
+      const meditationData: Omit<MeditationData, 'id' | 'createdAt' | 'updatedAt'> = {
+        title: meditationTitle.trim() || undefined,
+        text: meditationText.trim(),
         officeId: officeId
       };
 
-      const result = await firestoreOperations.create('records', recordData);
+      const result = await firestoreOperations.create('meditations', meditationData);
       
       if (result.success) {
-        setShowRecordInput(false);
-        setRecordText('');
+        setShowMeditationInput(false);
+        setMeditationText('');
+        setMeditationTitle('');
       } else {
-        alert('Error creating record: ' + (result.error || 'Unknown error'));
+        alert('Error creating meditation: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Error creating record:', error);
-      alert('Error creating record: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      console.error('Error creating meditation:', error);
+      alert('Error creating meditation: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
-      setIsCreatingRecord(false);
+      setIsCreatingMeditation(false);
     }
-  }, [recordText, officeId, isCreatingRecord]);
+  }, [meditationText, meditationTitle, officeId, isCreatingMeditation]);
 
-  const handleWindowClick = (windowId: string, e: React.MouseEvent) => {
+  const handleWindowRightClick = (windowId: string, e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     if (selectedWindowId === windowId) {
       setSelectedWindowId(null);
@@ -533,7 +572,6 @@ export const BTViewPage: React.FC<BTViewPageProps> = ({ params }) => {
     const currentRightmost = getRightmostCol(window.gridPosition.col, window.gridPosition.width);
     
     if (direction === 'right') {
-      const newWidth = window.gridPosition.width + 1;
       // For odd widths, middle stays same; for even, shifts right
       const newRightmost = currentRightmost + 1;
       if (newRightmost >= GRID_COLS) return false; // Can't expand beyond grid
@@ -549,7 +587,6 @@ export const BTViewPage: React.FC<BTViewPageProps> = ({ params }) => {
       });
       return !existingWindow;
     } else { // left
-      const newWidth = window.gridPosition.width + 1;
       const newLeftmost = currentLeftmost - 1;
       if (newLeftmost < 0) return false; // Can't expand beyond grid
       
@@ -651,6 +688,8 @@ export const BTViewPage: React.FC<BTViewPageProps> = ({ params }) => {
         return <BasicOfficeDataWindow officeId={officeId} onClose={() => handleRemoveWindow(window.id)} />;
       case 'projects-list':
         return <ProjectsListWindow officeId={officeId} onClose={() => handleRemoveWindow(window.id)} />;
+      case 'projects-timeline':
+        return <ProjectsTimelineWindow officeId={officeId} onClose={() => handleRemoveWindow(window.id)} />;
       case 'employees-list':
         return <EmployeesListWindow officeId={officeId} onClose={() => handleRemoveWindow(window.id)} />;
       case 'office-notes':
@@ -666,7 +705,7 @@ export const BTViewPage: React.FC<BTViewPageProps> = ({ params }) => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.shiftKey && e.key === 'A' && !showAddMenu && !showNoteInput && !showRecordInput) {
+      if (e.shiftKey && e.key === 'A' && !showAddMenu && !showNoteInput && !showMeditationInput) {
         e.preventDefault();
         setShowAddMenu(true);
         setSelectedMenuIndex(0);
@@ -701,20 +740,27 @@ export const BTViewPage: React.FC<BTViewPageProps> = ({ params }) => {
           setShowNoteInput(true);
           setNoteText('');
         }
-      } else if (e.key === 'Escape' && (showNoteInput || showRecordInput)) {
+      } else if (e.key === 'Escape') {
+        if (showNoteInput || showMeditationInput) {
+          e.preventDefault();
+          setShowNoteInput(false);
+          setNoteText('');
+          setShowMeditationInput(false);
+          setMeditationText('');
+          setMeditationTitle('');
+        } else if (!showAddMenu) {
+          e.preventDefault();
+          navigationService.navigateToOffices();
+        }
+      } else if (e.shiftKey && e.key === 'R' && officeId && !showAddMenu && !showNoteInput && !showMeditationInput) {
         e.preventDefault();
-        setShowNoteInput(false);
-        setNoteText('');
-        setShowRecordInput(false);
-        setRecordText('');
-      } else if (e.shiftKey && e.key === 'R' && officeId && !showAddMenu && !showNoteInput && !showRecordInput) {
-        e.preventDefault();
-        setShowRecordInput(true);
-        setRecordText('');
+        setShowMeditationInput(true);
+        setMeditationText('');
+        setMeditationTitle('');
       }
     };
 
-    const handleKeyUp = (e: KeyboardEvent) => {
+    const handleKeyUp = (_e: KeyboardEvent) => {
       // No longer needed for menu handling - menu stays open until explicit selection/cancel
     };
 
@@ -734,7 +780,7 @@ export const BTViewPage: React.FC<BTViewPageProps> = ({ params }) => {
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [showAddMenu, selectedMenuIndex, handleAddWindow, selectedWindowId, handleRemoveWindow, windows, showNoteInput, showRecordInput, officeId]);
+  }, [showAddMenu, selectedMenuIndex, handleAddWindow, selectedWindowId, handleRemoveWindow, windows, showNoteInput, showMeditationInput, officeId]);
 
   const totalWidth = GRID_COLS * CELL_SIZE;
   const totalHeight = GRID_ROWS * CELL_SIZE;
@@ -775,7 +821,6 @@ export const BTViewPage: React.FC<BTViewPageProps> = ({ params }) => {
           
           // Only render the window in its leftmost cell
           const windowLeftmost = window ? getLeftmostCol(window.gridPosition.col, window.gridPosition.width || 1) : -1;
-          const windowRightmost = window ? getRightmostCol(window.gridPosition.col, window.gridPosition.width || 1) : -1;
           const isWindowStart = window && windowLeftmost === col;
           
           // Check if this cell is part of a multi-cell window but not the start
@@ -806,7 +851,7 @@ export const BTViewPage: React.FC<BTViewPageProps> = ({ params }) => {
                 <>
                   <div
                     draggable={selectedWindowId === window.id}
-                    onClick={(e) => handleWindowClick(window.id, e)}
+                    onContextMenu={(e) => handleWindowRightClick(window.id, e)}
                     onDragStart={(e) => handleWindowDragStart(window.id, e)}
                     onDragEnd={handleWindowDragEnd}
                     onDragOver={(e) => {
@@ -1006,7 +1051,7 @@ export const BTViewPage: React.FC<BTViewPageProps> = ({ params }) => {
                   </div>
         )}
 
-      {showRecordInput && (
+      {showMeditationInput && (
         <div style={{
           position: 'fixed',
           left: '50%',
@@ -1032,8 +1077,34 @@ export const BTViewPage: React.FC<BTViewPageProps> = ({ params }) => {
             textTransform: 'uppercase',
             marginBottom: '5px'
           }}>
-            ADD RECORD
+            ADD MEDITATION
           </div>
+          <input
+            type="text"
+            placeholder="Title (optional)"
+            value={meditationTitle}
+            onChange={(e) => setMeditationTitle(e.target.value)}
+            style={{
+              width: '100%',
+              backgroundColor: '#2a2a2a',
+              color: '#C8EDFC',
+              border: '1px solid #333333',
+              borderRadius: '4px',
+              padding: '10px',
+              fontSize: '12px',
+              boxSizing: 'border-box',
+              fontFamily: 'inherit',
+              marginBottom: '10px'
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                setShowMeditationInput(false);
+                setMeditationText('');
+                setMeditationTitle('');
+              }
+            }}
+          />
           <textarea
             autoFocus
             style={{
@@ -1050,19 +1121,20 @@ export const BTViewPage: React.FC<BTViewPageProps> = ({ params }) => {
               fontFamily: 'inherit',
               resize: 'vertical'
             }}
-            value={recordText}
-            onChange={(e) => setRecordText(e.target.value)}
+            value={meditationText}
+            onChange={(e) => setMeditationText(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
-                handleRecordSubmit();
+                handleMeditationSubmit();
               } else if (e.key === 'Escape') {
                 e.preventDefault();
-                setShowRecordInput(false);
-                setRecordText('');
+                setShowMeditationInput(false);
+                setMeditationText('');
+                setMeditationTitle('');
               }
             }}
-            placeholder="Enter record text... (Ctrl/Cmd+Enter to submit, Esc to cancel)"
+            placeholder="Enter meditation text... (Ctrl/Cmd+Enter to submit, Esc to cancel)"
           />
           <div style={{
             display: 'flex',
@@ -1071,8 +1143,9 @@ export const BTViewPage: React.FC<BTViewPageProps> = ({ params }) => {
           }}>
             <button
               onClick={() => {
-                setShowRecordInput(false);
-                setRecordText('');
+                setShowMeditationInput(false);
+                setMeditationText('');
+                setMeditationTitle('');
               }}
               style={{
                 padding: '5px 15px',
@@ -1091,21 +1164,21 @@ export const BTViewPage: React.FC<BTViewPageProps> = ({ params }) => {
               CANCEL
             </button>
             <button
-              onClick={handleRecordSubmit}
-              disabled={!recordText.trim() || isCreatingRecord}
+              onClick={handleMeditationSubmit}
+              disabled={!meditationText.trim() || isCreatingMeditation}
               style={{
                 padding: '5px 15px',
-                backgroundColor: isCreatingRecord || !recordText.trim() ? '#333333' : '#C8EDFC',
-                color: isCreatingRecord || !recordText.trim() ? '#666666' : '#000000',
+                backgroundColor: isCreatingMeditation || !meditationText.trim() ? '#333333' : '#C8EDFC',
+                color: isCreatingMeditation || !meditationText.trim() ? '#666666' : '#000000',
                 border: 'none',
                 borderRadius: '2px',
-                cursor: isCreatingRecord || !recordText.trim() ? 'not-allowed' : 'pointer',
+                cursor: isCreatingMeditation || !meditationText.trim() ? 'not-allowed' : 'pointer',
                 fontSize: '10px',
                 textTransform: 'uppercase',
                 fontWeight: 'bold'
               }}
             >
-              {isCreatingRecord ? 'CREATING...' : 'SUBMIT'}
+              {isCreatingMeditation ? 'CREATING...' : 'SUBMIT'}
             </button>
           </div>
         </div>

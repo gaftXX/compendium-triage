@@ -2,7 +2,6 @@
 
 import { 
   collection, 
-  collectionGroup,
   doc, 
   getDoc, 
   getDocs, 
@@ -31,8 +30,7 @@ import {
   ACTIVE_COLLECTIONS,
   Office,
   Project,
-  Regulation,
-  RecordData
+  Regulation
 } from '../../types/firestore';
 import {
   QueryOptions, 
@@ -274,9 +272,9 @@ export class FirestoreOperationsService implements FirestoreService {
 
       // Generate ID if not provided
       if (!documentData.id) {
-        // Special handling for records - use {number}-{DDMMYYYY} format
-        if (collectionName === 'records') {
-          documentData.id = await this.generateRecordId();
+        // Special handling for meditations - use {number}-{DDMMYYYY} format
+        if (collectionName === 'meditations') {
+          documentData.id = await this.generateMeditationId();
         } else {
           documentData.id = this.generateDocumentId(collectionName, documentData);
         }
@@ -516,7 +514,7 @@ export class FirestoreOperationsService implements FirestoreService {
     
     try {
       // Generate ID if not provided
-      const documentData = { ...data };
+      const documentData: any = { ...data };
       if (!documentData.id) {
         documentData.id = this.generateDocumentId('offices', documentData);
       }
@@ -525,7 +523,7 @@ export class FirestoreOperationsService implements FirestoreService {
       const timestampedData = this.addTimestamps(documentData);
 
       // Create flat structure: offices/{officeId}
-      const officeDocRef = doc(collection(this.db, 'offices'), documentData.id);
+      const officeDocRef = doc(collection(this.db, 'offices'), documentData.id as string);
       await setDoc(officeDocRef, timestampedData);
 
       console.log('Office created successfully at flat path:', `offices/${documentData.id}`);
@@ -562,7 +560,12 @@ export class FirestoreOperationsService implements FirestoreService {
    * Delete an office (flat structure)
    */
   public async deleteOffice(id: string): Promise<DocumentOperationResult<void>> {
-    return this.deleteDocument('offices', id);
+    const result = await this.deleteDocument('offices', id);
+    return {
+      success: result.success,
+      error: result.error,
+      message: result.success ? `Office ${id} deleted successfully` : 'Failed to delete office'
+    };
   }
 
   /**
@@ -581,7 +584,7 @@ export class FirestoreOperationsService implements FirestoreService {
     
     try {
       // Generate ID if not provided
-      const documentData = { ...data };
+      const documentData: any = { ...data };
       if (!documentData.id) {
         documentData.id = this.generateDocumentId('projects', documentData);
       }
@@ -590,7 +593,7 @@ export class FirestoreOperationsService implements FirestoreService {
       const timestampedData = this.addTimestamps(documentData);
 
       // Create flat structure: projects/{projectId}
-      const projectDocRef = doc(collection(this.db, 'projects'), documentData.id);
+      const projectDocRef = doc(collection(this.db, 'projects'), documentData.id as string);
       await setDoc(projectDocRef, timestampedData);
 
       console.log('Project created successfully at flat path:', `projects/${documentData.id}`);
@@ -627,7 +630,12 @@ export class FirestoreOperationsService implements FirestoreService {
    * Delete a project
    */
   public async deleteProject(id: string): Promise<DocumentOperationResult<void>> {
-    return this.deleteDocument('projects', id);
+    const result = await this.deleteDocument('projects', id);
+    return {
+      success: result.success,
+      error: result.error,
+      message: result.success ? `Project ${id} deleted successfully` : 'Failed to delete project'
+    };
   }
 
   /**
@@ -647,7 +655,7 @@ export class FirestoreOperationsService implements FirestoreService {
     
     try {
       // Generate ID if not provided
-      const documentData = { ...data };
+      const documentData: any = { ...data };
       if (!documentData.id) {
         documentData.id = this.generateDocumentId('regulations', documentData);
       }
@@ -656,7 +664,7 @@ export class FirestoreOperationsService implements FirestoreService {
       const timestampedData = this.addTimestamps(documentData);
 
       // Create flat structure: regulations/{regulationId}
-      const regulationDocRef = doc(collection(this.db, 'regulations'), documentData.id);
+      const regulationDocRef = doc(collection(this.db, 'regulations'), documentData.id as string);
       await setDoc(regulationDocRef, timestampedData);
 
       console.log('Regulation created successfully at flat path:', `regulations/${documentData.id}`);
@@ -1119,8 +1127,8 @@ export class FirestoreOperationsService implements FirestoreService {
         }
         return `regulation-${timestamp}-${random}`;
       
-      case 'records':
-        // Records use {number}-{DDMMYYYY} format
+      case 'meditations':
+        // Meditations use {number}-{DDMMYYYY} format
         // This will be handled separately in async function
         return `temp-${timestamp}`;
       
@@ -1130,25 +1138,25 @@ export class FirestoreOperationsService implements FirestoreService {
   }
 
   /**
-   * Generate record ID based on {number}-{DDMMYYYY} template
+   * Generate meditation ID based on {number}-{DDMMYYYY} template
    */
-  public async generateRecordId(): Promise<string> {
+  public async generateMeditationId(): Promise<string> {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const year = now.getFullYear();
     const dateStr = `${day}${month}${year}`; // DDMMYYYY format
     
-    // Query all records to find the highest number for today
-    const recordsResult = await this.query<RecordData>('records');
+    // Query all meditations to find the highest number for today
+    const meditationsResult = await this.query('meditations');
     
     let maxNumber = 0;
-    if (recordsResult.success && recordsResult.data) {
+    if (meditationsResult.success && meditationsResult.data) {
       // Pattern to match: {number}-{DDMMYYYY}
       const pattern = new RegExp(`^(\\d+)-${dateStr}$`);
       
-      for (const record of recordsResult.data) {
-        const match = record.id.match(pattern);
+      for (const meditation of meditationsResult.data) {
+        const match = meditation.id.match(pattern);
         if (match) {
           const num = parseInt(match[1], 10);
           if (num > maxNumber) {

@@ -528,17 +528,17 @@ const regulationsIndexes: CompositeIndex[] = [
   }
 ];
 
-// Records Collection Indexes
-const recordsIndexes: CompositeIndex[] = [
+// Meditations Collection Indexes
+const meditationsIndexes: CompositeIndex[] = [
   {
-    name: 'records-office-created',
-    collectionGroup: 'records',
+    name: 'meditations-office-created',
+    collectionGroup: 'meditations',
     queryScope: 'COLLECTION',
     fields: [
       { fieldPath: 'officeId', order: 'ASCENDING' },
       { fieldPath: 'createdAt', order: 'DESCENDING' }
     ],
-    description: 'Query records by office ordered by creation date',
+    description: 'Query meditations by office ordered by creation date',
     queryPatterns: [
       'where("officeId", "==", "GBLO482").orderBy("createdAt", "desc")',
       'where("officeId", "==", "USNE567").orderBy("createdAt", "desc")'
@@ -695,7 +695,7 @@ export const databaseIndexes: IndexConfiguration = {
     ...archHistoryIndexes,
     ...networkGraphIndexes,
     ...regulationsIndexes,
-    ...recordsIndexes,
+    ...meditationsIndexes,
     ...financialsIndexes
   ],
   singleFieldIndexes,
@@ -707,11 +707,11 @@ export const databaseIndexes: IndexConfiguration = {
     'archHistory',
     'networkGraph',
     'regulations',
-    'records'
+    'meditations'
   ],
   totalIndexes: citiesIndexes.length + officesIndexes.length + projectsIndexes.length + 
                 relationshipsIndexes.length + archHistoryIndexes.length + 
-                networkGraphIndexes.length + regulationsIndexes.length + recordsIndexes.length + singleFieldIndexes.length,
+                networkGraphIndexes.length + regulationsIndexes.length + meditationsIndexes.length + singleFieldIndexes.length,
   estimatedStorage: '~500MB - 2GB (depending on data volume)',
   performanceOptimization: [
     'Composite indexes for complex queries',

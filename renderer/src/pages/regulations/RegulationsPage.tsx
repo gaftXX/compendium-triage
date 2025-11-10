@@ -1,88 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { navigationService } from '../../services/navigation/navigationService';
-import { firestoreOperations } from '../../services/firebase/firestoreOperations';
-import { Regulation } from '../../types/firestore';
-import { useElectron } from '../../hooks/useElectron';
-import { RegulationsSpreadsheet } from '../../components/RegulationsSpreadsheet';
-
-// Global cache that persists across component unmounts
-let cachedRegulations: Regulation[] = [];
-let isCachedDataLoaded = false;
+import React, { useEffect } from 'react';
+import { ContextProvider } from '../../../../aiOrchestra/gen2/contextProvider';
 
 export const RegulationsPage: React.FC = () => {
-  const [regulations, setRegulations] = useState<Regulation[]>(cachedRegulations);
-  const [loading, setLoading] = useState(!isCachedDataLoaded);
-  const [error, setError] = useState<string | null>(null);
-  const [isFullWidth, setIsFullWidth] = useState(true);
-  const { isElectron, resizeToMaxWidth, resizeToDefault } = useElectron();
-
-  const handleClose = () => {
-    navigationService.navigateToCross();
-  };
-
-  const fetchRegulations = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await firestoreOperations.queryRegulations();
-      
-      if (result.success && result.data) {
-        // Update both local state and global cache
-        setRegulations(result.data);
-        cachedRegulations = result.data;
-        isCachedDataLoaded = true;
-      } else {
-        setError(result.error || 'Failed to fetch regulations');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const contextProvider = ContextProvider.getInstance();
 
   useEffect(() => {
-    // Only fetch if we haven't loaded data before (check global cache)
-    if (!isCachedDataLoaded) {
-      fetchRegulations();
-    }
-  }, []);
-
-  // Set to full width when page opens
-  useEffect(() => {
-    if (isElectron && isFullWidth) {
-      resizeToMaxWidth();
-    }
-  }, [isElectron, isFullWidth, resizeToMaxWidth]);
-
-  // Keyboard listener for Shift+W to toggle width
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'W' && e.shiftKey) {
-        if (isFullWidth) {
-          resizeToDefault();
-          setIsFullWidth(false);
-        } else {
-          resizeToMaxWidth();
-          setIsFullWidth(true);
-        }
-      }
+    contextProvider.setCurrentPage('regulations-list');
+    
+    return () => {
+      contextProvider.updateContext({
+        currentPage: 'unknown'
+      });
     };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isElectron, isFullWidth, resizeToMaxWidth, resizeToDefault]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <RegulationsSpreadsheet
-      data={regulations}
-      loading={loading}
-      error={error}
-      onRefresh={fetchRegulations}
-      onClose={handleClose}
-      onResizeToMaxWidth={resizeToMaxWidth}
-      onResizeToDefault={resizeToDefault}
-      isElectron={isElectron}
-    />
+    <div
+      style={{
+        width: '100vw',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+    >
+      UCC for later
+    </div>
   );
 };

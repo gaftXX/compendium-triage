@@ -20,11 +20,18 @@ export interface FirebaseConfig {
 
 function getFirebaseConfig(): FirebaseConfig {
   try {
-    // @ts-ignore - import.meta.env exists in Vite renderer builds
-    const env = (import.meta as any).env || {};
+    // Try to access Vite environment variables (browser/renderer context)
+    let env: any = {};
+    try {
+      // @ts-ignore - import.meta.env exists in Vite renderer builds
+      env = (import.meta as any).env || {};
+    } catch {
+      // Not in a Vite context (e.g., Node.js CLI), use process.env fallback
+      env = process.env;
+    }
     console.log('Debugging Firebase config loading...');
-    console.log('import.meta.env available:', !!(import.meta as any).env);
-    console.log('Full import.meta.env object:', env);
+    console.log('Environment available:', !!env);
+    console.log('Full environment object:', env);
     console.log('Environment variables found:', {
       apiKey: env.VITE_FIREBASE_API_KEY ? 'Found' : 'Missing',
       authDomain: env.VITE_FIREBASE_AUTH_DOMAIN ? 'Found' : 'Missing',
@@ -111,17 +118,34 @@ export function initializeFirebase(): FirebaseInit | null {
   const auth = getAuth(app);
 
   // Connect to emulators in development
-  if (import.meta.env.MODE === 'development' && import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
+  try {
+    // Check if we should use emulators (works in both Vite and Node.js contexts)
+    let useEmulator = false;
+    let isDevelopment = false;
     try {
-      // Only connect if not already connected
-      if (!(db as any)._delegate._databaseId.projectId.includes('demo-')) {
-        connectFirestoreEmulator(db, 'localhost', 8080);
-        connectAuthEmulator(auth, 'http://localhost:9099');
-        console.log('Connected to Firebase emulators');
-      }
-    } catch (error) {
-      console.warn('Failed to connect to Firebase emulators:', error);
+      // @ts-ignore
+      isDevelopment = (import.meta as any).env?.MODE === 'development';
+      // @ts-ignore
+      useEmulator = (import.meta as any).env?.VITE_USE_FIREBASE_EMULATOR === 'true';
+    } catch {
+      isDevelopment = process.env.NODE_ENV === 'development';
+      useEmulator = process.env.VITE_USE_FIREBASE_EMULATOR === 'true';
     }
+    
+    if (isDevelopment && useEmulator) {
+      try {
+        // Only connect if not already connected
+        if (!(db as any)._delegate._databaseId.projectId.includes('demo-')) {
+          connectFirestoreEmulator(db, 'localhost', 8080);
+          connectAuthEmulator(auth, 'http://localhost:9099');
+          console.log('Connected to Firebase emulators');
+        }
+      } catch (error) {
+        console.warn('Failed to connect to Firebase emulators:', error);
+      }
+    }
+  } catch (error) {
+    console.warn('Error checking emulator configuration:', error);
   }
 
   console.log('Firebase initialization successful');

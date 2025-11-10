@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { DocumentSnapshot } from 'firebase/firestore';
 import { subscribeToDocumentUpdates, subscribeToCollectionUpdates } from '../../../services/firebase/firestoreOperations';
-import { Office, Project, Relationship } from '../../../types/firestore';
+import { Office, Project, Relationship, Workforce } from '../../../types/firestore';
 
 interface BasicOfficeDataWindowProps {
   officeId: string | null;
   onClose: () => void;
 }
 
-export const BasicOfficeDataWindow: React.FC<BasicOfficeDataWindowProps> = ({ officeId, onClose }) => {
+export const BasicOfficeDataWindow: React.FC<BasicOfficeDataWindowProps> = ({ officeId }) => {
   const [office, setOffice] = useState<Office | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [projectCounts, setProjectCounts] = useState({ total: 0, active: 0 });
+  const [employeeCount, setEmployeeCount] = useState<number>(0);
 
   useEffect(() => {
     if (!officeId) {
@@ -24,7 +25,7 @@ export const BasicOfficeDataWindow: React.FC<BasicOfficeDataWindowProps> = ({ of
     setLoading(true);
     setError(null);
 
-    const unsubscribe = subscribeToDocumentUpdates<Office>(
+    const unsubscribe = subscribeToDocumentUpdates(
       'offices',
       officeId,
       (doc: DocumentSnapshot) => {
@@ -117,7 +118,7 @@ export const BasicOfficeDataWindow: React.FC<BasicOfficeDataWindowProps> = ({ of
     };
 
     // Subscribe to projects
-    projectsUnsubscribe = subscribeToCollectionUpdates<Project>(
+    projectsUnsubscribe = subscribeToCollectionUpdates(
       'projects',
       (snapshot) => {
         currentProjects = snapshot.docs.map(doc => ({
@@ -136,7 +137,7 @@ export const BasicOfficeDataWindow: React.FC<BasicOfficeDataWindowProps> = ({ of
     );
 
     // Subscribe to relationships (both directions)
-    relationshipsUnsubscribe = subscribeToCollectionUpdates<Relationship>(
+    relationshipsUnsubscribe = subscribeToCollectionUpdates(
       'relationships',
       (snapshot) => {
         currentRelationships = snapshot.docs.map(doc => ({
@@ -156,6 +157,50 @@ export const BasicOfficeDataWindow: React.FC<BasicOfficeDataWindowProps> = ({ of
     return () => {
       if (projectsUnsubscribe) projectsUnsubscribe();
       if (relationshipsUnsubscribe) relationshipsUnsubscribe();
+    };
+  }, [officeId]);
+
+  // Calculate employee count from workforce collection
+  useEffect(() => {
+    if (!officeId) {
+      setEmployeeCount(0);
+      return;
+    }
+
+    const unsubscribe = subscribeToCollectionUpdates(
+      'workforce',
+      (snapshot) => {
+        try {
+          const workforceData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          })) as Workforce[];
+
+          // Filter by officeId and get first match
+          const workforce = workforceData.find(w => w.officeId === officeId);
+          
+          if (workforce && workforce.employees) {
+            setEmployeeCount(workforce.employees.length);
+          } else {
+            setEmployeeCount(0);
+          }
+        } catch (err) {
+          console.error('Error calculating employee count:', err);
+          setEmployeeCount(0);
+        }
+      },
+      {
+        filters: [{ field: 'officeId', operator: '==', value: officeId }],
+        includeMetadataChanges: false,
+        onError: (err) => {
+          console.error('Error subscribing to workforce:', err);
+          setEmployeeCount(0);
+        }
+      }
+    );
+
+    return () => {
+      unsubscribe();
     };
   }, [officeId]);
 
@@ -239,10 +284,41 @@ export const BasicOfficeDataWindow: React.FC<BasicOfficeDataWindowProps> = ({ of
         {office.founded && <div style={{ marginBottom: '4px' }}>FOUNDED: {office.founded}</div>}
         {office.founder && <div style={{ marginBottom: '4px' }}>FOUNDER: {office.founder}</div>}
         <div style={{ marginBottom: '4px' }}>STATUS: {office.status}</div>
-        {office.website && <div style={{ marginBottom: '4px' }}>WEBSITE: {office.website}</div>}
+        {office.website && (
+          <div 
+            style={{ 
+              marginBottom: '4px',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              opacity: 0.8
+            }}
+            onClick={async (e) => {
+              e.stopPropagation();
+              const url = office.website?.startsWith('http') ? office.website : `https://${office.website}`;
+              try {
+                if ((window as any).electronAPI && (window as any).electronAPI.app && (window as any).electronAPI.app.openExternal) {
+                  await (window as any).electronAPI.app.openExternal(url);
+                } else {
+                  window.open(url, '_blank');
+                }
+              } catch (error) {
+                console.error('Error opening URL:', error);
+                window.open(url, '_blank');
+              }
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = '1';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = '0.8';
+            }}
+          >
+            WEBSITE: {office.website}
+          </div>
+        )}
         <div style={{ marginBottom: '4px' }}>HQ: {office.location.headquarters.city}, {office.location.headquarters.country}</div>
         {office.size?.sizeCategory && <div style={{ marginBottom: '4px' }}>SIZE: {office.size.sizeCategory}</div>}
-        {office.size?.employeeCount && <div style={{ marginBottom: '4px' }}>EMPLOYEES: {office.size.employeeCount.toLocaleString()}</div>}
+        <div style={{ marginBottom: '4px' }}>EMPLOYEES: {employeeCount.toLocaleString()}</div>
         {office.size?.annualRevenue && <div style={{ marginBottom: '4px' }}>REVENUE: ${office.size.annualRevenue.toLocaleString()}</div>}
         {office.specializations.length > 0 && <div style={{ marginBottom: '4px' }}>SPECIALIZATIONS: {office.specializations.join(', ')}</div>}
         {office.notableWorks.length > 0 && <div style={{ marginBottom: '4px' }}>NOTABLE: {office.notableWorks.join(', ')}</div>}
@@ -250,7 +326,7 @@ export const BasicOfficeDataWindow: React.FC<BasicOfficeDataWindowProps> = ({ of
         <div style={{ marginBottom: '4px' }}>ACTIVE: {projectCounts.active}</div>
         <div style={{ marginBottom: '4px' }}>CLIENTS: {office.connectionCounts.clients}</div>
         {office.location.otherOffices && office.location.otherOffices.length > 0 && (
-          <div style={{ marginBottom: '4px' }}>OTHER OFFICES: {office.location.otherOffices.map(l => l.city).join(', ')}</div>
+          <div style={{ marginBottom: '4px' }}>OTHER OFFICES: {office.location.otherOffices.map(l => l.address).join(', ')}</div>
         )}
       </div>
     </div>

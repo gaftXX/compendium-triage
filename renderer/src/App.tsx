@@ -4,7 +4,7 @@ import { RegulationsPage } from './pages/regulations';
 import { OfficesPage } from './pages/offices';
 import { ProjectsPage } from './pages/projects';
 import { BarcelonaMapPage } from './pages/map';
-import { RecordsPage } from './pages/records';
+import { MeditationsPage } from './pages/meditations';
 import { BTViewPage } from './pages/bt-view';
 import { initializeFirebase } from './services/firebase';
 import { navigationService, ViewType } from './services/navigation/navigationService';
@@ -80,8 +80,8 @@ function App() {
         return <RegulationsPage />;
       case 'map':
         return <BarcelonaMapPage />;
-      case 'records-list':
-        return <RecordsPage params={appState.params} />;
+      case 'meditations-list':
+        return <MeditationsPage params={appState.params} />;
       case 'bt-view':
         return <BTViewPage params={appState.params} />;
       case 'cross':
@@ -92,7 +92,15 @@ function App() {
 
   return (
     <OrchestratorProvider>
-      <div style={{ height: '100vh', backgroundColor: '#000000', color: '#ffffff' }}>
+      <div style={{ 
+        height: '100vh', 
+        backgroundColor: '#000000', 
+        color: '#C8EDFC',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
+        fontSize: '10px',
+        fontWeight: 'normal',
+        textTransform: 'uppercase'
+      }}>
         {renderView()}
       </div>
     </OrchestratorProvider>

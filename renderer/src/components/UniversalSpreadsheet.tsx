@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Office, Project, Regulation, RecordData } from '../types/firestore';
+import { Office, Project, Regulation, MeditationData } from '../types/firestore';
 
 // Define column configurations for each data type
 interface ColumnConfig {
@@ -10,8 +10,8 @@ interface ColumnConfig {
 }
 
 interface UniversalSpreadsheetProps {
-  data: Office[] | Project[] | Regulation[] | RecordData[];
-  dataType: 'offices' | 'projects' | 'regulations' | 'records';
+  data: Office[] | Project[] | Regulation[] | MeditationData[];
+  dataType: 'offices' | 'projects' | 'regulations' | 'meditations';
   loading?: boolean;
   error?: string | null;
   onRefresh?: () => void;
@@ -126,9 +126,9 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
     
     event.stopPropagation();
     
-    // Navigate to records with office ID
+    // Navigate to meditations with office ID
     import('../services/navigation/navigationService').then(({ navigationService }) => {
-      navigationService.navigateToRecordsWithOffice(office.id);
+      navigationService.navigateToMeditationsWithOffice(office.id);
     });
   };
 
@@ -383,10 +383,10 @@ export const UniversalSpreadsheet: React.FC<UniversalSpreadsheetProps> = ({
           }
         ];
       
-      case 'records':
+      case 'meditations':
         return [
           { key: 'rowNumber', label: '#', width: 25, render: (_value, _item, index) => (index ?? 0) + 1 },
-          { key: 'text', label: 'TEXT', width: 600 },
+          { key: 'text', label: 'MEDITATION', width: 600 },
           { key: 'createdAt', label: 'CREATED', width: 150, render: (value) => 
             value ? new Date(value.seconds * 1000).toLocaleDateString() : 'N/A'
           }

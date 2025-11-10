@@ -1,7 +1,7 @@
 {
   "name": "compendium-triage",
-  "version": "0.1.1",
-  "description": "AI Orchestrator Architecture App",
+  "version": "0.1.3",
+  "description": "MARKET CONSOLIDATION SOFTWARE",
   "author": "Compendium Triage Team",
   "main": "dist/main/main.js",
   "scripts": {
@@ -28,7 +28,9 @@
     "dist": "npm run build && electron-builder",
     "dist:mac": "npm run build && electron-builder --mac",
     "dist:dmg": "npm run build && electron-builder --mac dmg",
-    "pack": "npm run build && electron-builder --dir"
+    "pack": "npm run build && electron-builder --dir",
+    "dashboard": "ts-node --project aiOrchestra/tsconfig.json aiOrchestra/cli.ts",
+    "orchestra": "ts-node --project aiOrchestra/tsconfig.json aiOrchestra/cli.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.3",
