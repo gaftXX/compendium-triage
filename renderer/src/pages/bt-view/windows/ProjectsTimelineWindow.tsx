@@ -437,7 +437,7 @@ export const ProjectsTimelineWindow: React.FC<ProjectsTimelineWindowProps> = ({ 
         </div>
       </div>
 
-      <div style={{ marginTop: 'auto', fontSize: '8px', color: '#666666', marginTop: '10px' }}>
+      <div style={{ marginTop: '10px', fontSize: '8px', color: '#666666' }}>
         <div>TOTAL BUDGET: {timelineData.totalBudget.toLocaleString()}</div>
         <div style={{ marginTop: '5px' }}>PROJECTS: {timelineData.projects.length}</div>
         <div style={{ marginTop: '5px' }}>TIMEFRAME: {timelineData.yearRange.start} - {timelineData.yearRange.end}</div>

@@ -6,9 +6,9 @@ export class DashboardRenderer {
   public renderDashboard(
     metrics: DashboardMetrics,
     health: HealthStatus,
-    _recentLogs: RequestLog[],
+    recentLogs: RequestLog[],
     liveActivities: LiveActivity[],
-    _performanceHistory: PerformanceData[],
+    performanceHistory: PerformanceData[],
     showTestPanel: boolean = false,
     testScenarios: any[] = [],
     testResults: any[] = []
@@ -20,7 +20,15 @@ export class DashboardRenderer {
     if (showTestPanel) {
       sections.push(this.renderTestPanel(testScenarios, testResults));
     } else {
-      sections.push(this.renderSimplePanel(metrics, health, liveActivities));
+      sections.push(this.renderHealthStatus(health));
+      sections.push(this.renderKeyMetrics(metrics));
+      sections.push(this.renderIntentBreakdown(metrics));
+      sections.push(this.renderToolUsage(metrics));
+      sections.push(this.renderApprovalMetrics(metrics));
+      sections.push(this.renderPerformanceGraph(performanceHistory));
+      sections.push(this.renderLiveActivity(liveActivities));
+      sections.push(this.renderRecentLogs(recentLogs));
+      sections.push(this.renderErrors(metrics));
     }
     
     sections.push(this.renderControls());
@@ -28,40 +36,6 @@ export class DashboardRenderer {
     return sections.join('\n\n');
   }
 
-  private renderSimplePanel(metrics: DashboardMetrics, health: HealthStatus, activities: LiveActivity[]): string {
-    let output = '┌─ AI ORCHESTRA STATUS ───────────────────────────────────────────────┐\n';
-    
-    // System status
-    const statusIcon = health.overall === 'healthy' ? '●' : '○';
-    output += `│ System: ${statusIcon} ${health.overall.toUpperCase().padEnd(10)} │ `;
-    
-    // Quick stats
-    const successRate = metrics.totalRequests > 0 
-      ? ((metrics.successfulRequests / metrics.totalRequests) * 100).toFixed(0)
-      : '0';
-    output += `Requests: ${String(metrics.totalRequests).padEnd(4)} │ `;
-    output += `Success: ${successRate}% │\n`;
-    
-    output += '├─────────────────────────────────────────────────────────────────────┤\n';
-    
-    // Recent activity
-    if (activities.length > 0) {
-      output += '│ RECENT ACTIVITY:                                                  │\n';
-      activities.slice(-5).forEach(activity => {
-        const time = activity.timestamp.toLocaleTimeString();
-        const msg = activity.message.slice(0, 42);
-        output += `│ ${time} - ${msg.padEnd(42)} │\n`;
-      });
-    } else {
-      output += '│                                                                   │\n';
-      output += '│  No activity yet. Press 1, 2, 3, or A to run tests.              │\n';
-      output += '│                                                                   │\n';
-    }
-    
-    output += '└─────────────────────────────────────────────────────────────────────┘';
-    
-    return output;
-  }
 
   private renderControls(): string {
     return `
@@ -79,7 +53,7 @@ CONTROLS:
     return `\n${padding}${title}${padding}`;
   }
   
-  private _renderHealthStatus(health: HealthStatus): string {
+  private renderHealthStatus(health: HealthStatus): string {
     const statusIcon = (status: string) => {
       if (status === 'operational' || status === 'healthy') return '●';
       if (status === 'degraded') return '◐';
@@ -99,7 +73,7 @@ CONTROLS:
 └───────────────────────────────────────────────────────────────────────────────┘`;
   }
   
-  private _renderKeyMetrics(metrics: DashboardMetrics): string {
+  private renderKeyMetrics(metrics: DashboardMetrics): string {
     const successRate = metrics.totalRequests > 0 
       ? ((metrics.successfulRequests / metrics.totalRequests) * 100).toFixed(1)
       : '0.0';
@@ -120,7 +94,7 @@ CONTROLS:
 └───────────────────────────────────────────────────────────────────────────────┘`;
   }
   
-  private _renderIntentBreakdown(metrics: DashboardMetrics): string {
+  private renderIntentBreakdown(metrics: DashboardMetrics): string {
     const intents = Object.entries(metrics.intentBreakdown)
       .sort(([,a], [,b]) => b - a)
       .slice(0, 8);
@@ -145,7 +119,7 @@ CONTROLS:
     return output;
   }
   
-  private _renderToolUsage(metrics: DashboardMetrics): string {
+  private renderToolUsage(metrics: DashboardMetrics): string {
     const tools = Object.entries(metrics.toolUsageBreakdown)
       .sort(([,a], [,b]) => b - a)
       .slice(0, 8);
@@ -169,7 +143,7 @@ CONTROLS:
     return output;
   }
   
-  private _renderApprovalMetrics(metrics: DashboardMetrics): string {
+  private renderApprovalMetrics(metrics: DashboardMetrics): string {
     const total = metrics.actionsRequiringApproval;
     const approved = metrics.actionsApproved;
     const rejected = metrics.actionsRejected;
@@ -187,7 +161,7 @@ CONTROLS:
 └───────────────────────────────────────────────────────────────────────────────┘`;
   }
   
-  private _renderPerformanceGraph(history: PerformanceData[]): string {
+  private renderPerformanceGraph(history: PerformanceData[]): string {
     const recent = history.slice(-30);
     
     if (recent.length === 0) {
@@ -223,7 +197,7 @@ CONTROLS:
     return output;
   }
   
-  private _renderLiveActivity(activities: LiveActivity[]): string {
+  private renderLiveActivity(activities: LiveActivity[]): string {
     const recent = activities.slice(0, 5);
     
     let output = `
@@ -244,7 +218,7 @@ CONTROLS:
     return output;
   }
   
-  private _renderRecentLogs(logs: RequestLog[]): string {
+  private renderRecentLogs(logs: RequestLog[]): string {
     const recent = logs.slice(0, 5);
     
     let output = `
@@ -265,7 +239,7 @@ CONTROLS:
     return output;
   }
   
-  private _renderErrors(metrics: DashboardMetrics): string {
+  private renderErrors(metrics: DashboardMetrics): string {
     let output = `
 ┌─ COMMON ERRORS ─────────────────────────────────────────────────────────────┐`;
     
